@@ -1,4 +1,4 @@
-// KawanAI - Complete Application Controller (Bulletproof Auth Modal & Page Navigation)
+// KawanAI - Complete Application Controller (Lightweight Tenant Detail & Image Preview Modal)
 document.addEventListener('DOMContentLoaded', () => {
 
   // Global State Stores
@@ -277,7 +277,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const annualMonthlyVal = parseInt(p.annual_monthly_price);
       const annualTotalVal = annualMonthlyVal * 12;
       const origVal = p.original_monthly_price ? parseInt(p.original_monthly_price) : monthlyVal * 1.5;
-      const origAnnualTotalVal = origVal * 12;
 
       const monthlyFormatted = monthlyVal.toLocaleString('id-ID');
       const annualTotalFormatted = annualTotalVal.toLocaleString('id-ID');
@@ -375,7 +374,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- SUPER ADMIN TENANT TABLE ---
+  // --- PARA KAWANAI TENANT TABLE (SLEEK & REFINED) ---
   function renderAdminTenantsTable(tenants) {
     const tbody = document.getElementById('admin-tenants-table-body');
     if (!tbody) return;
@@ -391,7 +390,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <tr>
           <td><code>${code}</code></td>
           <td><strong>${bName}</strong><br><span style="font-size:12px; color:var(--text-muted);">${oName}</span></td>
-          <td>${email}<br><span style="font-size:12px; color:var(--success); font-weight:600;"><i data-lucide="phone"></i> ${wa}</span></td>
+          <td>${email}<br><span class="wa-phone-link"><i data-lucide="phone"></i> ${wa}</span></td>
           <td><span class="badge badge-accent">Paket PRO</span></td>
           <td><span class="badge badge-success">${t.payment_status || 'VERIFIED'}</span></td>
           <td>
@@ -404,6 +403,22 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
   }
 
+  // --- LIGHTWEIGHT IMAGE PREVIEW MODAL ---
+  const modalImagePreview = document.getElementById('modal-image-preview');
+  const btnCloseImageModal = document.getElementById('btn-close-image-modal');
+  const previewModalImg = document.getElementById('preview-modal-img');
+  const previewModalCaption = document.getElementById('preview-modal-caption');
+
+  if (btnCloseImageModal) btnCloseImageModal.onclick = () => { if (modalImagePreview) modalImagePreview.style.display = 'none'; };
+
+  window.openImagePreviewModal = function(imgUrl, caption) {
+    if (previewModalImg) previewModalImg.src = imgUrl;
+    if (previewModalCaption) previewModalCaption.textContent = `Resi Bukti Transfer BCA • ${caption}`;
+    if (modalImagePreview) modalImagePreview.style.display = 'flex';
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+  };
+
+  // --- DEDICATED TENANT DETAIL PAGE ROUTER (LIGHTWEIGHT TEXT-ONLY FIRST) ---
   window.openTenantDetailPage = function(tenantId) {
     const t = (window.rawTenantsData && window.rawTenantsData.find(x => x.id === tenantId)) || {
       id: tenantId,
@@ -435,22 +450,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const startStr = t.subscription_starts_at ? new Date(t.subscription_starts_at).toLocaleDateString('id-ID') : '01/07/2026';
     const endStr = t.subscription_ends_at ? new Date(t.subscription_ends_at).toLocaleDateString('id-ID') : '01/07/2027';
     const amtStr = 'Rp ' + parseInt(t.payment_amount || 9480000).toLocaleString('id-ID');
+    const proofUrl = t.payment_proof_url || 'https://dummyimage.com/600x800/0f172a/3b82f6.png&text=Bukti+Transfer+BCA+B2B+Kang+Devis+Rp+9.480.000';
 
     pageContent.innerHTML = `
       <div class="card">
         <div class="card-header">
-          <h3><i data-lucide="receipt"></i> Bukti Transfer Bank & Pembayaran</h3>
+          <h3><i data-lucide="receipt"></i> Informasi Pembayaran Bank</h3>
           <span class="badge badge-success">${t.payment_status || 'VERIFIED'}</span>
         </div>
-        <div class="neat-form-grid">
+        <div class="neat-form-grid" style="gap:20px;">
           <div class="form-row-2col">
             <div><span class="card-subtitle">Tanggal Transaksi</span><br><strong style="font-size:15px;">${payDateStr}</strong></div>
             <div><span class="card-subtitle">Nominal Pembayaran</span><br><strong style="font-size:17px; color:var(--primary-accent);">${amtStr}</strong></div>
           </div>
-          <div style="margin-top:16px;">
-            <span class="card-subtitle">Gambar Resi Bukti Transfer Bank (BCA / Mandiri / QRIS):</span>
-            <div style="margin-top:10px; text-align:center; background:rgba(0,0,0,0.03); padding:16px; border-radius:12px; border:1px solid var(--border-card);">
-              <img src="${t.payment_proof_url || 'https://dummyimage.com/600x800/0f172a/3b82f6.png&text=Bukti+Transfer+BCA+B2B+Kang+Devis+Rp+9.480.000'}" alt="Bukti Transfer Bank Tenant" style="max-width:100%; max-height:420px; border-radius:10px; object-fit:contain; box-shadow:var(--shadow-md);">
+          <div style="border-top:1px solid var(--border-card); padding-top:16px;">
+            <span class="card-subtitle" style="display:block; margin-bottom:8px;">File Bukti Transfer Bank (BCA / Mandiri / QRIS):</span>
+            <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(37,99,235,0.04); padding:14px 18px; border-radius:12px; border:1px solid rgba(37,99,235,0.15);">
+              <div>
+                <strong style="font-size:13.5px; color:var(--text-main); display:block;"><i data-lucide="file-text"></i> resi_transfer_bca_${(t.business_name || 'kawanai').toLowerCase().replace(/\s+/g, '_')}.png</strong>
+                <span style="font-size:11.5px; color:var(--text-muted);">Format: PNG / JPG • Terverifikasi Bank</span>
+              </div>
+              <button class="btn btn-outline btn-sm" onclick="openImagePreviewModal('${proofUrl}', '${(t.business_name || 'KawanAI').replace(/'/g, "\\'")}')">
+                <i data-lucide="image"></i> Lihat Resi (Popup)
+              </button>
             </div>
           </div>
         </div>
@@ -459,7 +481,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="card" style="display:flex; flex-direction:column; justify-content:space-between;">
         <div>
           <div class="card-header">
-            <h3><i data-lucide="calendar"></i> Masa Aktif & Detail Bisnis</h3>
+            <h3><i data-lucide="calendar"></i> Masa Aktif & Profil KawanAI</h3>
             <span class="badge badge-accent">Paket PRO</span>
           </div>
           <div class="neat-form-grid" style="gap:18px;">
@@ -469,7 +491,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <div class="form-row-2col">
               <div><span class="card-subtitle">Nama Pemilik (Owner)</span><br><strong>${t.owner_name || 'Kang Devis'}</strong></div>
-              <div><span class="card-subtitle">Kontak WhatsApp</span><br><strong style="color:var(--success);"><i data-lucide="phone"></i> ${t.whatsapp_number || '081234567890'}</strong></div>
+              <div><span class="card-subtitle">Kontak WhatsApp</span><br><span class="wa-phone-link"><i data-lucide="phone"></i> ${t.whatsapp_number || '081234567890'}</span></div>
             </div>
             <div>
               <span class="card-subtitle">Email Terdaftar</span><br><strong>${t.owner_email || 'devis@kawanai.id'}</strong>
@@ -482,8 +504,8 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
 
         <div style="border-top:1px solid var(--border-card); padding-top:16px; margin-top:20px; display:flex; gap:10px;">
-          <button class="btn btn-primary" onclick="alert('✅ Pembayaran Tenant Berhasil Dikonfirmasi & Diperpanjang!')"><i data-lucide="check-circle-2"></i> Konfirmasi & Perpanjang Masa Aktif</button>
-          <button class="btn btn-outline" onclick="alert('📩 Tagihan Pengingat WhatsApp Dikirim ke Tenant!')"><i data-lucide="send"></i> Kirim Tagihan WhatsApp</button>
+          <button class="btn btn-primary" onclick="alert('✅ Pembayaran Tenant Berhasil Dikonfirmasi & Diperpanjang!')"><i data-lucide="check-circle-2"></i> Perpanjang Masa Aktif</button>
+          <button class="btn btn-outline" onclick="alert('📩 Tagihan Pengingat WhatsApp Dikirim ke Tenant!')"><i data-lucide="send"></i> Tagihan WhatsApp</button>
         </div>
       </div>
     `;

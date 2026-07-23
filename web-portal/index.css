@@ -387,3 +387,21 @@ input:checked + .slider:before { transform: translateX(20px); }
   .header-title h1 { font-size: 19px; }
   .top-header { flex-direction: column; align-items: flex-start; gap: 10px; }
 }
+
+/* SLEEK AESTHETIC COMPACT PHONE ICON */
+.wa-phone-link {
+  color: var(--success);
+  font-weight: 600;
+  font-size: 12.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.wa-phone-link svg {
+  width: 12px !important;
+  height: 12px !important;
+  stroke-width: 2.2px;
+  flex-shrink: 0;
+  color: var(--success);
+}
+
