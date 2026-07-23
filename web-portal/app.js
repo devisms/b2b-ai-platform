@@ -1,4 +1,4 @@
-// KawanAI - Complete Application Controller (Dynamic Pricing Switcher & Percentage Discount Engine)
+// KawanAI - Complete Application Controller (Dual Strikethrough & Yearly Super-Saver Pricing Engine)
 document.addEventListener('DOMContentLoaded', () => {
 
   // 0. Dual Theme Switcher Controller
@@ -105,45 +105,44 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderPricingGrid(plans) {
     const grid = document.querySelector('.pricing-grid');
     if (!grid) return;
+
     grid.innerHTML = plans.map(p => {
       const isExpired = p.is_promo_expired;
       const monthlyVal = parseInt(p.monthly_price);
       const annualVal = parseInt(p.annual_monthly_price);
-      const origVal = p.original_monthly_price ? parseInt(p.original_monthly_price) : null;
+      const origVal = p.original_monthly_price ? parseInt(p.original_monthly_price) : monthlyVal * 1.5;
 
       const monthlyFormatted = monthlyVal.toLocaleString('id-ID');
       const annualFormatted = annualVal.toLocaleString('id-ID');
-      const origFormatted = origVal ? origVal.toLocaleString('id-ID') : null;
+      const origFormatted = origVal.toLocaleString('id-ID');
 
-      // Calculate percentage discount automatically (misal: (1490000 - 990000) / 1490000 = 33.5% -> 34%)
-      let discountPct = 0;
-      if (origVal && origVal > monthlyVal) {
-        discountPct = Math.round(((origVal - monthlyVal) / origVal) * 100);
-      }
-
-      let strikeHtml = '';
-      let promoBadgeHtml = '';
-
-      if (!isExpired && origVal && origVal > monthlyVal) {
-        strikeHtml = `<span class="price-original-strikethrough" data-orig-monthly="Rp ${origFormatted}" data-orig-annual="Rp ${origFormatted}"><s>Rp ${origFormatted}</s></span>`;
-        promoBadgeHtml = `<div class="promo-timer-badge"><i data-lucide="flame"></i> Diskon ${discountPct}% • ${p.promo_badge || 'Promo Terbatas'}</div>`;
-      }
+      // Calculate percentage discounts for both Monthly and Yearly modes
+      const monthlyDiscountPct = Math.round(((origVal - monthlyVal) / origVal) * 100);
+      const annualDiscountPct = Math.round(((origVal - annualVal) / origVal) * 100);
 
       const featuresList = (typeof p.features_json === 'string' ? JSON.parse(p.features_json) : p.features_json)
         .map(f => `<li><i data-lucide="check-circle-2"></i> ${f}</li>`).join('');
 
+      const strikeMonthlyHtml = `<s>Rp ${origFormatted}</s>`;
+      const strikeAnnualHtml = `<s>Rp ${origFormatted}</s> (atau <s>Rp ${monthlyFormatted}</s>)`;
+
+      const promoBadgeMonthly = `🔥 Diskon ${monthlyDiscountPct}% • Promo Bulanan`;
+      const promoBadgeAnnual = `🔥 Diskon ${annualDiscountPct}% • Pesen Setaun Jauh Lebih Hemat!`;
+
       return `
-        <div class="pricing-card card ${p.is_popular ? 'popular' : ''}">
+        <div class="pricing-card card ${p.is_popular ? 'popular' : ''}" data-plan-code="${p.plan_code}">
           ${p.is_popular ? '<div class="popular-tag">Paling Populer</div>' : ''}
           <div class="pricing-header">
             <h3>${p.plan_name}</h3>
             <p>${p.subtitle || ''}</p>
-            ${promoBadgeHtml}
+            <div class="promo-timer-badge" id="badge-${p.id}">
+              <i data-lucide="flame"></i> <span class="badge-text">${promoBadgeMonthly}</span>
+            </div>
             <div class="price-box">
-              ${strikeHtml}
+              <span class="price-original-strikethrough" id="strike-${p.id}" data-strike-monthly="${strikeMonthlyHtml}" data-strike-annual="${strikeAnnualHtml}">${strikeMonthlyHtml}</span>
               <span class="currency">Rp</span>
-              <span class="price-value" data-monthly="${monthlyFormatted}" data-annual="${annualFormatted}">${monthlyFormatted}</span>
-              <span class="period">/ bulan</span>
+              <span class="price-value" id="price-${p.id}" data-monthly="${monthlyFormatted}" data-annual="${annualFormatted}">${monthlyFormatted}</span>
+              <span class="period" id="period-${p.id}">/ bulan</span>
             </div>
           </div>
           <ul class="pricing-features">
@@ -158,18 +157,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
 
-    // DYNAMIC MONTHLY / ANNUAL TOGGLE SWITCHER ENGINE
+    // DUAL MONTHLY / YEARLY TOGGLE SWITCHER ENGINE WITH STRIKETHROUGH & DISCOUNT BADGES
     const toggleCheckbox = document.getElementById('pricing-toggle-checkbox');
     if (toggleCheckbox) {
       toggleCheckbox.addEventListener('change', () => {
         const isAnnual = toggleCheckbox.checked;
-        document.querySelectorAll('.price-value').forEach(priceSpan => {
-          const monthly = priceSpan.getAttribute('data-monthly');
-          const annual = priceSpan.getAttribute('data-annual');
-          priceSpan.textContent = isAnnual ? annual : monthly;
-        });
-        document.querySelectorAll('.pricing-header .period').forEach(periodSpan => {
-          periodSpan.textContent = isAnnual ? '/ bulan (ditagih tahunan)' : '/ bulan';
+
+        plans.forEach(p => {
+          const priceSpan = document.getElementById(`price-${p.id}`);
+          const periodSpan = document.getElementById(`period-${p.id}`);
+          const strikeSpan = document.getElementById(`strike-${p.id}`);
+          const badgeElem = document.getElementById(`badge-${p.id}`);
+
+          if (priceSpan && periodSpan && strikeSpan && badgeElem) {
+            const monthlyVal = parseInt(p.monthly_price);
+            const annualVal = parseInt(p.annual_monthly_price);
+            const origVal = p.original_monthly_price ? parseInt(p.original_monthly_price) : monthlyVal * 1.5;
+
+            const monthlyFormatted = monthlyVal.toLocaleString('id-ID');
+            const annualFormatted = annualVal.toLocaleString('id-ID');
+            const origFormatted = origVal.toLocaleString('id-ID');
+
+            const monthlyDiscountPct = Math.round(((origVal - monthlyVal) / origVal) * 100);
+            const annualDiscountPct = Math.round(((origVal - annualVal) / origVal) * 100);
+
+            if (isAnnual) {
+              priceSpan.textContent = annualFormatted;
+              periodSpan.textContent = '/ bulan (ditagih tahunan)';
+              strikeSpan.innerHTML = `<s>Rp ${origFormatted}</s>`;
+              badgeElem.querySelector('.badge-text').textContent = `🔥 Diskon ${annualDiscountPct}% • Pesen Setaun Jauh Lebih Hemat!`;
+            } else {
+              priceSpan.textContent = monthlyFormatted;
+              periodSpan.textContent = '/ bulan';
+              strikeSpan.innerHTML = `<s>Rp ${origFormatted}</s>`;
+              badgeElem.querySelector('.badge-text').textContent = `🔥 Diskon ${monthlyDiscountPct}% • Promo Bulanan`;
+            }
+          }
         });
       });
     }
@@ -461,13 +484,13 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="form-group"><label>Nama Paket</label><input type="text" id="pr-name" required value="${item?.plan_name || ''}" placeholder="Paket Pro (Bisnis)"></div>
         </div>
         <div class="form-row-2col">
-          <div class="form-group"><label>Harga Normal (Lebih Mahal)</label><input type="number" id="pr-orig" value="${item?.original_monthly_price || 1490000}" placeholder="misal: 1490000"></div>
-          <div class="form-group"><label>Harga Diskon Promo (Lebih Murah)</label><input type="number" id="pr-monthly" required value="${item?.monthly_price || 990000}" placeholder="misal: 990000"></div>
+          <div class="form-group"><label>Harga Normal Asli (Lebih Mahal)</label><input type="number" id="pr-orig" value="${item?.original_monthly_price || 1490000}" placeholder="misal: 1490000"></div>
+          <div class="form-group"><label>Harga Promo Bulanan (Rp)</label><input type="number" id="pr-monthly" required value="${item?.monthly_price || 990000}" placeholder="misal: 990000"></div>
         </div>
         <div class="form-group"><label>Teks Label Promo</label><input type="text" id="pr-badge" value="${item?.promo_badge || 'Promo Terbatas'}" placeholder="misal: Promo Terbatas"></div>
         <div class="form-row-2col">
           <div class="form-group"><label>Batas Tanggal Expiry Promo</label><input type="date" id="pr-ends" value="${item?.promo_ends_at ? item.promo_ends_at.substring(0,10) : '2026-08-31'}"></div>
-          <div class="form-group"><label>Harga Tahunan Bulanan (Rp)</label><input type="number" id="pr-annual" required value="${item?.annual_monthly_price || 790000}"></div>
+          <div class="form-group"><label>Harga Setaun Tahunan (Jauh Lebih Murah)</label><input type="number" id="pr-annual" required value="${item?.annual_monthly_price || 790000}"></div>
         </div>
       `;
     }
