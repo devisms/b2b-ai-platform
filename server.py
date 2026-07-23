@@ -32,7 +32,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         try:
             conn = psycopg2.connect(**DB_CONFIG)
             cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cursor.execute("SELECT * FROM portfolio_items ORDER BY display_order ASC;")
+            cursor.execute("SELECT * FROM cms_service.portfolio_items ORDER BY display_order ASC;")
             rows = cursor.fetchall()
             conn.close()
 
@@ -51,7 +51,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         try:
             conn = psycopg2.connect(**DB_CONFIG)
             cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cursor.execute("SELECT * FROM pricing_plans ORDER BY display_order ASC;")
+            cursor.execute("SELECT * FROM cms_service.pricing_plans ORDER BY display_order ASC;")
             rows = cursor.fetchall()
             conn.close()
 
@@ -68,5 +68,5 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
 
 if __name__ == "__main__":
     with socketserver.TCPServer(("127.0.0.1", PORT), CustomHandler) as httpd:
-        print(f"🚀 KawanAI Dynamic Server Running on http://127.0.0.1:{PORT}")
+        print(f"🚀 KawanAI Microservice-Ready Server Running on http://127.0.0.1:{PORT}")
         httpd.serve_forever()
