@@ -106,7 +106,6 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                     "user": user
                 })
             else:
-                # Default Client fallback
                 self.send_json_response({
                     "status": "success",
                     "role": "TENANT_OWNER",
@@ -123,6 +122,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         self.wfile.write(json.dumps(data, default=str).encode('utf-8'))
 
 if __name__ == "__main__":
+    socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("127.0.0.1", PORT), CustomHandler) as httpd:
-        print(f"🚀 KawanAI RBAC & Features Server Running on http://127.0.0.1:{PORT}")
+        print(f"🚀 KawanAI Server Running on http://127.0.0.1:{PORT}")
         httpd.serve_forever()
