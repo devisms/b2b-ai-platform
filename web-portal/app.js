@@ -1,4 +1,4 @@
-// KawanAI - Complete Application Controller (Super Admin, Neat Form Editor, & Soft Delete Modal)
+// KawanAI - Complete Application Controller (Promo Strikethrough, Expiry Engine, & Clean Subtitles)
 document.addEventListener('DOMContentLoaded', () => {
 
   // 0. Dual Theme Switcher Controller
@@ -106,8 +106,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const grid = document.querySelector('.pricing-grid');
     if (!grid) return;
     grid.innerHTML = plans.map(p => {
+      const isExpired = p.is_promo_expired;
       const monthlyFormatted = parseInt(p.monthly_price).toLocaleString('id-ID');
       const annualFormatted = parseInt(p.annual_monthly_price).toLocaleString('id-ID');
+      
+      const origMonthly = p.original_monthly_price ? parseInt(p.original_monthly_price).toLocaleString('id-ID') : null;
+
+      // Strikethrough logic & expiry fallback
+      let strikeHtml = '';
+      let promoBadgeHtml = '';
+
+      if (!isExpired && origMonthly) {
+        strikeHtml = `<span class="price-original-strikethrough">Rp ${origMonthly}</span>`;
+        if (p.promo_badge) {
+          promoBadgeHtml = `<div class="promo-timer-badge"><i data-lucide="flame"></i> ${p.promo_badge}</div>`;
+        }
+      }
+
       const featuresList = (typeof p.features_json === 'string' ? JSON.parse(p.features_json) : p.features_json)
         .map(f => `<li><i data-lucide="check-circle-2"></i> ${f}</li>`).join('');
 
@@ -117,7 +132,9 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="pricing-header">
             <h3>${p.plan_name}</h3>
             <p>${p.subtitle || ''}</p>
+            ${promoBadgeHtml}
             <div class="price-box">
+              ${strikeHtml}
               <span class="currency">Rp</span>
               <span class="price-value" data-monthly="${monthlyFormatted}" data-annual="${annualFormatted}">${monthlyFormatted}</span>
               <span class="period">/ bulan</span>
@@ -184,18 +201,25 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderCMSPricingTable(items) {
     const tbody = document.getElementById('cms-pricing-table-body');
     if (!tbody) return;
-    tbody.innerHTML = items.map(p => `
-      <tr>
-        <td><code>${p.plan_code}</code></td>
-        <td><strong>${p.plan_name}</strong></td>
-        <td>Rp ${parseInt(p.monthly_price).toLocaleString('id-ID')}</td>
-        <td>Rp ${parseInt(p.annual_monthly_price).toLocaleString('id-ID')}</td>
-        <td>
-          <button class="btn-action-edit" onclick="openCMSEditorModal('pricing', '${p.id}')"><i data-lucide="edit"></i> Edit</button>
-          <button class="btn-action-delete" onclick="promptSoftDelete('pricing', '${p.id}', '${p.plan_name.replace(/'/g, "\\'")}')"><i data-lucide="trash-2"></i> Hapus</button>
-        </td>
-      </tr>
-    `).join('');
+    tbody.innerHTML = items.map(p => {
+      const origStr = p.original_monthly_price ? `<s>Rp ${parseInt(p.original_monthly_price).toLocaleString('id-ID')}</s>` : '-';
+      const promoStr = `Rp ${parseInt(p.monthly_price).toLocaleString('id-ID')}`;
+      const endsStr = p.promo_ends_at ? new Date(p.promo_ends_at).toLocaleDateString('id-ID') : 'Selamanya';
+
+      return `
+        <tr>
+          <td><code>${p.plan_code}</code></td>
+          <td><strong>${p.plan_name}</strong></td>
+          <td><span style="color:var(--text-dim);">${origStr}</span></td>
+          <td><strong style="color:var(--primary-accent);">${promoStr}</strong></td>
+          <td><span class="badge badge-accent">${endsStr}</span></td>
+          <td>
+            <button class="btn-action-edit" onclick="openCMSEditorModal('pricing', '${p.id}')"><i data-lucide="edit"></i> Edit</button>
+            <button class="btn-action-delete" onclick="promptSoftDelete('pricing', '${p.id}', '${p.plan_name.replace(/'/g, "\\'")}')"><i data-lucide="trash-2"></i> Hapus</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
     setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
   }
 
@@ -399,14 +423,19 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     } else if (type === 'pricing') {
       const item = id ? rawPricingData.find(x => x.id === id) : {};
-      document.getElementById('cms-modal-title').textContent = id ? 'Edit Paket Harga' : 'Tambah Paket Harga Baru';
+      document.getElementById('cms-modal-title').textContent = id ? 'Edit Paket Harga Promo' : 'Tambah Paket Harga Baru';
       cmsFieldsContainer.innerHTML = `
         <div class="form-row-2col">
           <div class="form-group"><label>Kode Paket</label><input type="text" id="pr-code" required value="${item?.plan_code || 'PRO'}" placeholder="LITE / PRO / ENTERPRISE"></div>
           <div class="form-group"><label>Nama Paket</label><input type="text" id="pr-name" required value="${item?.plan_name || ''}" placeholder="Paket Pro (Bisnis)"></div>
         </div>
         <div class="form-row-2col">
-          <div class="form-group"><label>Harga Bulanan (Rp)</label><input type="number" id="pr-monthly" required value="${item?.monthly_price || 990000}"></div>
+          <div class="form-group"><label>Harga Normal Coret (Rp)</label><input type="number" id="pr-orig" value="${item?.original_monthly_price || 1490000}" placeholder="misal: 1490000"></div>
+          <div class="form-group"><label>Harga Promo Diskon (Rp)</label><input type="number" id="pr-monthly" required value="${item?.monthly_price || 990000}" placeholder="misal: 990000"></div>
+        </div>
+        <div class="form-group"><label>Teks Label Promo</label><input type="text" id="pr-badge" value="${item?.promo_badge || 'Diskon 33% Promo Terbatas'}" placeholder="misal: Diskon 33% Promo Terbatas"></div>
+        <div class="form-row-2col">
+          <div class="form-group"><label>Batas Tanggal Expiry Promo</label><input type="date" id="pr-ends" value="${item?.promo_ends_at ? item.promo_ends_at.substring(0,10) : '2026-08-31'}"></div>
           <div class="form-group"><label>Harga Tahunan Bulanan (Rp)</label><input type="number" id="pr-annual" required value="${item?.annual_monthly_price || 790000}"></div>
         </div>
       `;
@@ -445,7 +474,10 @@ document.addEventListener('DOMContentLoaded', () => {
       } else if (type === 'pricing') {
         payload.plan_code = document.getElementById('pr-code').value;
         payload.plan_name = document.getElementById('pr-name').value;
+        payload.original_monthly_price = document.getElementById('pr-orig').value;
         payload.monthly_price = document.getElementById('pr-monthly').value;
+        payload.promo_badge = document.getElementById('pr-badge').value;
+        payload.promo_ends_at = document.getElementById('pr-ends').value ? document.getElementById('pr-ends').value + 'T23:59:59+07:00' : null;
         payload.annual_monthly_price = document.getElementById('pr-annual').value;
       }
 
@@ -477,7 +509,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.promptSoftDelete = function(type, id, title) {
     deleteTargetType.value = type;
     deleteTargetId.value = id;
-    deleteConfirmText.innerHTML = `Apakah Anda yakin ingin menghapus <strong>"${title}"</strong>?<br><span style="color:var(--text-dim); font-size:12.5px;">Data ini akan dipindahkan ke tempat sampah (Soft Delete) & tidak hilang permanen.</span>`;
+    deleteConfirmText.innerHTML = `Apakah Anda yakin ingin menghapus <strong>"${title}"</strong>?<br><span style="color:var(--text-dim); font-size:12.5px;">Data ini akan dipindahkan ke tempat sampah & tidak hilang permanen.</span>`;
     modalConfirmDelete.style.display = 'flex';
     setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
   };

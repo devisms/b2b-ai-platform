@@ -4,6 +4,7 @@ import os
 import json
 import psycopg2
 import psycopg2.extras
+from datetime import datetime
 
 PORT = 5002
 DIRECTORY = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'web-portal')
@@ -50,7 +51,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         else:
             self.send_error(404, "Endpoint Not Found")
 
-    # --- GET ENDPOINTS (FILTER IS_DELETED) ---
+    # --- GET ENDPOINTS (FILTER IS_DELETED & AUTOMATIC EXPIRE CHECK) ---
     def get_portfolio_api(self):
         try:
             conn = psycopg2.connect(**DB_CONFIG)
@@ -71,7 +72,27 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             rows = cursor.fetchall()
             conn.close()
 
-            self.send_json_response({"status": "success", "data": rows})
+            now = datetime.now()
+            processed_rows = []
+            for r in rows:
+                r_dict = dict(r)
+                promo_ends = r_dict.get('promo_ends_at')
+                is_expired = False
+
+                if promo_ends:
+                    if isinstance(promo_ends, str):
+                        promo_dt = datetime.fromisoformat(promo_ends.replace('Z', '+00:00'))
+                    else:
+                        promo_dt = promo_ends
+                    
+                    # If current time is past promo date, revert to normal price automatically!
+                    if now > promo_dt.replace(tzinfo=None):
+                        is_expired = True
+
+                r_dict['is_promo_expired'] = is_expired
+                processed_rows.append(r_dict)
+
+            self.send_json_response({"status": "success", "data": processed_rows})
         except Exception as e:
             self.send_json_response({"status": "error", "message": str(e)}, 500)
 
@@ -170,21 +191,24 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             subtitle = payload.get('subtitle')
             monthly_price = payload.get('monthly_price')
             annual_monthly_price = payload.get('annual_monthly_price')
-            features_json = json.dumps(payload.get('features_json', []))
+            original_monthly_price = payload.get('original_monthly_price') or None
+            promo_badge = payload.get('promo_badge') or 'Diskon Promo Terbatas'
+            promo_ends_at = payload.get('promo_ends_at') or None
 
             conn = psycopg2.connect(**DB_CONFIG)
             cursor = conn.cursor()
             if item_id:
                 cursor.execute("""
                     UPDATE cms_service.pricing_plans
-                    SET plan_code=%s, plan_name=%s, subtitle=%s, monthly_price=%s, annual_monthly_price=%s, features_json=%s
+                    SET plan_code=%s, plan_name=%s, subtitle=%s, monthly_price=%s, annual_monthly_price=%s,
+                        original_monthly_price=%s, promo_badge=%s, promo_ends_at=%s
                     WHERE id=%s;
-                """, (plan_code, plan_name, subtitle, monthly_price, annual_monthly_price, features_json, item_id))
+                """, (plan_code, plan_name, subtitle, monthly_price, annual_monthly_price, original_monthly_price, promo_badge, promo_ends_at, item_id))
             else:
                 cursor.execute("""
-                    INSERT INTO cms_service.pricing_plans (plan_code, plan_name, subtitle, monthly_price, annual_monthly_price, features_json)
-                    VALUES (%s, %s, %s, %s, %s, %s);
-                """, (plan_code, plan_name, subtitle, monthly_price, annual_monthly_price, features_json))
+                    INSERT INTO cms_service.pricing_plans (plan_code, plan_name, subtitle, monthly_price, annual_monthly_price, original_monthly_price, promo_badge, promo_ends_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
+                """, (plan_code, plan_name, subtitle, monthly_price, annual_monthly_price, original_monthly_price, promo_badge, promo_ends_at))
             conn.commit()
             conn.close()
 
@@ -203,7 +227,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             conn.commit()
             conn.close()
 
-            self.send_json_response({"status": "success", "message": "Portofolio berhasil dipindahkan ke tempat sampah (Soft Delete)!"})
+            self.send_json_response({"status": "success", "message": "Portofolio berhasil dipindahkan ke tempat sampah!"})
         except Exception as e:
             self.send_json_response({"status": "error", "message": str(e)}, 500)
 
@@ -217,7 +241,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             conn.commit()
             conn.close()
 
-            self.send_json_response({"status": "success", "message": "Fitur berhasil dipindahkan ke tempat sampah (Soft Delete)!"})
+            self.send_json_response({"status": "success", "message": "Fitur berhasil dipindahkan ke tempat sampah!"})
         except Exception as e:
             self.send_json_response({"status": "error", "message": str(e)}, 500)
 
@@ -231,7 +255,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             conn.commit()
             conn.close()
 
-            self.send_json_response({"status": "success", "message": "Paket Harga berhasil dipindahkan ke tempat sampah (Soft Delete)!"})
+            self.send_json_response({"status": "success", "message": "Paket Harga berhasil dipindahkan ke tempat sampah!"})
         except Exception as e:
             self.send_json_response({"status": "error", "message": str(e)}, 500)
 

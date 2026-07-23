@@ -84,7 +84,7 @@
       </div>
     </section>
 
-    <!-- SECTION 3: HARGA PAKET (DINAMIS DARI DATABASE) -->
+    <!-- SECTION 3: HARGA PAKET (DINAMIS DARI DATABASE + PROMO DISKON CORET) -->
     <section class="pricing-section" id="pricing">
       <div class="section-header">
         <span class="badge badge-accent">💳 Investasi Terjangkau</span>
@@ -515,7 +515,7 @@
               <div class="card-header">
                 <div>
                   <h3><i data-lucide="credit-card"></i> Kelola Paket Harga Langganan</h3>
-                  <p class="card-subtitle">Atur harga paket bulanan, tahunan, & tier langganan KawanAI</p>
+                  <p class="card-subtitle">Atur harga promo, diskon coret, & batas tanggal otomatis</p>
                 </div>
                 <button class="btn btn-primary btn-add-cms" id="btn-add-pricing"><i data-lucide="plus-circle"></i> Tambah Paket Baru</button>
               </div>
@@ -525,8 +525,9 @@
                     <tr>
                       <th>Kode Paket</th>
                       <th>Nama Paket</th>
-                      <th>Harga Bulanan</th>
-                      <th>Harga Tahunan</th>
+                      <th>Harga Normal (Coret)</th>
+                      <th>Harga Promo</th>
+                      <th>Batas Promo</th>
                       <th>Aksi CRUD</th>
                     </tr>
                   </thead>
@@ -548,7 +549,7 @@
     <div class="modal-card card" style="max-width:520px;">
       <button class="btn-close" id="btn-close-cms-modal">&times;</button>
       <h2 id="cms-modal-title">Editor Konten CMS</h2>
-      <p id="cms-modal-subtitle">Tambah atau perbarui data di database PostgreSQL</p>
+      <p id="cms-modal-subtitle">Isi formulir di bawah ini untuk memperbarui konten</p>
 
       <form id="form-cms-editor" class="config-form" style="margin-top:16px;">
         <input type="hidden" id="cms-item-id">
@@ -574,7 +575,7 @@
       </div>
       <h2 style="font-size:20px; font-weight:800; margin-bottom:8px; color:var(--text-main);">Konfirmasi Hapus Data</h2>
       <p id="delete-confirm-text" style="font-size:13.5px; color:var(--text-muted); line-height:1.5; margin-bottom:24px;">
-        Apakah Anda yakin ingin menghapus data ini? Data akan dipindahkan ke tempat sampah (Soft Delete) dan tidak hilang permanen dari database.
+        Apakah Anda yakin ingin menghapus data ini?
       </p>
 
       <input type="hidden" id="delete-target-type">

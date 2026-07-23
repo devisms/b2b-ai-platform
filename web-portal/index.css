@@ -91,6 +91,18 @@ body { background-color: var(--bg-main); color: var(--text-main); min-height: 10
 .delete-icon-wrapper svg { width: 28px; height: 28px; }
 .delete-actions-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
 
+/* Pricing Strikethrough & Expiry Badge Styling */
+.price-original-strikethrough {
+  text-decoration: line-through; color: var(--text-dim); font-size: 15px;
+  font-weight: 600; margin-right: 6px; display: block; margin-bottom: 2px;
+}
+.promo-timer-badge {
+  display: inline-flex; align-items: center; gap: 5px; background: rgba(239, 68, 68, 0.12);
+  color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.25); padding: 3px 9px;
+  border-radius: 12px; font-size: 11px; font-weight: 700; margin-bottom: 10px;
+}
+.promo-timer-badge svg { width: 13px; height: 13px; }
+
 /* Navbar */
 .navbar {
   display: flex; justify-content: space-between; align-items: center;
