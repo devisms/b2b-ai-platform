@@ -1,4 +1,4 @@
-// KawanAI - Complete Application Controller (Tenant Subscription Audit & Payment Proof Modal)
+// KawanAI - Complete Application Controller (Dedicated Full-Page Tenant Detail & Clean Admin Table)
 document.addEventListener('DOMContentLoaded', () => {
 
   // 0. Dual Theme Switcher Controller
@@ -132,10 +132,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const annualMonthlyFormatted = annualMonthlyVal.toLocaleString('id-ID');
       const annualTotalFormatted = annualTotalVal.toLocaleString('id-ID');
       const origFormatted = origVal.toLocaleString('id-ID');
-      const origAnnualFormatted = origAnnualTotalVal.toLocaleString('id-ID');
 
       const monthlyDiscountPct = Math.round(((origVal - monthlyVal) / origVal) * 100);
-      const annualDiscountPct = Math.round(((origAnnualTotalVal - annualTotalVal) / origAnnualTotalVal) * 100);
 
       const featuresList = (typeof p.features_json === 'string' ? JSON.parse(p.features_json) : p.features_json)
         .map(f => `<li><i data-lucide="check-circle-2"></i> ${f}</li>`).join('');
@@ -227,7 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- SUPER ADMIN TENANT SUBSCRIPTION & PAYMENT AUDIT TABLE ---
+  // --- SUPER ADMIN TENANT TABLE (CLEAN & CRISP) ---
   function renderAdminTenantsTable(tenants) {
     const tbody = document.getElementById('admin-tenants-table-body');
     if (!tbody) return;
@@ -238,11 +236,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const oName = t.owner_name || 'Kang Devis';
       const email = t.owner_email || 'devis@kawanai.id';
       const wa = t.whatsapp_number || '081234567890';
-      
-      const payDate = t.payment_date ? new Date(t.payment_date).toLocaleDateString('id-ID') : '01/07/2026';
-      const startDate = t.subscription_starts_at ? new Date(t.subscription_starts_at).toLocaleDateString('id-ID') : '01/07/2026';
-      const endDate = t.subscription_ends_at ? new Date(t.subscription_ends_at).toLocaleDateString('id-ID') : '01/07/2027';
-      const amount = t.payment_amount ? ('Rp ' + parseInt(t.payment_amount).toLocaleString('id-ID')) : 'Rp 9.480.000';
 
       return `
         <tr>
@@ -250,11 +243,9 @@ document.addEventListener('DOMContentLoaded', () => {
           <td><strong>${bName}</strong><br><span style="font-size:12px; color:var(--text-muted);">${oName}</span></td>
           <td>${email}<br><span style="font-size:12px; color:var(--success); font-weight:600;"><i data-lucide="phone"></i> ${wa}</span></td>
           <td><span class="badge badge-accent">Paket PRO</span></td>
-          <td><strong>${amount}</strong><br><span style="font-size:11.5px; color:var(--text-muted);">${payDate}</span></td>
-          <td><span style="color:var(--text-main); font-weight:600;">${startDate}</span><br><span style="font-size:11.5px; color:var(--text-dim);">s/d ${endDate}</span></td>
           <td><span class="badge badge-success">${t.payment_status || 'VERIFIED'}</span></td>
           <td>
-            <button class="btn-action-edit" onclick="openTenantProofModal('${t.id}')"><i data-lucide="receipt"></i> Bukti Transfer</button>
+            <button class="btn-action-edit" onclick="openTenantDetailPage('${t.id}')"><i data-lucide="eye"></i> Detail / View</button>
           </td>
         </tr>
       `;
@@ -262,6 +253,110 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
   }
+
+  // --- DEDICATED PAGE ROUTER FOR TENANT DETAIL VIEW (HALAMAN BARU TANPA POPUP) ---
+  const viewSuperAdmin = document.getElementById('view-superadmin');
+  const viewTenantDetail = document.getElementById('view-tenant-detail');
+  const btnBackToTenants = document.getElementById('btn-back-to-tenants');
+  const btnTopBackTenants = document.getElementById('btn-top-back-tenants');
+
+  function backToTenantsList() {
+    viewTenantDetail.style.display = 'none';
+    viewSuperAdmin.style.display = 'block';
+    window.scrollTo(0, 0);
+  }
+
+  if (btnBackToTenants) btnBackToTenants.addEventListener('click', backToTenantsList);
+  if (btnTopBackTenants) btnTopBackTenants.addEventListener('click', backToTenantsList);
+
+  window.openTenantDetailPage = function(tenantId) {
+    const t = rawTenantsData.find(x => x.id === tenantId) || {
+      id: tenantId,
+      tenant_code: '#K-9021',
+      business_name: 'Toko Baju Kang Devis',
+      owner_name: 'Kang Devis',
+      owner_email: 'devis@kawanai.id',
+      whatsapp_number: '081234567890',
+      payment_date: '2026-07-01T10:30:00+07:00',
+      subscription_starts_at: '2026-07-01T00:00:00+07:00',
+      subscription_ends_at: '2027-07-01T23:59:59+07:00',
+      payment_amount: 9480000.00,
+      payment_proof_url: 'https://dummyimage.com/600x800/0f172a/3b82f6.png&text=Bukti+Transfer+BCA+B2B+Kang+Devis+Rp+9.480.000',
+      payment_status: 'VERIFIED'
+    };
+
+    const detailTitle = document.getElementById('detail-tenant-title');
+    const detailSub = document.getElementById('detail-tenant-subtitle');
+    const pageContent = document.getElementById('tenant-detail-page-content');
+
+    if (detailTitle) detailTitle.textContent = t.business_name || t.name;
+    if (detailSub) detailSub.textContent = `ID Tenant: ${t.tenant_code || '#K-9021'} • Audit Langganan & Bukti Transfer`;
+
+    viewSuperAdmin.style.display = 'none';
+    viewTenantDetail.style.display = 'block';
+    window.scrollTo(0, 0);
+
+    const payDateStr = t.payment_date ? new Date(t.payment_date).toLocaleString('id-ID') : '01/07/2026 10:30';
+    const startStr = t.subscription_starts_at ? new Date(t.subscription_starts_at).toLocaleDateString('id-ID') : '01/07/2026';
+    const endStr = t.subscription_ends_at ? new Date(t.subscription_ends_at).toLocaleDateString('id-ID') : '01/07/2027';
+    const amtStr = 'Rp ' + parseInt(t.payment_amount || 9480000).toLocaleString('id-ID');
+
+    pageContent.innerHTML = `
+      <!-- CARD 1: INFORMASI PEMBAYARAN & BUKTI TRANSFER -->
+      <div class="card">
+        <div class="card-header">
+          <h3><i data-lucide="receipt"></i> Bukti Transfer Bank & Pembayaran</h3>
+          <span class="badge badge-success">${t.payment_status || 'VERIFIED'}</span>
+        </div>
+        <div class="neat-form-grid">
+          <div class="form-row-2col">
+            <div><span class="card-subtitle">Tanggal Transaksi</span><br><strong style="font-size:15px;">${payDateStr}</strong></div>
+            <div><span class="card-subtitle">Nominal Pembayaran</span><br><strong style="font-size:17px; color:var(--primary-accent);">${amtStr}</strong></div>
+          </div>
+          <div style="margin-top:16px;">
+            <span class="card-subtitle">Gambar Resi Bukti Transfer Bank (BCA / Mandiri / QRIS):</span>
+            <div style="margin-top:10px; text-align:center; background:rgba(0,0,0,0.03); padding:16px; border-radius:12px; border:1px solid var(--border-card);">
+              <img src="${t.payment_proof_url || 'https://dummyimage.com/600x800/0f172a/3b82f6.png&text=Bukti+Transfer+BCA+B2B+Kang+Devis+Rp+9.480.000'}" alt="Bukti Transfer Bank Tenant" style="max-width:100%; max-height:420px; border-radius:10px; object-fit:contain; box-shadow:var(--shadow-md);">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 2: MASA AKTIF & DETAIL BISNIS -->
+      <div class="card" style="display:flex; flex-direction:column; justify-content:space-between;">
+        <div>
+          <div class="card-header">
+            <h3><i data-lucide="calendar"></i> Masa Aktif & Detail Bisnis</h3>
+            <span class="badge badge-accent">Paket PRO</span>
+          </div>
+          <div class="neat-form-grid" style="gap:18px;">
+            <div>
+              <span class="card-subtitle">Nama Bisnis & Perusahaan</span>
+              <h3 style="font-size:18px; font-weight:800; margin-top:2px;">${t.business_name || t.name}</h3>
+            </div>
+            <div class="form-row-2col">
+              <div><span class="card-subtitle">Nama Pemilik (Owner)</span><br><strong>${t.owner_name || 'Kang Devis'}</strong></div>
+              <div><span class="card-subtitle">Kontak WhatsApp</span><br><strong style="color:var(--success);"><i data-lucide="phone"></i> ${t.whatsapp_number || '081234567890'}</strong></div>
+            </div>
+            <div>
+              <span class="card-subtitle">Email Terdaftar</span><br><strong>${t.owner_email || 'devis@kawanai.id'}</strong>
+            </div>
+            <div style="border-top:1px solid var(--border-card); padding-top:14px;" class="form-row-2col">
+              <div><span class="card-subtitle">Masa Aktif Mulai</span><br><strong style="font-size:15px;">${startStr}</strong></div>
+              <div><span class="card-subtitle">Berakhir Pada (Kadaluwarsa)</span><br><strong style="font-size:15px; color:var(--success);">${endStr}</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="border-top:1px solid var(--border-card); padding-top:16px; margin-top:20px; display:flex; gap:10px;">
+          <button class="btn btn-primary" onclick="alert('✅ Pembayaran Tenant Berhasil Dikonfirmasi & Diperpanjang!')"><i data-lucide="check-circle-2"></i> Konfirmasi & Perpanjang Masa Aktif</button>
+          <button class="btn btn-outline" onclick="alert('📩 Tagihan Pengingat WhatsApp Dikirim ke Tenant!')"><i data-lucide="send"></i> Kirim Tagihan WhatsApp</button>
+        </div>
+      </div>
+    `;
+
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+  };
 
   // --- CMS CONTENT EDITOR TABLES (SUPER ADMIN) ---
   function renderCMSPortfolioTable(items) {
@@ -369,8 +464,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // 3. View & Modal Controllers
   const viewLanding = document.getElementById('view-landing');
   const viewDashboard = document.getElementById('view-dashboard');
-  const viewSuperAdmin = document.getElementById('view-superadmin');
-  const modalAuth = document.getElementById('modal-auth');
 
   const formLoginWrapper = document.getElementById('form-login-wrapper');
   const formRegisterWrapper = document.getElementById('form-register-wrapper');
@@ -492,56 +585,6 @@ document.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
     });
   });
-
-  // 5. TENANT PROOF & SUBSCRIPTION DETAIL MODAL
-  const modalTenantProof = document.getElementById('modal-tenant-proof');
-  const btnCloseTenantProof = document.getElementById('btn-close-tenant-proof');
-  const tenantProofContent = document.getElementById('tenant-proof-content');
-
-  if (btnCloseTenantProof) btnCloseTenantProof.addEventListener('click', () => modalTenantProof.style.display = 'none');
-
-  window.openTenantProofModal = function(tenantId) {
-    const t = rawTenantsData.find(x => x.id === tenantId) || {
-      business_name: 'Toko Baju Kang Devis',
-      owner_name: 'Kang Devis',
-      owner_email: 'devis@kawanai.id',
-      whatsapp_number: '081234567890',
-      payment_date: '2026-07-01T10:30:00+07:00',
-      subscription_starts_at: '2026-07-01T00:00:00+07:00',
-      subscription_ends_at: '2027-07-01T23:59:59+07:00',
-      payment_amount: 9480000.00,
-      payment_proof_url: 'https://dummyimage.com/600x800/0f172a/3b82f6.png&text=Bukti+Transfer+BCA+B2B+Kang+Devis+Rp+9.480.000',
-      payment_status: 'VERIFIED'
-    };
-
-    modalTenantProof.style.display = 'flex';
-    tenantProofContent.innerHTML = `
-      <div class="form-row-2col">
-        <div><strong>Nama Bisnis:</strong> ${t.business_name || t.name}</div>
-        <div><strong>Pemilik:</strong> ${t.owner_name || 'Kang Devis'}</div>
-      </div>
-      <div class="form-row-2col">
-        <div><strong>Email:</strong> ${t.owner_email || 'devis@kawanai.id'}</div>
-        <div><strong>WhatsApp:</strong> ${t.whatsapp_number || '081234567890'}</div>
-      </div>
-      <div style="border-top:1px solid var(--border-card); padding-top:12px;" class="form-row-2col">
-        <div><strong>Tanggal Bayar:</strong> ${t.payment_date ? new Date(t.payment_date).toLocaleString('id-ID') : '01/07/2026 10:30'}</div>
-        <div><strong>Nominal Pembayaran:</strong> <strong style="color:var(--primary-accent);">Rp ${parseInt(t.payment_amount || 9480000).toLocaleString('id-ID')}</strong></div>
-      </div>
-      <div class="form-row-2col">
-        <div><strong>Tanggal Mulai Aktif:</strong> ${t.subscription_starts_at ? new Date(t.subscription_starts_at).toLocaleDateString('id-ID') : '01/07/2026'}</div>
-        <div><strong>Tanggal Kadaluwarsa:</strong> <strong style="color:var(--success);">${t.subscription_ends_at ? new Date(t.subscription_ends_at).toLocaleDateString('id-ID') : '01/07/2027'}</strong></div>
-      </div>
-      <div style="margin-top:10px;">
-        <label style="font-weight:700; font-size:13px; display:block; margin-bottom:6px;">Gambar Bukti Transfer Bank (BCA / Mandiri / QRIS):</label>
-        <div style="text-align:center; background:rgba(0,0,0,0.03); padding:10px; border-radius:10px; border:1px solid var(--border-card);">
-          <img src="${t.payment_proof_url || 'https://dummyimage.com/600x800/0f172a/3b82f6.png&text=Bukti+Transfer+BCA+B2B+Kang+Devis+Rp+9.480.000'}" alt="Bukti Transfer Bank Tenant" style="max-width:100%; max-height:280px; border-radius:8px; object-fit:contain;">
-        </div>
-      </div>
-    `;
-
-    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-  };
 
   // 6. NEAT FORM CMS EDITOR & SOFT DELETE MODAL CONTROLLER
   const modalCMSEditor = document.getElementById('modal-cms-editor');
