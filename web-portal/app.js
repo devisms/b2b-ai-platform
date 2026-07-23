@@ -61,19 +61,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!grid) return;
     grid.innerHTML = items.map(item => `
       <div class="portfolio-card card">
-        <div class="porto-header">
-          <div class="porto-icon blue"><i data-lucide="${item.icon_name || 'shopping-bag'}"></i></div>
-          <span class="badge badge-success">${item.category}</span>
+        <div>
+          <div class="porto-header">
+            <div class="porto-icon blue"><i data-lucide="${item.icon_name || 'shopping-bag'}"></i></div>
+            <span class="badge badge-success">${item.category}</span>
+          </div>
+          <h3>${item.title}</h3>
+          <p class="porto-desc">${item.description}</p>
         </div>
-        <h3>${item.title}</h3>
-        <p class="porto-desc">${item.description}</p>
         <div class="porto-stats">
           <div><span>${item.metric_1_label}</span><strong>${item.metric_1_value}</strong></div>
           <div><span>${item.metric_2_label}</span><strong>${item.metric_2_value}</strong></div>
         </div>
       </div>
     `).join('');
-    if (window.lucide) lucide.createIcons();
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
   }
 
   function renderFeaturesGrid(items) {
@@ -81,12 +83,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!grid) return;
     grid.innerHTML = items.map(item => `
       <div class="feature-card card">
-        <div class="feature-icon"><i data-lucide="${item.icon_name || 'message-square-code'}"></i></div>
+        <div class="feature-icon"><i data-lucide="${item.icon_name || 'message-square'}"></i></div>
         <h3>${item.title}</h3>
         <p>${item.description}</p>
       </div>
     `).join('');
-    if (window.lucide) lucide.createIcons();
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
   }
 
   function renderPricingGrid(plans) {
@@ -120,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }).join('');
 
-    if (window.lucide) lucide.createIcons();
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
 
     document.querySelectorAll('.btn-select-plan').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -160,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (loginEmailLabel) loginEmailLabel.textContent = 'Email Bisnis Klien';
         if (btnSubmitLogin) btnSubmitLogin.innerHTML = '<i data-lucide="log-in"></i> Masuk ke Dashboard Klien';
       }
-      if (window.lucide) lucide.createIcons();
+      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
     });
   });
 
@@ -272,6 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
       item.classList.add('active');
       const targetSec = document.getElementById(`admin-tab-${target}`);
       if (targetSec) targetSec.style.display = 'flex';
+      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
     });
   });
 });
