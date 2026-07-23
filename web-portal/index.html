@@ -383,8 +383,8 @@
       <main class="main-content">
         <header class="top-header">
           <div class="header-title">
-            <h1 id="admin-page-title">Super Admin Portal - Management Engine</h1>
-            <p>Pusat Kendali Seluruh Klien B2B & Konten Platform KawanAI</p>
+            <h1 id="admin-page-title">Super Admin Management Portal</h1>
+            <p>Pusat Pengelolaan Klien B2B & Konten Platform KawanAI</p>
           </div>
         </header>
 
@@ -414,8 +414,8 @@
         <section class="admin-tab-content" id="admin-tab-tenants" style="display:none;">
           <div class="card">
             <div class="card-header">
-              <h3><i data-lucide="users"></i> Daftar Klien B2B (Tenant Management)</h3>
-              <button class="btn btn-primary btn-sm"><i data-lucide="plus"></i> Tambah Tenant Baru</button>
+              <h3><i data-lucide="users"></i> Kelola Daftar Klien B2B</h3>
+              <button class="btn btn-primary btn-add-cms"><i data-lucide="plus"></i> Tambah Tenant Baru</button>
             </div>
             <div class="admin-table-wrapper">
               <table class="admin-table">
@@ -444,21 +444,24 @@
           </div>
         </section>
 
-        <!-- ADMIN TAB 3: CMS CONTENT EDITOR (FULL CRUD GUI) -->
+        <!-- ADMIN TAB 3: CMS CONTENT EDITOR (CLEAN ELEGANT CRUD GUI) -->
         <section class="admin-tab-content" id="admin-tab-cms" style="display:none;">
           <!-- CMS Sub-Tabs Navigation -->
           <div class="cms-subtabs">
-            <button class="cms-tab active" data-cms="portfolio"><i data-lucide="briefcase"></i> CRUD Portofolio</button>
-            <button class="cms-tab" data-cms="features"><i data-lucide="sparkles"></i> CRUD Fitur Utama</button>
-            <button class="cms-tab" data-cms="pricing"><i data-lucide="credit-card"></i> CRUD Harga Paket</button>
+            <button class="cms-tab active" data-cms="portfolio"><i data-lucide="briefcase"></i> Portofolio & Studi Kasus</button>
+            <button class="cms-tab" data-cms="features"><i data-lucide="sparkles"></i> Fitur Utama Platform</button>
+            <button class="cms-tab" data-cms="pricing"><i data-lucide="credit-card"></i> Paket Harga Langganan</button>
           </div>
 
           <!-- CMS SECTION 1: PORTOFOLIO CRUD -->
           <div class="cms-sec active" id="cms-sec-portfolio">
             <div class="card">
               <div class="card-header">
-                <h3><i data-lucide="briefcase"></i> Kelola Portofolio & Studi Kasus (PostgreSQL `cms_service.portfolio_items`)</h3>
-                <button class="btn btn-primary btn-sm" id="btn-add-portfolio"><i data-lucide="plus"></i> + Tambah Portofolio Baru</button>
+                <div>
+                  <h3><i data-lucide="briefcase"></i> Kelola Portofolio & Studi Kasus</h3>
+                  <p class="card-subtitle">Tambah atau perbarui studi kasus hasil klien yang tampil di Landing Page</p>
+                </div>
+                <button class="btn btn-primary btn-add-cms" id="btn-add-portfolio"><i data-lucide="plus-circle"></i> Tambah Portofolio Baru</button>
               </div>
               <div class="admin-table-wrapper">
                 <table class="admin-table">
@@ -483,8 +486,11 @@
           <div class="cms-sec" id="cms-sec-features" style="display:none;">
             <div class="card">
               <div class="card-header">
-                <h3><i data-lucide="sparkles"></i> Kelola Fitur Utama Platform (PostgreSQL `cms_service.feature_items`)</h3>
-                <button class="btn btn-primary btn-sm" id="btn-add-feature"><i data-lucide="plus"></i> + Tambah Fitur Baru</button>
+                <div>
+                  <h3><i data-lucide="sparkles"></i> Kelola Fitur Utama Platform</h3>
+                  <p class="card-subtitle">Atur daftar keunggulan fitur KawanAI yang tampil di Landing Page</p>
+                </div>
+                <button class="btn btn-primary btn-add-cms" id="btn-add-feature"><i data-lucide="plus-circle"></i> Tambah Fitur Baru</button>
               </div>
               <div class="admin-table-wrapper">
                 <table class="admin-table">
@@ -508,8 +514,11 @@
           <div class="cms-sec" id="cms-sec-pricing" style="display:none;">
             <div class="card">
               <div class="card-header">
-                <h3><i data-lucide="credit-card"></i> Kelola Harga Paket Langganan (PostgreSQL `cms_service.pricing_plans`)</h3>
-                <button class="btn btn-primary btn-sm" id="btn-add-pricing"><i data-lucide="plus"></i> + Tambah Paket Baru</button>
+                <div>
+                  <h3><i data-lucide="credit-card"></i> Kelola Paket Harga Langganan</h3>
+                  <p class="card-subtitle">Atur harga paket bulanan, tahunan, & tier langganan KawanAI</p>
+                </div>
+                <button class="btn btn-primary btn-add-cms" id="btn-add-pricing"><i data-lucide="plus-circle"></i> Tambah Paket Baru</button>
               </div>
               <div class="admin-table-wrapper">
                 <table class="admin-table">
@@ -537,10 +546,10 @@
 
   <!-- VIEW 5: MODAL CMS EDITOR (CREATE / EDIT ITEM) -->
   <div id="modal-cms-editor" class="modal-overlay" style="display:none;">
-    <div class="modal-card card" style="max-width:540px;">
+    <div class="modal-card card" style="max-width:500px;">
       <button class="btn-close" id="btn-close-cms-modal">&times;</button>
       <h2 id="cms-modal-title">Editor Konten CMS</h2>
-      <p id="cms-modal-subtitle">Tambah atau perbarui data di database PostgreSQL</p>
+      <p id="cms-modal-subtitle">Tambah atau perbarui data di database</p>
 
       <form id="form-cms-editor" class="config-form">
         <input type="hidden" id="cms-item-id">
@@ -550,7 +559,7 @@
           <!-- Dynamic Form Inputs rendered based on item type -->
         </div>
 
-        <button type="submit" class="btn btn-primary btn-block"><i data-lucide="save"></i> Simpan ke Database</button>
+        <button type="submit" class="btn btn-primary btn-block"><i data-lucide="save"></i> Simpan Konten</button>
       </form>
     </div>
   </div>

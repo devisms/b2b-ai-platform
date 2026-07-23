@@ -61,6 +61,22 @@ body { background-color: var(--bg-main); color: var(--text-main); min-height: 10
 .btn-lg { padding: 10px 20px; font-size: 14px; border-radius: 10px; }
 .btn-block { width: 100%; padding: 10px 16px; font-size: 14px; margin-top: 10px; }
 
+/* Sleek Aesthetic Add CMS Button */
+.btn-add-cms {
+  padding: 7px 14px !important; font-size: 13px !important; border-radius: 8px !important;
+  font-weight: 600 !important; gap: 6px !important; box-shadow: 0 3px 10px rgba(37, 99, 235, 0.2) !important;
+}
+.btn-add-cms svg { width: 15px !important; height: 15px !important; }
+
+/* Card Header Spacing & Subtitles */
+.card-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border-card);
+}
+.card-header h3 { font-size: 18px; font-weight: 700; color: var(--text-main); margin-bottom: 2px; display: flex; align-items: center; gap: 8px; }
+.card-header h3 svg { width: 20px; height: 20px; color: var(--primary-accent); }
+.card-subtitle { font-size: 13px; color: var(--text-muted); font-weight: 400; }
+
 /* Navbar */
 .navbar {
   display: flex; justify-content: space-between; align-items: center;
