@@ -51,7 +51,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         else:
             self.send_error(404, "Endpoint Not Found")
 
-    # --- GET ENDPOINTS (FILTER IS_DELETED & AUTOMATIC EXPIRE CHECK) ---
+    # --- GET ENDPOINTS ---
     def get_portfolio_api(self):
         try:
             conn = psycopg2.connect(**DB_CONFIG)
@@ -111,7 +111,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         try:
             conn = psycopg2.connect(**DB_CONFIG)
             cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cursor.execute("SELECT * FROM tenant_service.tenants ORDER BY created_at DESC;")
+            cursor.execute("SELECT * FROM tenant_service.tenants WHERE is_deleted IS NOT TRUE ORDER BY created_at DESC;")
             rows = cursor.fetchall()
             conn.close()
 

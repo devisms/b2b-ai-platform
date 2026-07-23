@@ -1,4 +1,4 @@
-// KawanAI - Complete Application Controller (Dynamic Period Switcher: / bulan vs / tahun)
+// KawanAI - Complete Application Controller (Tenant Subscription Audit & Payment Proof Modal)
 document.addEventListener('DOMContentLoaded', () => {
 
   // 0. Dual Theme Switcher Controller
@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let rawPortfolioData = [];
   let rawFeaturesData = [];
   let rawPricingData = [];
+  let rawTenantsData = [];
 
   // 1. Dynamic Database API Fetchers
   async function fetchDynamicPortfolio() {
@@ -64,6 +65,19 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (e) {
       console.log('Using pre-rendered pricing fallback');
+    }
+  }
+
+  async function fetchDynamicTenants() {
+    try {
+      const res = await fetch('/api/admin/tenants');
+      const json = await res.json();
+      if (json.status === 'success') {
+        rawTenantsData = json.data;
+        renderAdminTenantsTable(json.data);
+      }
+    } catch (e) {
+      console.log('Using pre-rendered tenants fallback');
     }
   }
 
@@ -120,7 +134,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const origFormatted = origVal.toLocaleString('id-ID');
       const origAnnualFormatted = origAnnualTotalVal.toLocaleString('id-ID');
 
-      // Calculate percentage discounts for both Monthly and Yearly modes
       const monthlyDiscountPct = Math.round(((origVal - monthlyVal) / origVal) * 100);
       const annualDiscountPct = Math.round(((origAnnualTotalVal - annualTotalVal) / origAnnualTotalVal) * 100);
 
@@ -159,7 +172,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
 
-    // DUAL MONTHLY / YEARLY TOGGLE SWITCHER ENGINE (/ bulan vs / tahun)
     const toggleCheckbox = document.getElementById('pricing-toggle-checkbox');
     if (toggleCheckbox) {
       toggleCheckbox.addEventListener('change', () => {
@@ -213,6 +225,42 @@ document.addEventListener('DOMContentLoaded', () => {
         openAuthModal('register');
       });
     });
+  }
+
+  // --- SUPER ADMIN TENANT SUBSCRIPTION & PAYMENT AUDIT TABLE ---
+  function renderAdminTenantsTable(tenants) {
+    const tbody = document.getElementById('admin-tenants-table-body');
+    if (!tbody) return;
+
+    tbody.innerHTML = tenants.map(t => {
+      const code = t.tenant_code || ('#K-' + t.id.substring(0, 4).toUpperCase());
+      const bName = t.business_name || t.name || 'Bisnis KawanAI';
+      const oName = t.owner_name || 'Kang Devis';
+      const email = t.owner_email || 'devis@kawanai.id';
+      const wa = t.whatsapp_number || '081234567890';
+      
+      const payDate = t.payment_date ? new Date(t.payment_date).toLocaleDateString('id-ID') : '01/07/2026';
+      const startDate = t.subscription_starts_at ? new Date(t.subscription_starts_at).toLocaleDateString('id-ID') : '01/07/2026';
+      const endDate = t.subscription_ends_at ? new Date(t.subscription_ends_at).toLocaleDateString('id-ID') : '01/07/2027';
+      const amount = t.payment_amount ? ('Rp ' + parseInt(t.payment_amount).toLocaleString('id-ID')) : 'Rp 9.480.000';
+
+      return `
+        <tr>
+          <td><code>${code}</code></td>
+          <td><strong>${bName}</strong><br><span style="font-size:12px; color:var(--text-muted);">${oName}</span></td>
+          <td>${email}<br><span style="font-size:12px; color:var(--success); font-weight:600;"><i data-lucide="phone"></i> ${wa}</span></td>
+          <td><span class="badge badge-accent">Paket PRO</span></td>
+          <td><strong>${amount}</strong><br><span style="font-size:11.5px; color:var(--text-muted);">${payDate}</span></td>
+          <td><span style="color:var(--text-main); font-weight:600;">${startDate}</span><br><span style="font-size:11.5px; color:var(--text-dim);">s/d ${endDate}</span></td>
+          <td><span class="badge badge-success">${t.payment_status || 'VERIFIED'}</span></td>
+          <td>
+            <button class="btn-action-edit" onclick="openTenantProofModal('${t.id}')"><i data-lucide="receipt"></i> Bukti Transfer</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
   }
 
   // --- CMS CONTENT EDITOR TABLES (SUPER ADMIN) ---
@@ -288,6 +336,7 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchDynamicPortfolio();
   fetchDynamicFeatures();
   fetchDynamicPricing();
+  fetchDynamicTenants();
 
   // 2. Role-Based Auth Modal Tabs
   const roleTabs = document.querySelectorAll('.role-tab');
@@ -444,7 +493,57 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // 5. NEAT FORM CMS EDITOR & SOFT DELETE MODAL CONTROLLER
+  // 5. TENANT PROOF & SUBSCRIPTION DETAIL MODAL
+  const modalTenantProof = document.getElementById('modal-tenant-proof');
+  const btnCloseTenantProof = document.getElementById('btn-close-tenant-proof');
+  const tenantProofContent = document.getElementById('tenant-proof-content');
+
+  if (btnCloseTenantProof) btnCloseTenantProof.addEventListener('click', () => modalTenantProof.style.display = 'none');
+
+  window.openTenantProofModal = function(tenantId) {
+    const t = rawTenantsData.find(x => x.id === tenantId) || {
+      business_name: 'Toko Baju Kang Devis',
+      owner_name: 'Kang Devis',
+      owner_email: 'devis@kawanai.id',
+      whatsapp_number: '081234567890',
+      payment_date: '2026-07-01T10:30:00+07:00',
+      subscription_starts_at: '2026-07-01T00:00:00+07:00',
+      subscription_ends_at: '2027-07-01T23:59:59+07:00',
+      payment_amount: 9480000.00,
+      payment_proof_url: 'https://dummyimage.com/600x800/0f172a/3b82f6.png&text=Bukti+Transfer+BCA+B2B+Kang+Devis+Rp+9.480.000',
+      payment_status: 'VERIFIED'
+    };
+
+    modalTenantProof.style.display = 'flex';
+    tenantProofContent.innerHTML = `
+      <div class="form-row-2col">
+        <div><strong>Nama Bisnis:</strong> ${t.business_name || t.name}</div>
+        <div><strong>Pemilik:</strong> ${t.owner_name || 'Kang Devis'}</div>
+      </div>
+      <div class="form-row-2col">
+        <div><strong>Email:</strong> ${t.owner_email || 'devis@kawanai.id'}</div>
+        <div><strong>WhatsApp:</strong> ${t.whatsapp_number || '081234567890'}</div>
+      </div>
+      <div style="border-top:1px solid var(--border-card); padding-top:12px;" class="form-row-2col">
+        <div><strong>Tanggal Bayar:</strong> ${t.payment_date ? new Date(t.payment_date).toLocaleString('id-ID') : '01/07/2026 10:30'}</div>
+        <div><strong>Nominal Pembayaran:</strong> <strong style="color:var(--primary-accent);">Rp ${parseInt(t.payment_amount || 9480000).toLocaleString('id-ID')}</strong></div>
+      </div>
+      <div class="form-row-2col">
+        <div><strong>Tanggal Mulai Aktif:</strong> ${t.subscription_starts_at ? new Date(t.subscription_starts_at).toLocaleDateString('id-ID') : '01/07/2026'}</div>
+        <div><strong>Tanggal Kadaluwarsa:</strong> <strong style="color:var(--success);">${t.subscription_ends_at ? new Date(t.subscription_ends_at).toLocaleDateString('id-ID') : '01/07/2027'}</strong></div>
+      </div>
+      <div style="margin-top:10px;">
+        <label style="font-weight:700; font-size:13px; display:block; margin-bottom:6px;">Gambar Bukti Transfer Bank (BCA / Mandiri / QRIS):</label>
+        <div style="text-align:center; background:rgba(0,0,0,0.03); padding:10px; border-radius:10px; border:1px solid var(--border-card);">
+          <img src="${t.payment_proof_url || 'https://dummyimage.com/600x800/0f172a/3b82f6.png&text=Bukti+Transfer+BCA+B2B+Kang+Devis+Rp+9.480.000'}" alt="Bukti Transfer Bank Tenant" style="max-width:100%; max-height:280px; border-radius:8px; object-fit:contain;">
+        </div>
+      </div>
+    `;
+
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+  };
+
+  // 6. NEAT FORM CMS EDITOR & SOFT DELETE MODAL CONTROLLER
   const modalCMSEditor = document.getElementById('modal-cms-editor');
   const btnCloseCMSModal = document.getElementById('btn-close-cms-modal');
   const btnCancelCMSEditor = document.getElementById('btn-cancel-cms-editor');
@@ -558,7 +657,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 6. SOFT DELETE CONFIRMATION MODAL LOGIC
+  // 7. SOFT DELETE CONFIRMATION MODAL LOGIC
   const modalConfirmDelete = document.getElementById('modal-confirm-delete');
   const deleteConfirmText = document.getElementById('delete-confirm-text');
   const deleteTargetType = document.getElementById('delete-target-type');
