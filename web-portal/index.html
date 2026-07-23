@@ -14,7 +14,6 @@
 
   <!-- VIEW 1: LANDING PAGE & PORTOFOLIO KAWANAI -->
   <div id="view-landing" class="page-view active">
-    <!-- Navbar -->
     <header class="navbar">
       <div class="brand">
         <img src="kawanai_logo.png" alt="KawanAI Logo" class="brand-logo-img">
@@ -26,7 +25,6 @@
         <a href="#pricing">Harga Paket</a>
       </nav>
       <div class="auth-buttons">
-        <!-- Theme Toggle Button -->
         <button class="theme-toggle" id="theme-toggle" title="Ubah Mode Terang / Gelap">
           <i data-lucide="sun" class="sun-icon"></i>
           <i data-lucide="moon" class="moon-icon"></i>
@@ -36,7 +34,6 @@
       </div>
     </header>
 
-    <!-- Hero Section -->
     <section class="hero-section">
       <div class="hero-content">
         <span class="badge badge-accent">✨ Platform Karyawan Digital AI #1 di Indonesia</span>
@@ -61,7 +58,7 @@
       </div>
     </section>
 
-    <!-- SECTION 1: PORTOFOLIO & STUDA KASUS -->
+    <!-- SECTION 1: PORTOFOLIO (DINAMIS DARI DATABASE) -->
     <section class="portfolio-section" id="portfolio">
       <div class="section-header">
         <span class="badge badge-accent">📊 Bukti Nyata & Hasil</span>
@@ -69,48 +66,11 @@
         <p>Lihat bagaimana bisnis lokal bertumbuh pesat dan meningkatkan efisiensi dengan KawanAI</p>
       </div>
       <div class="portfolio-grid">
-        <div class="portfolio-card card">
-          <div class="porto-header">
-            <div class="porto-icon blue"><i data-lucide="shopping-bag"></i></div>
-            <span class="badge badge-success">Online Shop</span>
-          </div>
-          <h3>Toko Fashion Online (Bandung)</h3>
-          <p class="porto-desc">Melayani 300+ chat WhatsApp per malam saat admin manusia tidur. Omset penjualan meningkat +45% dalam 30 hari pertama.</p>
-          <div class="porto-stats">
-            <div><span>Waktu Respon</span><strong>1.2 Detik</strong></div>
-            <div><span>Order Otomatis</span><strong>120+ / Bulan</strong></div>
-          </div>
-        </div>
-
-        <div class="portfolio-card card">
-          <div class="porto-header">
-            <div class="porto-icon green"><i data-lucide="activity"></i></div>
-            <span class="badge badge-success">Klinik Medis</span>
-          </div>
-          <h3>Klinik Kecantikan & Kesehatan</h3>
-          <p class="porto-desc">Otomatisasi reservasi jadwal konsultasi dokter via WhatsApp & pengingat jadwal H-1 tanpa perlu admin manual.</p>
-          <div class="porto-stats">
-            <div><span>No-Show Rate</span><strong>Turun 80%</strong></div>
-            <div><span>Kepuasan Klien</span><strong>4.9 / 5.0</strong></div>
-          </div>
-        </div>
-
-        <div class="portfolio-card card">
-          <div class="porto-header">
-            <div class="porto-icon purple"><i data-lucide="briefcase"></i></div>
-            <span class="badge badge-success">Enterprise Legal</span>
-          </div>
-          <h3>Kantor Hukum & Notaris</h3>
-          <p class="porto-desc">Private Document AI (*Anything LLM*) menjawab pertanyaan syarat berkas legal klien presisi 100% dari PDF SOP internal.</p>
-          <div class="porto-stats">
-            <div><span>Hemat Waktu</span><strong>15 Jam / Mgg</strong></div>
-            <div><span>Keamanan Data</span><strong>Isolated RAG</strong></div>
-          </div>
-        </div>
+        <!-- Rendered dynamically from PostgreSQL database /api/portfolio -->
       </div>
     </section>
 
-    <!-- SECTION 2: FITUR UTAMA KAWANAI -->
+    <!-- SECTION 2: FITUR UTAMA KAWANAI (DINAMIS DARI DATABASE) -->
     <section class="features-section" id="features">
       <div class="section-header">
         <span class="badge badge-accent">🛠️ Teknologi Unggulan</span>
@@ -118,52 +78,17 @@
         <p>Dirancang khusus untuk memenuhi semua kebutuhan otomatisasi layanan & penjualan bisnis Anda</p>
       </div>
       <div class="features-grid">
-        <div class="feature-card card">
-          <div class="feature-icon"><i data-lucide="message-square-code"></i></div>
-          <h3>WhatsApp AI Automation 24/7</h3>
-          <p>Agen AI membalas pesan pelanggan secara otomatis 24 jam nonstop dengan bahasa alami yang ramah, persuasif, dan manusiawi.</p>
-        </div>
-
-        <div class="feature-card card">
-          <div class="feature-icon"><i data-lucide="file-spreadsheet"></i></div>
-          <h3>Multi-Tenant Document RAG (Anything LLM)</h3>
-          <p>Cukup upload file PDF Katalog, Daftar Harga, atau SOP Toko. Karyawan AI langsung pintar menjawab detail produk dari dokumen Anda.</p>
-        </div>
-
-        <div class="feature-card card">
-          <div class="feature-icon"><i data-lucide="user-cog"></i></div>
-          <h3>Kustomisasi Persona & Gaya Bicara</h3>
-          <p>Atur nama agen, nada bicara (Casual 'Kak/Sis' atau Formal 'Bapak/Ibu'), hingga instruksi khusus sesuai brand identity toko Anda.</p>
-        </div>
-
-        <div class="feature-card card">
-          <div class="feature-icon"><i data-lucide="shield-check"></i></div>
-          <h3>Sistem Keamanan Anti-Ban WhatsApp</h3>
-          <p>Dilengkapi dengan *rate-limiter* dan simulasi jeda mengetik manusia agar nomor WhatsApp bisnis Anda aman dari blokir Meta.</p>
-        </div>
-
-        <div class="feature-card card">
-          <div class="feature-icon"><i data-lucide="bar-chart-3"></i></div>
-          <h3>Analitik Percakapan & Rekap Order</h3>
-          <p>Pantau berapa banyak chat yang dijawab, waktu respon rata-rata, dan rekapitulasi pesanan harian secara *real-time* di dashboard.</p>
-        </div>
-
-        <div class="feature-card card">
-          <div class="feature-icon"><i data-lucide="qr-code"></i></div>
-          <h3>1-Klik QR Code WhatsApp Connector</h3>
-          <p>Tanpa ribet koding! Cukup buka dashboard, pindai QR Code dengan WhatsApp HP toko Anda, dan bot langsung aktif beroperasi.</p>
-        </div>
+        <!-- Rendered dynamically from PostgreSQL database /api/features -->
       </div>
     </section>
 
-    <!-- SECTION 3: HARGA PAKET LANGGANAN -->
+    <!-- SECTION 3: HARGA PAKET (DINAMIS DARI DATABASE) -->
     <section class="pricing-section" id="pricing">
       <div class="section-header">
         <span class="badge badge-accent">💳 Investasi Terjangkau</span>
         <h2>Pilihan Harga Paket Langganan</h2>
         <p>Investasi karyawan AI 24/7 jauh lebih hemat dibanding gaji 1 orang admin CS manusia</p>
         
-        <!-- Pricing Toggle (Monthly / Annual) -->
         <div class="pricing-toggle-wrapper">
           <span>Bulanan</span>
           <label class="switch">
@@ -175,94 +100,36 @@
       </div>
 
       <div class="pricing-grid">
-        <!-- PAKET LITE -->
-        <div class="pricing-card card">
-          <div class="pricing-header">
-            <h3>Paket Lite (UMKM)</h3>
-            <p>Cocok untuk Toko Online Pemula & UMKM</p>
-            <div class="price-box">
-              <span class="currency">Rp</span>
-              <span class="price-value" data-monthly="990.000" data-annual="790.000">990.000</span>
-              <span class="period">/ bulan</span>
-            </div>
-          </div>
-          <ul class="pricing-features">
-            <li><i data-lucide="check-circle-2"></i> 1 WhatsApp Business Number</li>
-            <li><i data-lucide="check-circle-2"></i> 1 Karyawan AI Assistant</li>
-            <li><i data-lucide="check-circle-2"></i> Upload hingga 5 File PDF Katalog</li>
-            <li><i data-lucide="check-circle-2"></i> 3.000 Chat/Bulan</li>
-            <li><i data-lucide="check-circle-2"></i> Standard Cloud Hosting 24/7</li>
-          </ul>
-          <button class="btn btn-outline btn-block btn-select-plan" data-plan="Lite"><i data-lucide="arrow-right"></i> Pilih Paket Lite</button>
-        </div>
-
-        <!-- PAKET PRO (POPULAR) -->
-        <div class="pricing-card card popular">
-          <div class="popular-tag">Paling Populer</div>
-          <div class="pricing-header">
-            <h3>Paket Pro (Bisnis)</h3>
-            <p>Untuk Toko Online Ramai & Klinik Medis</p>
-            <div class="price-box">
-              <span class="currency">Rp</span>
-              <span class="price-value" data-monthly="1.950.000" data-annual="1.550.000">1.950.000</span>
-              <span class="period">/ bulan</span>
-            </div>
-          </div>
-          <ul class="pricing-features">
-            <li><i data-lucide="check-circle-2"></i> 2 WhatsApp Business Numbers</li>
-            <li><i data-lucide="check-circle-2"></i> 3 Karyawan AI Custom Persona</li>
-            <li><i data-lucide="check-circle-2"></i> Unlimited Upload PDF Katalog & SOP</li>
-            <li><i data-lucide="check-circle-2"></i> 15.000 Chat/Bulan</li>
-            <li><i data-lucide="check-circle-2"></i> Dedicated Cloud Server 24/7</li>
-            <li><i data-lucide="check-circle-2"></i> Prioritas Support WhatsApp</li>
-          </ul>
-          <button class="btn btn-primary btn-block btn-select-plan" data-plan="Pro"><i data-lucide="sparkles"></i> Pilih Paket Pro</button>
-        </div>
-
-        <!-- PAKET ENTERPRISE -->
-        <div class="pricing-card card">
-          <div class="pricing-header">
-            <h3>Paket Enterprise</h3>
-            <p>Untuk Kantor Hukum, Perusahaan, & Franchise</p>
-            <div class="price-box">
-              <span class="currency">Rp</span>
-              <span class="price-value" data-monthly="3.500.000" data-annual="2.800.000">3.500.000</span>
-              <span class="period">/ bulan</span>
-            </div>
-          </div>
-          <ul class="pricing-features">
-            <li><i data-lucide="check-circle-2"></i> Unlimited WhatsApp Numbers</li>
-            <li><i data-lucide="check-circle-2"></i> Multi-Tenant Isolated Workspace</li>
-            <li><i data-lucide="check-circle-2"></i> Anything LLM Private Server RAG</li>
-            <li><i data-lucide="check-circle-2"></i> Unlimited Chat Transaksi</li>
-            <li><i data-lucide="check-circle-2"></i> Dedicated VPS Infrastructure</li>
-            <li><i data-lucide="check-circle-2"></i> Dedicated Tech Manager 24/7</li>
-          </ul>
-          <button class="btn btn-outline btn-block btn-select-plan" data-plan="Enterprise"><i data-lucide="arrow-right"></i> Pilih Enterprise</button>
-        </div>
+        <!-- Rendered dynamically from PostgreSQL database /api/pricing -->
       </div>
     </section>
   </div>
 
-  <!-- VIEW 2: MODAL SIGN IN & SIGN UP -->
+  <!-- VIEW 2: MODAL AUTHENTICATION (RBAC LOGIN) -->
   <div id="modal-auth" class="modal-overlay" style="display:none;">
     <div class="modal-card card">
       <button class="btn-close" id="btn-close-modal">&times;</button>
       
       <!-- Sign In Form -->
       <div id="form-login-wrapper" class="auth-form-wrapper">
-        <h2>Masuk ke Dashboard KawanAI</h2>
-        <p>Kelola Karyawan Digital & Nomor WhatsApp Anda</p>
+        <h2>Masuk ke Portal KawanAI</h2>
+        <p>Pilih Jenis Akun Login Anda di Bawah:</p>
+        
+        <div class="auth-role-tabs">
+          <button class="role-tab active" data-role="tenant"><i data-lucide="store"></i> Login Klien (Tenant)</button>
+          <button class="role-tab" data-role="admin"><i data-lucide="shield-check"></i> Login Super Admin</button>
+        </div>
+
         <form id="form-login" class="config-form">
           <div class="form-group">
-            <label>Email Bisnis</label>
-            <input type="email" placeholder="nama@bisnisanda.com" required value="devis@kawanai.id">
+            <label id="login-email-label">Email Bisnis Klien</label>
+            <input type="email" id="login-email" placeholder="nama@bisnisanda.com" required value="devis@kawanai.id">
           </div>
           <div class="form-group">
             <label>Kata Sandi</label>
             <input type="password" placeholder="••••••••" required value="123456">
           </div>
-          <button type="submit" class="btn btn-primary btn-block"><i data-lucide="log-in"></i> Masuk Sekarang</button>
+          <button type="submit" class="btn btn-primary btn-block" id="btn-submit-login"><i data-lucide="log-in"></i> Masuk ke Dashboard Klien</button>
         </form>
         <p class="auth-switch">Belum punya akun? <a href="#" id="switch-to-register">Daftar Gratis</a></p>
       </div>
@@ -295,7 +162,7 @@
     </div>
   </div>
 
-  <!-- VIEW 3: MULTI-TENANT DASHBOARD (LOCKED UNTIL AUTHENTICATED) -->
+  <!-- VIEW 3: MULTI-TENANT CLIENT DASHBOARD (UNTUK KLIEN B2B) -->
   <div id="view-dashboard" class="page-view" style="display:none;">
     <div class="app-container">
       <aside class="sidebar">
@@ -334,7 +201,7 @@
               <span class="user-role">Owner Toko Baju</span>
             </div>
           </div>
-          <button class="btn btn-outline btn-sm btn-logout" id="btn-logout"><i data-lucide="log-out"></i> Keluar</button>
+          <button class="btn btn-outline btn-sm btn-logout" id="btn-logout-client"><i data-lucide="log-out"></i> Keluar</button>
         </div>
       </aside>
 
@@ -384,7 +251,7 @@
           <div class="dashboard-split">
             <div class="card conversations-panel">
               <div class="card-header">
-                <h3><i data-lucide="history"></i> Percakapan Terakhir (WhatsApp)</h3>
+                <h3><i data-lucide="history"></i> Percakapan Terakhir (WhatsApp Toko Anda)</h3>
                 <span class="badge">Real-Time</span>
               </div>
               <div class="chat-list">
@@ -465,6 +332,91 @@
               <h4>Tarik & Lepas File PDF Katalog / SOP Toko Anda</h4>
               <input type="file" id="file-input" hidden accept=".pdf,.docx,.txt">
               <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">Pilih File PDF</button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- VIEW 4: SUPER ADMIN PORTAL (KHUSUS KANG DEVIS SUPER ADMIN) -->
+  <div id="view-superadmin" class="page-view" style="display:none;">
+    <div class="app-container">
+      <aside class="sidebar admin-sidebar">
+        <div class="brand">
+          <img src="kawanai_logo.png" alt="KawanAI Logo" class="brand-logo-img">
+          <div class="brand-text">
+            <h2>KawanAI</h2>
+            <span class="badge badge-accent">SUPER ADMIN PORTAL</span>
+          </div>
+        </div>
+
+        <nav class="nav-menu">
+          <button class="nav-item active" data-admin-tab="mrr">
+            <i data-lucide="wallet"></i>
+            <span>Overview MRR & Revenue</span>
+          </button>
+          <button class="nav-item" data-admin-tab="tenants">
+            <i data-lucide="users"></i>
+            <span>Kelola Klien (Tenants)</span>
+          </button>
+          <button class="nav-item" data-admin-tab="cms">
+            <i data-lucide="database"></i>
+            <span>CMS Content Editor</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="user-profile">
+            <div class="avatar admin-avatar">SA</div>
+            <div class="user-info">
+              <span class="user-name">Kang Devis</span>
+              <span class="user-role">Super Admin Platform</span>
+            </div>
+          </div>
+          <button class="btn btn-outline btn-sm btn-logout" id="btn-logout-admin"><i data-lucide="log-out"></i> Keluar Super Admin</button>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <header class="top-header">
+          <div class="header-title">
+            <h1 id="admin-page-title">Super Admin Portal - Management Engine</h1>
+            <p>Pusat Kendali Seluruh Klien B2B & Konten Platform KawanAI</p>
+          </div>
+        </header>
+
+        <!-- ADMIN TAB 1: OVERVIEW MRR -->
+        <section class="admin-tab-content active" id="admin-tab-mrr">
+          <div class="metrics-grid">
+            <div class="metric-card card">
+              <div class="metric-icon green"><i data-lucide="dollar-sign"></i></div>
+              <div class="metric-data">
+                <span class="label">Total Target MRR Bulanan</span>
+                <h3 class="value">Rp 30.000.000</h3>
+                <span class="trend positive">100% Non-Trading / Non-Freelance</span>
+              </div>
+            </div>
+            <div class="metric-card card">
+              <div class="metric-icon blue"><i data-lucide="users"></i></div>
+              <div class="metric-data">
+                <span class="label">Total Klien Aktif</span>
+                <h3 class="value">10 Klien B2B</h3>
+                <span class="trend positive">Stream 1, 2, & 3 Managed</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ADMIN TAB 2: KELOLA KLIEN TENANTS -->
+        <section class="admin-tab-content" id="admin-tab-tenants" style="display:none;">
+          <div class="card">
+            <div class="card-header">
+              <h3><i data-lucide="users"></i> Daftar Klien B2B (Tenant Management)</h3>
+              <button class="btn btn-primary btn-sm"><i data-lucide="plus"></i> Tambah Tenant Baru</button>
+            </div>
+            <div id="admin-tenants-list">
+              <!-- Rendered dynamically from PostgreSQL database /api/admin/tenants -->
             </div>
           </div>
         </section>

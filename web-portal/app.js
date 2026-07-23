@@ -1,4 +1,4 @@
-// KawanAI - Complete Dynamic Application Controller (PostgreSQL API Driven)
+// KawanAI - Complete Application Controller (Super Admin & RBAC Integration)
 document.addEventListener('DOMContentLoaded', () => {
 
   // 0. Dual Theme Switcher Controller
@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 1. Dynamic Database API Fetchers (PostgreSQL Integration)
+  // 1. Dynamic Database API Fetchers
   async function fetchDynamicPortfolio() {
     try {
       const res = await fetch('/api/portfolio');
@@ -29,6 +29,18 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (e) {
       console.log('Using pre-rendered portfolio fallback');
+    }
+  }
+
+  async function fetchDynamicFeatures() {
+    try {
+      const res = await fetch('/api/features');
+      const json = await res.json();
+      if (json.status === 'success' && json.data.length > 0) {
+        renderFeaturesGrid(json.data);
+      }
+    } catch (e) {
+      console.log('Using pre-rendered features fallback');
     }
   }
 
@@ -59,6 +71,19 @@ document.addEventListener('DOMContentLoaded', () => {
           <div><span>${item.metric_1_label}</span><strong>${item.metric_1_value}</strong></div>
           <div><span>${item.metric_2_label}</span><strong>${item.metric_2_value}</strong></div>
         </div>
+      </div>
+    `).join('');
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function renderFeaturesGrid(items) {
+    const grid = document.querySelector('.features-grid');
+    if (!grid) return;
+    grid.innerHTML = items.map(item => `
+      <div class="feature-card card">
+        <div class="feature-icon"><i data-lucide="${item.icon_name || 'message-square-code'}"></i></div>
+        <h3>${item.title}</h3>
+        <p>${item.description}</p>
       </div>
     `).join('');
     if (window.lucide) lucide.createIcons();
@@ -97,7 +122,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (window.lucide) lucide.createIcons();
 
-    // Re-bind Select Plan Buttons
     document.querySelectorAll('.btn-select-plan').forEach(btn => {
       btn.addEventListener('click', () => {
         const planName = btn.getAttribute('data-plan');
@@ -108,28 +132,42 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Initial API Execution
   fetchDynamicPortfolio();
+  fetchDynamicFeatures();
   fetchDynamicPricing();
 
-  // 2. Pricing Toggle Handler (Monthly vs Annual 20% Discount)
-  const pricingToggle = document.getElementById('pricing-toggle-checkbox');
-  if (pricingToggle) {
-    pricingToggle.addEventListener('change', (e) => {
-      const isAnnual = e.target.checked;
-      document.querySelectorAll('.price-value').forEach(pv => {
-        if (isAnnual) {
-          pv.textContent = pv.getAttribute('data-annual');
-        } else {
-          pv.textContent = pv.getAttribute('data-monthly');
-        }
-      });
+  // 2. Role-Based Auth Modal Tabs (Tenant vs Super Admin Login)
+  const roleTabs = document.querySelectorAll('.role-tab');
+  const loginEmail = document.getElementById('login-email');
+  const loginEmailLabel = document.getElementById('login-email-label');
+  const btnSubmitLogin = document.getElementById('btn-submit-login');
+  let selectedLoginRole = 'TENANT_OWNER';
+
+  roleTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      roleTabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const role = tab.getAttribute('data-role');
+
+      if (role === 'admin') {
+        selectedLoginRole = 'SUPER_ADMIN';
+        if (loginEmail) loginEmail.value = 'admin@kawanai.id';
+        if (loginEmailLabel) loginEmailLabel.textContent = 'Email Super Admin';
+        if (btnSubmitLogin) btnSubmitLogin.innerHTML = '<i data-lucide="shield-check"></i> Masuk ke Super Admin Portal';
+      } else {
+        selectedLoginRole = 'TENANT_OWNER';
+        if (loginEmail) loginEmail.value = 'devis@kawanai.id';
+        if (loginEmailLabel) loginEmailLabel.textContent = 'Email Bisnis Klien';
+        if (btnSubmitLogin) btnSubmitLogin.innerHTML = '<i data-lucide="log-in"></i> Masuk ke Dashboard Klien';
+      }
+      if (window.lucide) lucide.createIcons();
     });
-  }
+  });
 
   // 3. View & Modal Controllers
   const viewLanding = document.getElementById('view-landing');
   const viewDashboard = document.getElementById('view-dashboard');
+  const viewSuperAdmin = document.getElementById('view-superadmin');
   const modalAuth = document.getElementById('modal-auth');
 
   const formLoginWrapper = document.getElementById('form-login-wrapper');
@@ -142,7 +180,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const heroBtnDemo = document.getElementById('hero-btn-demo');
   const switchToRegister = document.getElementById('switch-to-register');
   const switchToLogin = document.getElementById('switch-to-login');
-  const btnLogout = document.getElementById('btn-logout');
+  const btnLogoutClient = document.getElementById('btn-logout-client');
+  const btnLogoutAdmin = document.getElementById('btn-logout-admin');
 
   function openAuthModal(mode = 'login') {
     modalAuth.style.display = 'flex';
@@ -185,129 +224,54 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Handle Login Submission
+  // Handle Role-Based Login Submission
   const formLogin = document.getElementById('form-login');
   if (formLogin) {
-    formLogin.addEventListener('submit', (e) => {
+    formLogin.addEventListener('submit', async (e) => {
       e.preventDefault();
       closeModal();
       viewLanding.style.display = 'none';
-      viewDashboard.style.display = 'block';
+
+      if (selectedLoginRole === 'SUPER_ADMIN' || loginEmail.value.includes('admin')) {
+        viewSuperAdmin.style.display = 'block';
+        viewDashboard.style.display = 'none';
+      } else {
+        viewDashboard.style.display = 'block';
+        viewSuperAdmin.style.display = 'none';
+      }
       window.scrollTo(0, 0);
     });
   }
 
-  // Handle Register Submission
-  const formRegister = document.getElementById('form-register');
-  if (formRegister) {
-    formRegister.addEventListener('submit', (e) => {
-      e.preventDefault();
-      closeModal();
-      alert('🎉 Selamat! Pendaftaran Berhasil. Selamat Datang di Dashboard KawanAI!');
-      viewLanding.style.display = 'none';
-      viewDashboard.style.display = 'block';
-      window.scrollTo(0, 0);
-    });
-  }
-
-  // Handle Logout
-  if (btnLogout) {
-    btnLogout.addEventListener('click', () => {
+  if (btnLogoutClient) {
+    btnLogoutClient.addEventListener('click', () => {
       viewDashboard.style.display = 'none';
       viewLanding.style.display = 'block';
       window.scrollTo(0, 0);
     });
   }
 
-  // 4. Dashboard Internal Tab Navigation
-  const navItems = document.querySelectorAll('.nav-item');
-  const tabContents = document.querySelectorAll('.tab-content');
-  const pageTitle = document.getElementById('page-title');
-  const pageSubtitle = document.getElementById('page-subtitle');
+  if (btnLogoutAdmin) {
+    btnLogoutAdmin.addEventListener('click', () => {
+      viewSuperAdmin.style.display = 'none';
+      viewLanding.style.display = 'block';
+      window.scrollTo(0, 0);
+    });
+  }
 
-  const titlesMap = {
-    overview: {
-      title: "Dashboard & Overview Tenant",
-      subtitle: "Karyawan Digital Bisnis Anda • Status: Online 24/7"
-    },
-    customizer: {
-      title: "Atur Karyawan AI Spesifik Klien",
-      subtitle: "Konfigurasi Persona, Nama, & Instruksi Karyawan Digital Spesifik Klien"
-    },
-    whatsapp: {
-      title: "Koneksi WhatsApp Bisnis",
-      subtitle: "Sambungkan Nomor WhatsApp Toko via QR Code"
-    },
-    documents: {
-      title: "Katalog & SOP (Knowledge Base Klien)",
-      subtitle: "Upload Dokumen PDF/Docx Penyimpan Otak Karyawan AI"
-    }
-  };
+  // 4. Super Admin Tab Navigation
+  const adminNavItems = document.querySelectorAll('[data-admin-tab]');
+  const adminTabContents = document.querySelectorAll('.admin-tab-content');
 
-  navItems.forEach(item => {
+  adminNavItems.forEach(item => {
     item.addEventListener('click', () => {
-      const targetTab = item.getAttribute('data-tab');
-
-      navItems.forEach(i => i.classList.remove('active'));
-      tabContents.forEach(c => c.classList.remove('active'));
+      const target = item.getAttribute('data-admin-tab');
+      adminNavItems.forEach(i => i.classList.remove('active'));
+      adminTabContents.forEach(c => c.style.display = 'none');
 
       item.classList.add('active');
-      const targetElement = document.getElementById(`tab-${targetTab}`);
-      if (targetElement) targetElement.classList.add('active');
-
-      if (titlesMap[targetTab]) {
-        pageTitle.textContent = titlesMap[targetTab].title;
-        pageSubtitle.textContent = titlesMap[targetTab].subtitle;
-      }
+      const targetSec = document.getElementById(`admin-tab-${target}`);
+      if (targetSec) targetSec.style.display = 'flex';
     });
   });
-
-  // 5. Live Chat Simulator
-  const simInput = document.getElementById('sim-input');
-  const simSend = document.getElementById('sim-send');
-  const simMessages = document.getElementById('simulator-messages');
-
-  function sendSimMessage() {
-    const text = simInput.value.trim();
-    if (!text) return;
-
-    const userMsg = document.createElement('div');
-    userMsg.className = 'msg msg-user';
-    userMsg.textContent = text;
-    simMessages.appendChild(userMsg);
-
-    simInput.value = '';
-    simMessages.scrollTop = simMessages.scrollHeight;
-
-    setTimeout(() => {
-      const botMsg = document.createElement('div');
-      botMsg.className = 'msg msg-bot';
-
-      if (text.toLowerCase().includes('baju') || text.toLowerCase().includes('size') || text.toLowerCase().includes('harga')) {
-        botMsg.textContent = "Baju Gamis Syari Premium ready kak! Size L sisa 3 pcs warna Navy (Rp 185.000). Mau dicatat pesanannya?";
-      } else if (text.toLowerCase().includes('buka') || text.toLowerCase().includes('alamat')) {
-        botMsg.textContent = "Toko kami buka jam 09:00 - 21:00 WIB kak! Alamat lengkap di Jl. Riau No. 45 Bandung.";
-      } else {
-        botMsg.textContent = `Halo kak! Mengenai "${text}", KawanAI siap membantu mencatat pesanan Anda 24 jam nonstop.`;
-      }
-
-      simMessages.appendChild(botMsg);
-      simMessages.scrollTop = simMessages.scrollHeight;
-    }, 600);
-  }
-
-  if (simSend && simInput) {
-    simSend.addEventListener('click', sendSimMessage);
-    simInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') sendSimMessage();
-    });
-  }
-
-  // 6. WhatsApp Scan Simulator
-  const btnScanSim = document.getElementById('btn-scan-sim');
-  if (btnScanSim) {
-    btnScanSim.addEventListener('click', () => {
-      alert('🟢 WhatsApp Karyawan AI Berhasil Terhubung ke Server!');
-    });
-  }
 });
