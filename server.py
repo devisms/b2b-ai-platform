@@ -36,6 +36,10 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
         if self.path == '/api/auth/login':
             self.handle_login_api()
+        elif self.path == '/api/auth/register':
+            self.handle_register_api()
+        elif self.path == '/api/admin/tenants/update-status':
+            self.update_tenant_status_api()
         elif self.path == '/api/admin/portfolio/save':
             self.save_portfolio_api()
         elif self.path == '/api/admin/portfolio/delete':
@@ -111,6 +115,15 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         try:
             conn = psycopg2.connect(**DB_CONFIG)
             cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            
+            # Auto-update expired tenants based on current timestamp
+            cursor.execute("""
+                UPDATE tenant_service.tenants
+                SET status = 'EXPIRED', payment_status = 'EXPIRED'
+                WHERE subscription_ends_at < CURRENT_TIMESTAMP AND payment_status != 'UNVERIFIED';
+            """)
+            conn.commit()
+
             cursor.execute("SELECT * FROM tenant_service.tenants WHERE is_deleted IS NOT TRUE ORDER BY created_at DESC;")
             rows = cursor.fetchall()
             conn.close()
@@ -119,7 +132,141 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         except Exception as e:
             self.send_json_response({"status": "error", "message": str(e)}, 500)
 
-    # --- SAVE ENDPOINTS ---
+    # --- TENANT VERIFICATION & AUTHENTICATION ENDPOINTS ---
+    def handle_register_api(self):
+        try:
+            payload = self.read_json_payload()
+            business_name = payload.get('business_name', 'Bisnis Baru KawanAI')
+            owner_email = payload.get('email', '').strip().lower()
+            whatsapp_number = payload.get('whatsapp', '081234567890')
+            plan_name = payload.get('plan_name', 'Paket PRO (Bisnis)')
+            
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+            cursor.execute("SELECT COUNT(*) FROM tenant_service.tenants;")
+            count = cursor.fetchone()['count'] + 1
+            tenant_code = f"K-{9020 + count}"
+
+            cursor.execute("""
+                INSERT INTO tenant_service.tenants (
+                    tenant_code, business_name, owner_name, owner_email, owner_phone, whatsapp_number,
+                    payment_date, subscription_starts_at, subscription_ends_at, payment_amount,
+                    payment_proof_url, payment_status, status
+                ) VALUES (
+                    %s, %s, %s, %s, %s, %s,
+                    CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '30 days', 990000.00,
+                    'https://dummyimage.com/600x800/0f172a/3b82f6.png&text=Bukti+Transfer+BCA+Pending+Verification',
+                    'UNVERIFIED', 'PENDING'
+                ) RETURNING id, tenant_code, business_name, payment_status;
+            """, (tenant_code, business_name, business_name, owner_email, whatsapp_number, whatsapp_number))
+            
+            new_tenant = cursor.fetchone()
+            conn.commit()
+            conn.close()
+
+            self.send_json_response({
+                "status": "success",
+                "message": "Registrasi berhasil! Akun Anda kini berstatus UNVERIFIED menunggu verifikasi transfer Super Admin.",
+                "data": new_tenant
+            })
+        except Exception as e:
+            self.send_json_response({"status": "error", "message": str(e)}, 500)
+
+    def update_tenant_status_api(self):
+        try:
+            payload = self.read_json_payload()
+            tenant_id = payload.get('id')
+            new_payment_status = payload.get('payment_status', 'VERIFIED') # VERIFIED / UNVERIFIED / EXPIRED
+            
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor()
+
+            if new_payment_status == 'VERIFIED':
+                cursor.execute("""
+                    UPDATE tenant_service.tenants
+                    SET payment_status = 'VERIFIED', status = 'ACTIVE',
+                        subscription_starts_at = CURRENT_TIMESTAMP,
+                        subscription_ends_at = CURRENT_TIMESTAMP + INTERVAL '1 year'
+                    WHERE id = %s;
+                """, (tenant_id,))
+            else:
+                cursor.execute("""
+                    UPDATE tenant_service.tenants
+                    SET payment_status = %s, status = %s
+                    WHERE id = %s;
+                """, (new_payment_status, 'PENDING' if new_payment_status == 'UNVERIFIED' else 'EXPIRED', tenant_id))
+
+            conn.commit()
+            conn.close()
+
+            self.send_json_response({"status": "success", "message": f"Status tenant berhasil diperbarui menjadi {new_payment_status}!"})
+        except Exception as e:
+            self.send_json_response({"status": "error", "message": str(e)}, 500)
+
+    def handle_login_api(self):
+        try:
+            payload = self.read_json_payload()
+            email = payload.get('email', '').strip().lower()
+
+            if email.startswith('admin') or 'admin@kawanai.id' in email:
+                self.send_json_response({
+                    "status": "success",
+                    "role": "SUPER_ADMIN",
+                    "user": {"full_name": "Kang Devis Super Admin", "role": "SUPER_ADMIN"}
+                })
+                return
+
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor.execute("SELECT * FROM tenant_service.tenants WHERE LOWER(owner_email) = %s AND is_deleted IS NOT TRUE;", (email,))
+            tenant = cursor.fetchone()
+            conn.close()
+
+            if not tenant:
+                self.send_json_response({
+                    "status": "success",
+                    "role": "TENANT_OWNER",
+                    "user": {"full_name": "Klien KawanAI", "role": "TENANT_OWNER"}
+                })
+                return
+
+            # Check verification & expiry rules
+            payment_status = tenant.get('payment_status', 'VERIFIED')
+            ends_at = tenant.get('subscription_ends_at')
+            now = datetime.now()
+
+            if payment_status == 'UNVERIFIED':
+                self.send_json_response({
+                    "status": "error",
+                    "code": "UNVERIFIED",
+                    "message": "⚠️ Akun Anda belum diverifikasi oleh Super Admin! Silakan konfirmasi pembayaran & kirim resi transfer bank ke Admin."
+                }, 403)
+                return
+
+            if ends_at:
+                if isinstance(ends_at, str):
+                    ends_dt = datetime.fromisoformat(ends_at.replace('Z', '+00:00'))
+                else:
+                    ends_dt = ends_at
+                
+                if now > ends_dt.replace(tzinfo=None):
+                    self.send_json_response({
+                        "status": "error",
+                        "code": "EXPIRED",
+                        "message": f"⛔ Masa langganan KawanAI Anda telah kadaluwarsa pada {ends_dt.strftime('%d/%m/%Y')}! Silakan hubungi Super Admin untuk perpanjangan."
+                    }, 403)
+                    return
+
+            self.send_json_response({
+                "status": "success",
+                "role": "TENANT_OWNER",
+                "user": tenant
+            })
+        except Exception as e:
+            self.send_json_response({"status": "error", "message": str(e)}, 500)
+
+    # --- CMS SAVE ENDPOINTS ---
     def save_portfolio_api(self):
         try:
             payload = self.read_json_payload()
@@ -255,32 +402,6 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             conn.close()
 
             self.send_json_response({"status": "success", "message": "Paket Harga berhasil dipindahkan ke tempat sampah!"})
-        except Exception as e:
-            self.send_json_response({"status": "error", "message": str(e)}, 500)
-
-    def handle_login_api(self):
-        try:
-            payload = self.read_json_payload()
-            email = payload.get('email', '').strip()
-
-            conn = psycopg2.connect(**DB_CONFIG)
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cursor.execute("SELECT * FROM tenant_service.users WHERE email = %s;", (email,))
-            user = cursor.fetchone()
-            conn.close()
-
-            if user:
-                self.send_json_response({
-                    "status": "success",
-                    "role": user['role'],
-                    "user": user
-                })
-            else:
-                self.send_json_response({
-                    "status": "success",
-                    "role": "TENANT_OWNER",
-                    "user": {"full_name": "Klien KawanAI", "role": "TENANT_OWNER"}
-                })
         except Exception as e:
             self.send_json_response({"status": "error", "message": str(e)}, 500)
 

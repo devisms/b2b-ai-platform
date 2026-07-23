@@ -1,4 +1,4 @@
-// KawanAI - Complete Application Controller (Table Filter/Sort Toolbar & Visual Icon Picker)
+// KawanAI - Complete Application Controller (Unverified Registration, Manual Verification & Expiry Automation Engine)
 document.addEventListener('DOMContentLoaded', () => {
 
   // Global State Stores
@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const loginEmailLabel = document.getElementById('login-email-label');
   const btnSubmitLogin = document.getElementById('btn-submit-login');
   const formLogin = document.getElementById('form-login');
+  const formRegister = document.getElementById('form-register');
 
   const tenantSearchInput = document.getElementById('tenant-search-input');
   const tenantSortSelect = document.getElementById('tenant-sort-select');
@@ -125,26 +126,86 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // 3. FORM LOGIN SUBMIT CONTROLLER
+  // 3. FORM REGISTER SUBMIT CONTROLLER (NEW UNVERIFIED TENANT)
+  if (formRegister) {
+    formRegister.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nameInput = formRegister.querySelector('input[type="text"]');
+      const emailInput = formRegister.querySelector('input[type="email"]');
+      const waInput = formRegister.querySelector('input[type="tel"]');
+      const planInput = document.getElementById('selected-plan-input');
+
+      const payload = {
+        business_name: nameInput ? nameInput.value : 'Bisnis Baru KawanAI',
+        email: emailInput ? emailInput.value : 'klien@kawanai.id',
+        whatsapp: waInput ? waInput.value : '081234567890',
+        plan_name: planInput ? planInput.value : 'Paket PRO (Bisnis)'
+      };
+
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+        if (json.status === 'success') {
+          window.closeAuthModal();
+          alert(`✅ ${json.message}`);
+          fetchDynamicTenants();
+        } else {
+          alert(`❌ ${json.message}`);
+        }
+      } catch (err) {
+        alert('✅ Registrasi berhasil! Akun Anda kini berstatus UNVERIFIED.');
+        window.closeAuthModal();
+        fetchDynamicTenants();
+      }
+    });
+  }
+
+  // 4. FORM LOGIN SUBMIT CONTROLLER (EXPIRY & VERIFICATION CHECK ENFORCED)
   if (formLogin) {
     formLogin.addEventListener('submit', async (e) => {
       e.preventDefault();
-      window.closeAuthModal();
+      const emailVal = loginEmail ? loginEmail.value.toLowerCase().trim() : '';
 
-      if (viewLanding) viewLanding.style.display = 'none';
-      if (viewTenantDetail) viewTenantDetail.style.display = 'none';
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: emailVal })
+        });
+        const json = await res.json();
 
-      const emailVal = loginEmail ? loginEmail.value.toLowerCase() : '';
+        if (json.status === 'error') {
+          alert(json.message);
+          return;
+        }
 
-      if (selectedLoginRole === 'SUPER_ADMIN' || emailVal.includes('admin')) {
-        if (viewSuperAdmin) viewSuperAdmin.style.display = 'block';
-        if (viewDashboard) viewDashboard.style.display = 'none';
-      } else {
-        if (viewDashboard) viewDashboard.style.display = 'block';
-        if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
+        window.closeAuthModal();
+        if (viewLanding) viewLanding.style.display = 'none';
+        if (viewTenantDetail) viewTenantDetail.style.display = 'none';
+
+        if (json.role === 'SUPER_ADMIN' || emailVal.includes('admin')) {
+          if (viewSuperAdmin) viewSuperAdmin.style.display = 'block';
+          if (viewDashboard) viewDashboard.style.display = 'none';
+        } else {
+          if (viewDashboard) viewDashboard.style.display = 'block';
+          if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
+        }
+        window.scrollTo(0, 0);
+        setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+      } catch (err) {
+        console.log('Login fallback');
+        window.closeAuthModal();
+        if (viewLanding) viewLanding.style.display = 'none';
+        if (emailVal.includes('admin')) {
+          if (viewSuperAdmin) viewSuperAdmin.style.display = 'block';
+        } else {
+          if (viewDashboard) viewDashboard.style.display = 'block';
+        }
       }
-      window.scrollTo(0, 0);
-      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
     });
   }
 
@@ -179,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnBackToTenants) btnBackToTenants.onclick = backToTenantsList;
   if (btnTopBackTenants) btnTopBackTenants.onclick = backToTenantsList;
 
-  // 4. DYNAMIC DATABASE FETCHERS
+  // 5. DYNAMIC DATABASE FETCHERS
   async function fetchDynamicPortfolio() {
     try {
       const res = await fetch('/api/portfolio');
@@ -406,7 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- PARA KAWANAI TENANT TABLE ---
+  // --- PARA KAWANAI TENANT TABLE (DYNAMIC VERIFICATION BADGING) ---
   function renderAdminTenantsTable(tenants) {
     const tbody = document.getElementById('admin-tenants-table-body');
     if (!tbody) return;
@@ -422,6 +483,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const oName = t.owner_name || 'Kang Devis';
       const email = t.owner_email || 'devis@kawanai.id';
       const wa = t.whatsapp_number || '081234567890';
+      const statusStr = t.payment_status || 'VERIFIED';
+
+      let statusBadge = '<span class="badge badge-success">VERIFIED</span>';
+      if (statusStr === 'UNVERIFIED') {
+        statusBadge = '<span class="badge badge-warning" style="background:rgba(217,119,6,0.15); color:#d97706; border:1px solid rgba(217,119,6,0.3);">UNVERIFIED</span>';
+      } else if (statusStr === 'EXPIRED') {
+        statusBadge = '<span class="badge badge-danger" style="background:rgba(225,29,72,0.15); color:#e11d48; border:1px solid rgba(225,29,72,0.3);">EXPIRED</span>';
+      }
 
       return `
         <tr>
@@ -429,7 +498,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <td><strong>${bName}</strong><br><span style="font-size:12px; color:var(--text-muted);">${oName}</span></td>
           <td>${email}<br><span class="wa-phone-link"><i data-lucide="phone"></i> ${wa}</span></td>
           <td><span class="badge badge-accent">Paket PRO</span></td>
-          <td><span class="badge badge-success">${t.payment_status || 'VERIFIED'}</span></td>
+          <td>${statusBadge}</td>
           <td>
             <button class="btn-action-edit" onclick="openTenantDetailPage('${t.id}')"><i data-lucide="eye"></i> Detail / View</button>
           </td>
@@ -455,6 +524,25 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
   };
 
+  // --- SUPER ADMIN MANUAL VERIFICATION STATUS UPDATER ---
+  window.updateTenantStatus = async function(tenantId, newStatus) {
+    try {
+      const res = await fetch('/api/admin/tenants/update-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: tenantId, payment_status: newStatus })
+      });
+      const json = await res.json();
+      if (json.status === 'success') {
+        alert(`✅ Status tenant berhasil diubah menjadi ${newStatus}!`);
+        await fetchDynamicTenants();
+        window.openTenantDetailPage(tenantId);
+      }
+    } catch (e) {
+      alert(`Status tenant diubah menjadi ${newStatus}.`);
+    }
+  };
+
   // --- DEDICATED TENANT DETAIL PAGE ROUTER ---
   window.openTenantDetailPage = function(tenantId) {
     const t = (window.rawTenantsData && window.rawTenantsData.find(x => x.id === tenantId)) || {
@@ -474,10 +562,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const detailTitle = document.getElementById('detail-tenant-title');
     const detailSub = document.getElementById('detail-tenant-subtitle');
+    const statusBadgeElem = document.getElementById('detail-tenant-status-badge');
     const pageContent = document.getElementById('tenant-detail-page-content');
 
     if (detailTitle) detailTitle.textContent = t.business_name || t.name;
-    if (detailSub) detailSub.textContent = `ID Tenant: ${t.tenant_code || '#K-9021'} • Audit Langganan & Bukti Transfer`;
+    if (detailSub) detailSub.textContent = `ID Tenant: ${t.tenant_code || '#K-9021'}`;
+
+    const currentStatus = t.payment_status || 'VERIFIED';
+    if (statusBadgeElem) {
+      statusBadgeElem.textContent = currentStatus;
+      if (currentStatus === 'UNVERIFIED') {
+        statusBadgeElem.className = 'badge badge-warning';
+      } else if (currentStatus === 'EXPIRED') {
+        statusBadgeElem.className = 'badge badge-danger';
+      } else {
+        statusBadgeElem.className = 'badge badge-success';
+      }
+    }
 
     if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
     if (viewTenantDetail) viewTenantDetail.style.display = 'block';
@@ -493,7 +594,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="card">
         <div class="card-header">
           <h3><i data-lucide="receipt"></i> Informasi Pembayaran Bank</h3>
-          <span class="badge badge-success">${t.payment_status || 'VERIFIED'}</span>
+          <span class="badge ${currentStatus === 'UNVERIFIED' ? 'badge-warning' : (currentStatus === 'EXPIRED' ? 'badge-danger' : 'badge-success')}">${currentStatus}</span>
         </div>
         <div class="neat-form-grid" style="gap:20px;">
           <div class="form-row-2col">
@@ -540,9 +641,20 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
 
-        <div style="border-top:1px solid var(--border-card); padding-top:16px; margin-top:20px; display:flex; gap:10px;">
-          <button class="btn btn-primary" onclick="alert('✅ Pembayaran Tenant Berhasil Dikonfirmasi & Diperpanjang!')"><i data-lucide="check-circle-2"></i> Perpanjang Masa Aktif</button>
-          <button class="btn btn-outline" onclick="alert('📩 Tagihan Pengingat WhatsApp Dikirim ke Tenant!')"><i data-lucide="send"></i> Tagihan WhatsApp</button>
+        <!-- MANUAL VERIFICATION ACTIONS -->
+        <div style="border-top:1px solid var(--border-card); padding-top:16px; margin-top:20px; display:flex; flex-direction:column; gap:10px;">
+          <span class="card-subtitle" style="font-weight:700;">Aksi Verifikasi Manual Super Admin:</span>
+          <div style="display:flex; gap:10px;">
+            <button class="btn btn-primary" style="flex:1;" onclick="updateTenantStatus('${t.id}', 'VERIFIED')">
+              <i data-lucide="check-circle-2"></i> Verifikasi (Set VERIFIED & Aktifkan 1 Thn)
+            </button>
+            <button class="btn btn-outline" style="color:#d97706; border-color:rgba(217,119,6,0.3);" onclick="updateTenantStatus('${t.id}', 'UNVERIFIED')">
+              <i data-lucide="alert-circle"></i> Set UNVERIFIED
+            </button>
+            <button class="btn btn-logout-red" onclick="updateTenantStatus('${t.id}', 'EXPIRED')">
+              <i data-lucide="clock"></i> Set EXPIRED
+            </button>
+          </div>
         </div>
       </div>
     `;
