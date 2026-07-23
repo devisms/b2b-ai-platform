@@ -146,20 +146,26 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
 
             cursor.execute("SELECT COUNT(*) FROM tenant_service.tenants;")
             count = cursor.fetchone()['count'] + 1
-            tenant_code = f"K-{9020 + count}"
+            date_prefix = datetime.now().strftime('%Y%m%d')
+            tenant_code = f"#KWN-{date_prefix}-{count:04d}"
 
             cursor.execute("""
                 INSERT INTO tenant_service.tenants (
                     tenant_code, business_name, owner_name, owner_email, owner_phone, whatsapp_number,
+                    contact_person_name, shop_whatsapp, business_category, ai_assistant_name, ai_persona_tone,
                     payment_date, subscription_starts_at, subscription_ends_at, payment_amount,
                     payment_proof_url, payment_status, status
                 ) VALUES (
                     %s, %s, %s, %s, %s, %s,
+                    %s, %s, %s, %s, %s,
                     CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '30 days', 990000.00,
                     'https://dummyimage.com/600x800/0f172a/3b82f6.png&text=Bukti+Transfer+BCA+Pending+Verification',
                     'UNVERIFIED', 'PENDING'
                 ) RETURNING id, tenant_code, business_name, payment_status;
-            """, (tenant_code, business_name, business_name, owner_email, whatsapp_number, whatsapp_number))
+            """, (
+                tenant_code, business_name, business_name, owner_email, whatsapp_number, whatsapp_number,
+                'Admin CS Toko', whatsapp_number, 'Online Shop', f"Siti - CS {business_name}", 'Ramah & Casual'
+            ))
             
             new_tenant = cursor.fetchone()
             conn.commit()
@@ -177,8 +183,8 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         try:
             payload = self.read_json_payload()
             tenant_id = payload.get('id')
-            new_payment_status = payload.get('payment_status', 'VERIFIED') # VERIFIED / UNVERIFIED / EXPIRED
-            
+            new_payment_status = payload.get('payment_status', 'VERIFIED')
+
             conn = psycopg2.connect(**DB_CONFIG)
             cursor = conn.cursor()
 
@@ -231,7 +237,6 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 })
                 return
 
-            # Check verification & expiry rules
             payment_status = tenant.get('payment_status', 'VERIFIED')
             ends_at = tenant.get('subscription_ends_at')
             now = datetime.now()

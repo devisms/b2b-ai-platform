@@ -1,4 +1,4 @@
-// KawanAI - Complete Application Controller (Harmonized Badges & Action Buttons System)
+// KawanAI - Complete Application Controller (Unverified Notification Badge, Separated Owner/Shop Cards & AI Metrics)
 document.addEventListener('DOMContentLoaded', () => {
 
   // Global State Stores
@@ -42,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const tenantSearchInput = document.getElementById('tenant-search-input');
   const tenantSortSelect = document.getElementById('tenant-sort-select');
+  const unverifiedCountBadge = document.getElementById('unverified-count-badge');
 
   let selectedLoginRole = 'TENANT_OWNER';
 
@@ -289,6 +290,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const json = await res.json();
       if (json.status === 'success') {
         window.rawTenantsData = json.data;
+        updateUnverifiedNotificationBadge(json.data);
         applyTenantFilterAndSort();
       }
     } catch (e) {
@@ -296,11 +298,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // SEARCH FILTER & SORT ENGINE FOR TENANT TABLE
+  // UNVERIFIED NOTIFICATION COUNTER BADGE IN SUPER ADMIN SIDEBAR
+  function updateUnverifiedNotificationBadge(tenants) {
+    const unverifiedList = tenants.filter(t => t.payment_status === 'UNVERIFIED');
+    if (unverifiedCountBadge) {
+      if (unverifiedList.length > 0) {
+        unverifiedCountBadge.style.display = 'inline-block';
+        unverifiedCountBadge.textContent = `${unverifiedList.length} BARU`;
+      } else {
+        unverifiedCountBadge.style.display = 'none';
+      }
+    }
+  }
+
+  // SEARCH FILTER & UNVERIFIED PRIORITY SORT ENGINE FOR TENANT TABLE
   function applyTenantFilterAndSort() {
     let tenants = [...(window.rawTenantsData || [])];
     const query = tenantSearchInput ? tenantSearchInput.value.toLowerCase().trim() : '';
-    const sortVal = tenantSortSelect ? tenantSortSelect.value : 'newest';
+    const sortVal = tenantSortSelect ? tenantSortSelect.value : 'unverified_first';
 
     if (query) {
       tenants = tenants.filter(t => {
@@ -313,10 +328,18 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    if (sortVal === 'name_asc') {
+    if (sortVal === 'unverified_first') {
+      tenants.sort((a, b) => {
+        if (a.payment_status === 'UNVERIFIED' && b.payment_status !== 'UNVERIFIED') return -1;
+        if (a.payment_status !== 'UNVERIFIED' && b.payment_status === 'UNVERIFIED') return 1;
+        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+      });
+    } else if (sortVal === 'name_asc') {
       tenants.sort((a, b) => (a.business_name || a.name || '').localeCompare(b.business_name || b.name || ''));
     } else if (sortVal === 'owner_asc') {
       tenants.sort((a, b) => (a.owner_name || '').localeCompare(b.owner_name || ''));
+    } else if (sortVal === 'newest') {
+      tenants.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
     }
 
     renderAdminTenantsTable(tenants);
@@ -467,7 +490,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- PARA KAWANAI TENANT TABLE (HARMONIZED STATUS BADGES) ---
+  // --- PARA KAWANAI TENANT TABLE (STANDARDIZED SEQUENTIAL #KWN CODES & UNVERIFIED BADGING) ---
   function renderAdminTenantsTable(tenants) {
     const tbody = document.getElementById('admin-tenants-table-body');
     if (!tbody) return;
@@ -477,12 +500,12 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    tbody.innerHTML = tenants.map(t => {
-      const code = t.tenant_code || ('#K-' + t.id.substring(0, 4).toUpperCase());
+    tbody.innerHTML = tenants.map((t, idx) => {
+      const code = t.tenant_code || (`#KWN-20260724-${(idx+1).toString().padStart(4, '0')}`);
       const bName = t.business_name || t.name || 'Bisnis KawanAI';
       const oName = t.owner_name || 'Kang Devis';
       const email = t.owner_email || 'devis@kawanai.id';
-      const wa = t.whatsapp_number || '081234567890';
+      const wa = t.shop_whatsapp || t.whatsapp_number || '081234567890';
       const statusStr = t.payment_status || 'VERIFIED';
 
       let statusBadge = '<span class="badge badge-success"><i data-lucide="check-circle-2"></i> VERIFIED</span>';
@@ -494,7 +517,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       return `
         <tr>
-          <td><code>${code}</code></td>
+          <td><code style="font-weight:700; color:var(--primary-accent);">${code}</code></td>
           <td><strong>${bName}</strong><br><span style="font-size:12px; color:var(--text-muted);">${oName}</span></td>
           <td>${email}<br><span class="wa-phone-link"><i data-lucide="phone"></i> ${wa}</span></td>
           <td><span class="badge badge-accent">Paket PRO</span></td>
@@ -543,15 +566,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // --- DEDICATED TENANT DETAIL PAGE ROUTER (HARMONIZED BADGES & BUTTONS) ---
+  // --- DEDICATED TENANT DETAIL PAGE ROUTER (SEPARATED OWNER vs SHOP INFO & AI METRICS) ---
   window.openTenantDetailPage = function(tenantId) {
     const t = (window.rawTenantsData && window.rawTenantsData.find(x => x.id === tenantId)) || {
       id: tenantId,
-      tenant_code: '#K-9021',
+      tenant_code: '#KWN-20260724-0001',
       business_name: 'Toko Baju Kang Devis',
       owner_name: 'Kang Devis',
       owner_email: 'devis@kawanai.id',
       whatsapp_number: '081234567890',
+      contact_person_name: 'Mba Rani (CS Lead)',
+      shop_whatsapp: '081234567890',
+      business_category: 'Fashion & Busana Muslim',
+      ai_assistant_name: 'Siti - CS Toko Baju Kang Devis',
+      ai_persona_tone: 'Ramah & Casual (Pakai Kak/Sis)',
+      total_chat_count: 2480,
+      total_orders_count: 312,
+      total_omset_amount: 62400000.00,
+      catalog_pdf_filename: 'Katalog_Gamis_Syari_Kang_Devis_2026.pdf',
       payment_date: '2026-07-01T10:30:00+07:00',
       subscription_starts_at: '2026-07-01T00:00:00+07:00',
       subscription_ends_at: '2027-07-01T23:59:59+07:00',
@@ -566,7 +598,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const pageContent = document.getElementById('tenant-detail-page-content');
 
     if (detailTitle) detailTitle.textContent = t.business_name || t.name;
-    if (detailSub) detailSub.textContent = `ID Tenant: ${t.tenant_code || '#K-9021'}`;
+    if (detailSub) detailSub.textContent = `ID Tenant: ${t.tenant_code || '#KWN-20260724-0001'}`;
 
     const currentStatus = t.payment_status || 'VERIFIED';
     if (statusBadgeElem) {
@@ -600,69 +632,114 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     pageContent.innerHTML = `
-      <div class="card">
-        <div class="card-header">
-          <h3><i data-lucide="receipt"></i> Informasi Pembayaran Bank</h3>
-          ${cardHeaderBadge}
-        </div>
-        <div class="neat-form-grid" style="gap:20px;">
-          <div class="form-row-2col">
-            <div><span class="card-subtitle">Tanggal Transaksi</span><br><strong style="font-size:15px;">${payDateStr}</strong></div>
-            <div><span class="card-subtitle">Nominal Pembayaran</span><br><strong style="font-size:17px; color:var(--primary-accent);">${amtStr}</strong></div>
+      <!-- 2-COLUMN GRID SPLIT -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
+        <!-- CARD 1: INFORMASI TOKO & KONTAK BISNIS -->
+        <div class="card">
+          <div class="card-header">
+            <h3><i data-lucide="store"></i> Informasi Toko & Perusahaan</h3>
+            <span class="badge badge-accent">${t.business_category || 'Online Shop'}</span>
           </div>
-          <div style="border-top:1px solid var(--border-card); padding-top:16px;">
-            <span class="card-subtitle" style="display:block; margin-bottom:8px;">File Bukti Transfer Bank (BCA / Mandiri / QRIS):</span>
-            <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(37,99,235,0.04); padding:14px 18px; border-radius:12px; border:1px solid rgba(37,99,235,0.15);">
-              <div>
-                <strong style="font-size:13.5px; color:var(--text-main); display:block;"><i data-lucide="file-text"></i> resi_transfer_bca_${(t.business_name || 'kawanai').toLowerCase().replace(/\s+/g, '_')}.png</strong>
-                <span style="font-size:11.5px; color:var(--text-muted);">Format: PNG / JPG • Terverifikasi Bank</span>
-              </div>
-              <button class="btn btn-outline btn-sm" onclick="openImagePreviewModal('${proofUrl}', '${(t.business_name || 'KawanAI').replace(/'/g, "\\'")}')">
-                <i data-lucide="image"></i> Lihat Resi (Popup)
-              </button>
+          <div class="neat-form-grid" style="gap:16px;">
+            <div>
+              <span class="card-subtitle">Nama Perusahaan / Bisnis</span>
+              <h3 style="font-size:18px; font-weight:800; margin-top:2px;">${t.business_name || t.name}</h3>
+            </div>
+            <div class="form-row-2col">
+              <div><span class="card-subtitle">Contact Person Toko</span><br><strong>${t.contact_person_name || 'Mba Rani (CS Lead)'}</strong></div>
+              <div><span class="card-subtitle">No. WhatsApp Bisnis (Live)</span><br><span class="wa-phone-link"><i data-lucide="phone"></i> ${t.shop_whatsapp || t.whatsapp_number || '081234567890'}</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 2: INFORMASI PEMILIK (OWNER PERSONAL) -->
+        <div class="card">
+          <div class="card-header">
+            <h3><i data-lucide="user-check"></i> Informasi Pemilik (Owner)</h3>
+            <span class="badge badge-accent">Owner Profile</span>
+          </div>
+          <div class="neat-form-grid" style="gap:16px;">
+            <div>
+              <span class="card-subtitle">Nama Pemilik Bisnis</span>
+              <h3 style="font-size:18px; font-weight:800; margin-top:2px;">${t.owner_name || 'Kang Devis'}</h3>
+            </div>
+            <div class="form-row-2col">
+              <div><span class="card-subtitle">Email Terdaftar</span><br><strong>${t.owner_email || 'devis@kawanai.id'}</strong></div>
+              <div><span class="card-subtitle">No. HP Personal</span><br><span class="wa-phone-link"><i data-lucide="phone"></i> ${t.whatsapp_number || '081234567890'}</span></div>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="card" style="display:flex; flex-direction:column; justify-content:space-between;">
-        <div>
+      <!-- 2-COLUMN GRID SPLIT METRICS & PEMBAYARAN -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-top:4px;">
+        <!-- CARD 3: METRIK OPERASIONAL CHAT & ASISTEN AI -->
+        <div class="card">
           <div class="card-header">
-            <h3><i data-lucide="calendar"></i> Masa Aktif & Profil KawanAI</h3>
-            <span class="badge badge-accent">Paket PRO</span>
+            <h3><i data-lucide="bot"></i> Metrik Pemakaian Chat & Asisten AI</h3>
+            <span class="badge badge-success">Active 24/7</span>
           </div>
-          <div class="neat-form-grid" style="gap:18px;">
-            <div>
-              <span class="card-subtitle">Nama Bisnis & Perusahaan</span>
-              <h3 style="font-size:18px; font-weight:800; margin-top:2px;">${t.business_name || t.name}</h3>
+          <div class="neat-form-grid" style="gap:16px;">
+            <div class="form-row-2col">
+              <div style="background:rgba(37,99,235,0.05); padding:12px 14px; border-radius:10px; border:1px solid rgba(37,99,235,0.15);">
+                <span class="card-subtitle">Total Chat Dijawab</span>
+                <h3 style="font-size:20px; font-weight:800; color:var(--primary-accent); margin-top:2px;">${(t.total_chat_count || 1420).toLocaleString('id-ID')} Chat</h3>
+              </div>
+              <div style="background:rgba(5,150,105,0.05); padding:12px 14px; border-radius:10px; border:1px solid rgba(5,150,105,0.15);">
+                <span class="card-subtitle">Pesanan Otomatis</span>
+                <h3 style="font-size:20px; font-weight:800; color:var(--success); margin-top:2px;">${t.total_orders_count || 184} Order</h3>
+              </div>
             </div>
             <div class="form-row-2col">
-              <div><span class="card-subtitle">Nama Pemilik (Owner)</span><br><strong>${t.owner_name || 'Kang Devis'}</strong></div>
-              <div><span class="card-subtitle">Kontak WhatsApp</span><br><span class="wa-phone-link"><i data-lucide="phone"></i> ${t.whatsapp_number || '081234567890'}</span></div>
+              <div><span class="card-subtitle">Nama Karyawan AI Specialist</span><br><strong>${t.ai_assistant_name || 'Siti - CS KawanAI'}</strong></div>
+              <div><span class="card-subtitle">Tone Persona</span><br><strong>${t.ai_persona_tone || 'Ramah & Casual'}</strong></div>
             </div>
             <div>
-              <span class="card-subtitle">Email Terdaftar</span><br><strong>${t.owner_email || 'devis@kawanai.id'}</strong>
-            </div>
-            <div style="border-top:1px solid var(--border-card); padding-top:14px;" class="form-row-2col">
-              <div><span class="card-subtitle">Masa Aktif Mulai</span><br><strong style="font-size:15px;">${startStr}</strong></div>
-              <div><span class="card-subtitle">Berakhir Pada (Kadaluwarsa)</span><br><strong style="font-size:15px; color:var(--success);">${endStr}</strong></div>
+              <span class="card-subtitle">File Katalog & SOP Knowledge Base (RAG PDF):</span><br>
+              <strong style="color:var(--text-main);"><i data-lucide="file-text"></i> ${t.catalog_pdf_filename || 'Katalog_Produk_Utama_2026.pdf'}</strong>
             </div>
           </div>
         </div>
 
-        <!-- HARMONIZED DESIGN SYSTEM ACTION BUTTONS -->
-        <div style="border-top:1px solid var(--border-card); padding-top:16px; margin-top:20px; display:flex; flex-direction:column; gap:10px;">
-          <span class="card-subtitle" style="font-weight:700;">Aksi Verifikasi Manual Super Admin:</span>
-          <div style="display:flex; gap:10px;">
-            <button class="btn btn-primary" style="flex:1;" onclick="updateTenantStatus('${t.id}', 'VERIFIED')">
-              <i data-lucide="check-circle-2"></i> Verifikasi Pembayaran
-            </button>
-            <button class="btn btn-outline" style="color:var(--warning); border-color:rgba(217,119,6,0.3);" onclick="updateTenantStatus('${t.id}', 'UNVERIFIED')">
-              <i data-lucide="clock"></i> Set Belum Diverifikasi
-            </button>
-            <button class="btn btn-logout-red" onclick="updateTenantStatus('${t.id}', 'EXPIRED')">
-              <i data-lucide="alert-circle"></i> Set Kadaluwarsa
-            </button>
+        <!-- CARD 4: VERIFIKASI BANK & MASA AKTIF LANGGANAN -->
+        <div class="card" style="display:flex; flex-direction:column; justify-content:space-between;">
+          <div>
+            <div class="card-header">
+              <h3><i data-lucide="receipt"></i> Masa Aktif & Pembayaran Bank</h3>
+              ${cardHeaderBadge}
+            </div>
+            <div class="neat-form-grid" style="gap:16px;">
+              <div class="form-row-2col">
+                <div><span class="card-subtitle">Tanggal Transaksi</span><br><strong style="font-size:14px;">${payDateStr}</strong></div>
+                <div><span class="card-subtitle">Nominal Pembayaran</span><br><strong style="font-size:16px; color:var(--primary-accent);">${amtStr}</strong></div>
+              </div>
+              <div class="form-row-2col" style="border-top:1px solid var(--border-card); padding-top:12px;">
+                <div><span class="card-subtitle">Masa Aktif Mulai</span><br><strong style="font-size:14px;">${startStr}</strong></div>
+                <div><span class="card-subtitle">Berakhir Pada (Kadaluwarsa)</span><br><strong style="font-size:14px; color:var(--success);">${endStr}</strong></div>
+              </div>
+              <div style="border-top:1px solid var(--border-card); padding-top:12px;">
+                <span class="card-subtitle" style="display:block; margin-bottom:6px;">File Resi Bukti Transfer:</span>
+                <button class="btn btn-outline btn-sm" onclick="openImagePreviewModal('${proofUrl}', '${(t.business_name || 'KawanAI').replace(/'/g, "\\'")}')">
+                  <i data-lucide="image"></i> Lihat Resi Transfer (Popup)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- HARMONIZED ACTION BUTTONS -->
+          <div style="border-top:1px solid var(--border-card); padding-top:14px; margin-top:16px; display:flex; flex-direction:column; gap:8px;">
+            <span class="card-subtitle" style="font-weight:700;">Aksi Verifikasi Manual Super Admin:</span>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-primary btn-sm" style="flex:1;" onclick="updateTenantStatus('${t.id}', 'VERIFIED')">
+                <i data-lucide="check-circle-2"></i> Verifikasi Pembayaran
+              </button>
+              <button class="btn btn-outline btn-sm" style="color:var(--warning); border-color:rgba(217,119,6,0.3);" onclick="updateTenantStatus('${t.id}', 'UNVERIFIED')">
+                <i data-lucide="clock"></i> Set Belum Diverifikasi
+              </button>
+              <button class="btn btn-logout-red btn-sm" onclick="updateTenantStatus('${t.id}', 'EXPIRED')">
+                <i data-lucide="alert-circle"></i> Set Kadaluwarsa
+              </button>
+            </div>
           </div>
         </div>
       </div>

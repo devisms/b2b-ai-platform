@@ -504,4 +504,23 @@ input:checked + .slider:before { transform: translateX(20px); }
   cursor: pointer;
 }
 
+/* UNVERIFIED NOTIFICATION PULSING BADGE IN SIDEBAR */
+.unverified-count-badge {
+  background: #d97706;
+  color: #ffffff;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10.5px;
+  font-weight: 800;
+  margin-left: auto;
+  box-shadow: 0 0 10px rgba(217, 119, 6, 0.5);
+  animation: pulse-badge 2s infinite;
+}
+@keyframes pulse-badge {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+
 
