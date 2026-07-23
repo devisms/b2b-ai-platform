@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  # 1. n8n Workflow Automation Engine
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    container_name: b2b_n8n_local
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      - WEBHOOK_URL=http://localhost:5678/
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+  # 2. PostgreSQL Shared Database (Tenant Data & n8n Data)
+  postgres:
+    image: postgres:15-alpine
+    container_name: b2b_postgres_local
+    restart: always
+    environment:
+      - POSTGRES_USER=b2b_user
+      - POSTGRES_PASSWORD=b2b_password_secret
+      - POSTGRES_DB=b2b_platform_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  n8n_data:
+  postgres_data:
