@@ -1,4 +1,4 @@
-// KawanAI - Complete Application Controller (Lightweight Tenant Detail & Image Preview Modal)
+// KawanAI - Complete Application Controller (Table Filter/Sort Toolbar & Visual Icon Picker)
 document.addEventListener('DOMContentLoaded', () => {
 
   // Global State Stores
@@ -38,6 +38,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const loginEmailLabel = document.getElementById('login-email-label');
   const btnSubmitLogin = document.getElementById('btn-submit-login');
   const formLogin = document.getElementById('form-login');
+
+  const tenantSearchInput = document.getElementById('tenant-search-input');
+  const tenantSortSelect = document.getElementById('tenant-sort-select');
 
   let selectedLoginRole = 'TENANT_OWNER';
 
@@ -100,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // 2. ROLE-BASED AUTH SWITCHER (SUPER ADMIN vs TENANT)
+  // 2. ROLE-BASED AUTH SWITCHER
   roleTabs.forEach(tab => {
     tab.addEventListener('click', () => {
       roleTabs.forEach(t => t.classList.remove('active'));
@@ -225,12 +228,41 @@ document.addEventListener('DOMContentLoaded', () => {
       const json = await res.json();
       if (json.status === 'success') {
         window.rawTenantsData = json.data;
-        renderAdminTenantsTable(json.data);
+        applyTenantFilterAndSort();
       }
     } catch (e) {
       console.log('Tenants fetch fallback');
     }
   }
+
+  // SEARCH FILTER & SORT ENGINE FOR TENANT TABLE
+  function applyTenantFilterAndSort() {
+    let tenants = [...(window.rawTenantsData || [])];
+    const query = tenantSearchInput ? tenantSearchInput.value.toLowerCase().trim() : '';
+    const sortVal = tenantSortSelect ? tenantSortSelect.value : 'newest';
+
+    if (query) {
+      tenants = tenants.filter(t => {
+        const bName = (t.business_name || t.name || '').toLowerCase();
+        const oName = (t.owner_name || '').toLowerCase();
+        const email = (t.owner_email || '').toLowerCase();
+        const wa = (t.whatsapp_number || '').toLowerCase();
+        const code = (t.tenant_code || '').toLowerCase();
+        return bName.includes(query) || oName.includes(query) || email.includes(query) || wa.includes(query) || code.includes(query);
+      });
+    }
+
+    if (sortVal === 'name_asc') {
+      tenants.sort((a, b) => (a.business_name || a.name || '').localeCompare(b.business_name || b.name || ''));
+    } else if (sortVal === 'owner_asc') {
+      tenants.sort((a, b) => (a.owner_name || '').localeCompare(b.owner_name || ''));
+    }
+
+    renderAdminTenantsTable(tenants);
+  }
+
+  if (tenantSearchInput) tenantSearchInput.addEventListener('input', applyTenantFilterAndSort);
+  if (tenantSortSelect) tenantSortSelect.addEventListener('change', applyTenantFilterAndSort);
 
   function renderPortfolioGrid(items) {
     const grid = document.querySelector('.portfolio-grid');
@@ -374,10 +406,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- PARA KAWANAI TENANT TABLE (SLEEK & REFINED) ---
+  // --- PARA KAWANAI TENANT TABLE ---
   function renderAdminTenantsTable(tenants) {
     const tbody = document.getElementById('admin-tenants-table-body');
     if (!tbody) return;
+
+    if (tenants.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--text-muted);">Tidak ada data tenant yang cocok dengan pencarian.</td></tr>`;
+      return;
+    }
 
     tbody.innerHTML = tenants.map(t => {
       const code = t.tenant_code || ('#K-' + t.id.substring(0, 4).toUpperCase());
@@ -418,7 +455,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
   };
 
-  // --- DEDICATED TENANT DETAIL PAGE ROUTER (LIGHTWEIGHT TEXT-ONLY FIRST) ---
+  // --- DEDICATED TENANT DETAIL PAGE ROUTER ---
   window.openTenantDetailPage = function(tenantId) {
     const t = (window.rawTenantsData && window.rawTenantsData.find(x => x.id === tenantId)) || {
       id: tenantId,
@@ -570,7 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!tbody) return;
     tbody.innerHTML = items.map(item => `
       <tr>
-        <td><code>${item.icon_name}</code></td>
+        <td><code style="color:var(--primary-accent); font-weight:700;"><i data-lucide="${item.icon_name || 'sparkles'}"></i> ${item.icon_name}</code></td>
         <td><strong>${item.title}</strong></td>
         <td>${item.description.substring(0, 70)}...</td>
         <td>
@@ -616,7 +653,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
   }
 
-  // 6. NEAT FORM CMS EDITOR & SOFT DELETE MODAL CONTROLLER
+  // 6. NEAT FORM CMS EDITOR & VISUAL ICON PICKER DROPDOWN CONTROLLER
   const modalCMSEditor = document.getElementById('modal-cms-editor');
   const btnCloseCMSModal = document.getElementById('btn-close-cms-modal');
   const btnCancelCMSEditor = document.getElementById('btn-cancel-cms-editor');
@@ -625,6 +662,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnCloseCMSModal) btnCloseCMSModal.onclick = () => { if (modalCMSEditor) modalCMSEditor.style.display = 'none'; };
   if (btnCancelCMSEditor) btnCancelCMSEditor.onclick = () => { if (modalCMSEditor) modalCMSEditor.style.display = 'none'; };
+
+  const ICON_OPTIONS = [
+    { name: 'message-square', label: '💬 Live Chat WhatsApp Automation' },
+    { name: 'bot', label: '🤖 Karyawan Digital AI Specialist' },
+    { name: 'file-text', label: '📄 Katalog & SOP PDF (RAG Knowledge)' },
+    { name: 'shopping-bag', label: '🛍️ Pencatatan Pesanan Otomatis' },
+    { name: 'sparkles', label: '✨ Otomatisasi AI Super Pintar' },
+    { name: 'zap', label: '⚡ Respon Kilat 1.2 Detik 24/7' },
+    { name: 'shield-check', label: '🛡️ Keamanan Data Enterprise' },
+    { name: 'bar-chart-3', label: '📊 Laporan Analitik & Penjualan' },
+    { name: 'phone', label: '📱 WhatsApp Business API Official' },
+    { name: 'database', label: '🗄️ Database & CRM Synchronization' },
+    { name: 'clock', label: '⏰ Layanan Customer Service 24 Jam' },
+    { name: 'users', label: '👥 Multi-Admin Team Management' }
+  ];
 
   window.openCMSEditorModal = function(type, id = null) {
     document.getElementById('cms-item-type').value = type;
@@ -649,10 +701,23 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     } else if (type === 'features') {
       const item = id ? window.rawFeaturesData.find(x => x.id === id) : {};
-      document.getElementById('cms-modal-title').textContent = id ? 'Edit Fitur Utama' : 'Tambah Fitur Utama Baru';
+      document.getElementById('cms-modal-title').textContent = id ? 'Edit Fitur Utama Platform' : 'Tambah Fitur Utama Baru';
+      
+      const currentIcon = item?.icon_name || 'message-square';
+      const optionsHtml = ICON_OPTIONS.map(opt => `
+        <option value="${opt.name}" ${opt.name === currentIcon ? 'selected' : ''}>
+          ${opt.label} (${opt.name})
+        </option>
+      `).join('');
+
       cmsFieldsContainer.innerHTML = `
-        <div class="form-group"><label>Nama Ikon Lucide</label><input type="text" id="f-icon" required value="${item?.icon_name || 'message-square-code'}" placeholder="message-square / bot / file-text"></div>
-        <div class="form-group"><label>Judul Fitur</label><input type="text" id="f-title" required value="${item?.title || ''}" placeholder="misal: WhatsApp Live Automation"></div>
+        <div class="form-group">
+          <label>Pilih Ikon Fitur (Tinggal Pilih Dropdown):</label>
+          <select id="f-icon-select" class="icon-picker-select">
+            ${optionsHtml}
+          </select>
+        </div>
+        <div class="form-group"><label>Judul Fitur Utama</label><input type="text" id="f-title" required value="${item?.title || ''}" placeholder="misal: WhatsApp Live Automation"></div>
         <div class="form-group"><label>Deskripsi Fitur</label><textarea id="f-desc" rows="4" required placeholder="Jelaskan keunggulan fitur ini...">${item?.description || ''}</textarea></div>
       `;
     } else if (type === 'pricing') {
@@ -674,6 +739,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
     }
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
   };
 
   const btnAddPortfolio = document.getElementById('btn-add-portfolio');
@@ -701,7 +767,8 @@ document.addEventListener('DOMContentLoaded', () => {
         payload.metric_2_label = document.getElementById('p-m2-label').value;
         payload.metric_2_value = document.getElementById('p-m2-val').value;
       } else if (type === 'features') {
-        payload.icon_name = document.getElementById('f-icon').value;
+        const iconSelect = document.getElementById('f-icon-select');
+        payload.icon_name = iconSelect ? iconSelect.value : 'message-square';
         payload.title = document.getElementById('f-title').value;
         payload.description = document.getElementById('f-desc').value;
       } else if (type === 'pricing') {

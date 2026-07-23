@@ -410,7 +410,7 @@
           </div>
         </section>
 
-        <!-- ADMIN TAB 2: PARA KAWANAI (CLEAN REFINED TITLE) -->
+        <!-- ADMIN TAB 2: PARA KAWANAI (WITH SEARCH FILTER & SORTING CONTROLS) -->
         <section class="admin-tab-content" id="admin-tab-tenants" style="display:none;">
           <div class="card">
             <div class="card-header">
@@ -419,6 +419,23 @@
               </div>
               <button class="btn btn-primary btn-add-cms"><i data-lucide="plus"></i> Tambah Tenant Baru</button>
             </div>
+
+            <!-- SEARCH FILTER & SORTING TOOLBAR -->
+            <div class="table-controls-bar">
+              <div class="search-input-wrapper">
+                <i data-lucide="search" class="search-icon"></i>
+                <input type="text" id="tenant-search-input" placeholder="Cari nama bisnis, owner, email, WA...">
+              </div>
+              <div class="sort-select-wrapper">
+                <i data-lucide="arrow-up-down" class="sort-icon"></i>
+                <select id="tenant-sort-select">
+                  <option value="newest">Urutkan: Terbaru</option>
+                  <option value="name_asc">Urutkan: Nama Bisnis (A-Z)</option>
+                  <option value="owner_asc">Urutkan: Nama Owner (A-Z)</option>
+                </select>
+              </div>
+            </div>
+
             <div class="admin-table-wrapper">
               <table class="admin-table">
                 <thead>
@@ -490,7 +507,7 @@
                 <table class="admin-table">
                   <thead>
                     <tr>
-                      <th>Nama Ikon</th>
+                      <th>Ikon Fitur</th>
                       <th>Judul Fitur</th>
                       <th>Deskripsi Singkat</th>
                       <th>Aksi CRUD</th>
@@ -539,7 +556,7 @@
     </div>
   </div>
 
-  <!-- VIEW 5: DEDICATED FULL-PAGE VIEW TENANT DETAIL (FAST TEXT-ONLY LIGHTWEIGHT LOAD) -->
+  <!-- VIEW 5: DEDICATED FULL-PAGE VIEW TENANT DETAIL -->
   <div id="view-tenant-detail" class="page-view" style="display:none;">
     <div class="app-container">
       <aside class="sidebar admin-sidebar">
@@ -587,9 +604,9 @@
     </div>
   </div>
 
-  <!-- VIEW 7: MODAL CMS EDITOR (CREATE / EDIT ITEM FORM NEAT) -->
+  <!-- VIEW 7: MODAL CMS EDITOR (CREATE / EDIT ITEM FORM NEAT + VISUAL ICON PICKER) -->
   <div id="modal-cms-editor" class="modal-overlay" style="display:none;">
-    <div class="modal-card card" style="max-width:520px;">
+    <div class="modal-card card" style="max-width:540px;">
       <button class="btn-close" id="btn-close-cms-modal">&times;</button>
       <h2 id="cms-modal-title">Editor Konten CMS</h2>
       <p id="cms-modal-subtitle">Isi formulir di bawah ini untuk memperbarui konten</p>
