@@ -148,12 +148,66 @@ input:checked + .slider { background-color: var(--primary-accent); }
 input:checked + .slider:before { transform: translateX(24px); }
 .badge-discount { background: rgba(5, 150, 105, 0.15); color: var(--success); border: 1px solid rgba(5, 150, 105, 0.3); padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 700; }
 
-/* Modal Auth */
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
-.modal-card { width: 100%; max-width: 440px; padding: 36px; position: relative; background: var(--bg-card); border: 1px solid var(--border-card); border-radius: 16px; box-shadow: var(--shadow-md); max-height: 90vh; overflow-y: auto; }
-.btn-close { position: absolute; top: 16px; right: 20px; background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; }
-.auth-form-wrapper h2 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
-.auth-form-wrapper p { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+/* ============================================================================
+   LUXURY GLASSMORPHISM AUTHENTICATION MODAL STYLING
+   ============================================================================ */
+
+.modal-overlay {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(16px);
+  display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px;
+}
+
+.modal-card {
+  width: 100%; max-width: 460px; padding: 40px; position: relative;
+  background: var(--bg-card); border: 1px solid rgba(37, 99, 235, 0.2);
+  border-radius: 24px; box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.3);
+  max-height: 90vh; overflow-y: auto;
+}
+
+.btn-close {
+  position: absolute; top: 20px; right: 24px; background: rgba(0, 0, 0, 0.05);
+  border: none; color: var(--text-muted); font-size: 22px; width: 36px; height: 36px;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.2s ease;
+}
+:root[data-theme="dark"] .btn-close { background: rgba(255, 255, 255, 0.08); }
+.btn-close:hover { background: #ef4444; color: white; transform: rotate(90deg); }
+
+.auth-form-wrapper h2 { font-size: 24px; font-weight: 800; margin-bottom: 6px; letter-spacing: -0.3px; color: var(--text-main); }
+.auth-form-wrapper p { font-size: 13.5px; color: var(--text-muted); margin-bottom: 24px; line-height: 1.5; }
+
+/* Role Switcher Tabs inside Auth Modal */
+.auth-role-tabs {
+  display: flex; gap: 8px; margin-bottom: 24px; padding: 6px;
+  background: rgba(37, 99, 235, 0.06); border-radius: 14px; border: 1px solid rgba(37, 99, 235, 0.15);
+}
+.role-tab {
+  flex: 1; padding: 12px; border: none; background: transparent;
+  color: var(--text-muted); font-weight: 600; font-size: 13.5px; border-radius: 10px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.25s ease;
+}
+.role-tab.active {
+  background: var(--primary-gradient); color: #ffffff !important;
+  font-weight: 700; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+}
+.role-tab.active svg { color: #ffffff !important; }
+
+/* Form Fields */
+.config-form { display: flex; flex-direction: column; gap: 20px; }
+.form-group { display: flex; flex-direction: column; gap: 8px; }
+.form-group label { font-size: 13.5px; font-weight: 700; color: var(--text-main); }
+.form-group input, .form-group select, .form-group textarea {
+  background: var(--bg-main); border: 1px solid var(--border-card);
+  border-radius: 12px; padding: 14px 18px; color: var(--text-main);
+  font-size: 14px; outline: none; transition: all 0.2s ease;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+  border-color: var(--primary-accent); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+.auth-switch { text-align: center; font-size: 13.5px; margin-top: 24px; color: var(--text-muted); }
+.auth-switch a { color: var(--primary-accent); text-decoration: none; font-weight: 700; }
 
 /* ============================================================================
    SIDEBAR & DASHBOARD SYSTEM (CLIENT & SUPER ADMIN)
