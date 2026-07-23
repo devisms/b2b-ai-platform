@@ -1,10 +1,47 @@
-// KawanAI - Complete Application Controller (Dedicated Full-Page Tenant Detail & Clean Admin Table)
+// KawanAI - Complete Application Controller (Bulletproof Auth Modal & Page Navigation)
 document.addEventListener('DOMContentLoaded', () => {
 
-  // 0. Dual Theme Switcher Controller
+  // Global State Stores
+  window.rawPortfolioData = [];
+  window.rawFeaturesData = [];
+  window.rawPricingData = [];
+  window.rawTenantsData = [];
+
+  // DOM Elements
   const themeToggle = document.getElementById('theme-toggle');
   const htmlRoot = document.documentElement;
 
+  const viewLanding = document.getElementById('view-landing');
+  const viewDashboard = document.getElementById('view-dashboard');
+  const viewSuperAdmin = document.getElementById('view-superadmin');
+  const viewTenantDetail = document.getElementById('view-tenant-detail');
+  const modalAuth = document.getElementById('modal-auth');
+
+  const formLoginWrapper = document.getElementById('form-login-wrapper');
+  const formRegisterWrapper = document.getElementById('form-register-wrapper');
+
+  const btnShowLogin = document.getElementById('btn-show-login');
+  const btnShowRegister = document.getElementById('btn-show-register');
+  const btnCloseModal = document.getElementById('btn-close-modal');
+  const heroBtnStart = document.getElementById('hero-btn-start');
+  const heroBtnDemo = document.getElementById('hero-btn-demo');
+  const switchToRegister = document.getElementById('switch-to-register');
+  const switchToLogin = document.getElementById('switch-to-login');
+
+  const btnLogoutClient = document.getElementById('btn-logout-client');
+  const btnLogoutAdmin = document.getElementById('btn-logout-admin');
+  const btnBackToTenants = document.getElementById('btn-back-to-tenants');
+  const btnTopBackTenants = document.getElementById('btn-top-back-tenants');
+
+  const roleTabs = document.querySelectorAll('.role-tab');
+  const loginEmail = document.getElementById('login-email');
+  const loginEmailLabel = document.getElementById('login-email-label');
+  const btnSubmitLogin = document.getElementById('btn-submit-login');
+  const formLogin = document.getElementById('form-login');
+
+  let selectedLoginRole = 'TENANT_OWNER';
+
+  // 0. Dual Theme Switcher Controller
   if (themeToggle) {
     themeToggle.addEventListener('click', () => {
       const currentTheme = htmlRoot.getAttribute('data-theme') || 'light';
@@ -19,24 +56,138 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Global State Stores
-  let rawPortfolioData = [];
-  let rawFeaturesData = [];
-  let rawPricingData = [];
-  let rawTenantsData = [];
+  // 1. BULLETPROOF AUTH MODAL OPEN/CLOSE LOGIC
+  window.openAuthModal = function(mode = 'login') {
+    if (modalAuth) modalAuth.style.display = 'flex';
+    if (mode === 'login') {
+      if (formLoginWrapper) formLoginWrapper.style.display = 'block';
+      if (formRegisterWrapper) formRegisterWrapper.style.display = 'none';
+    } else {
+      if (formLoginWrapper) formLoginWrapper.style.display = 'none';
+      if (formRegisterWrapper) formRegisterWrapper.style.display = 'block';
+    }
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+  };
 
-  // 1. Dynamic Database API Fetchers
+  window.closeAuthModal = function() {
+    if (modalAuth) modalAuth.style.display = 'none';
+  };
+
+  if (btnShowLogin) btnShowLogin.onclick = (e) => { e.preventDefault(); window.openAuthModal('login'); };
+  if (btnShowRegister) btnShowRegister.onclick = (e) => { e.preventDefault(); window.openAuthModal('register'); };
+  if (heroBtnStart) heroBtnStart.onclick = (e) => { e.preventDefault(); window.openAuthModal('register'); };
+  if (btnCloseModal) btnCloseModal.onclick = (e) => { e.preventDefault(); window.closeAuthModal(); };
+
+  if (switchToRegister) {
+    switchToRegister.onclick = (e) => {
+      e.preventDefault();
+      window.openAuthModal('register');
+    };
+  }
+
+  if (switchToLogin) {
+    switchToLogin.onclick = (e) => {
+      e.preventDefault();
+      window.openAuthModal('login');
+    };
+  }
+
+  if (heroBtnDemo) {
+    heroBtnDemo.onclick = (e) => {
+      e.preventDefault();
+      const portoSec = document.getElementById('portfolio');
+      if (portoSec) portoSec.scrollIntoView({ behavior: 'smooth' });
+    };
+  }
+
+  // 2. ROLE-BASED AUTH SWITCHER (SUPER ADMIN vs TENANT)
+  roleTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      roleTabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const role = tab.getAttribute('data-role');
+
+      if (role === 'admin') {
+        selectedLoginRole = 'SUPER_ADMIN';
+        if (loginEmail) loginEmail.value = 'admin@kawanai.id';
+        if (loginEmailLabel) loginEmailLabel.textContent = 'Email Super Admin';
+        if (btnSubmitLogin) btnSubmitLogin.innerHTML = '<i data-lucide="shield-check"></i> Masuk ke Super Admin Portal';
+      } else {
+        selectedLoginRole = 'TENANT_OWNER';
+        if (loginEmail) loginEmail.value = 'devis@kawanai.id';
+        if (loginEmailLabel) loginEmailLabel.textContent = 'Email Bisnis Klien';
+        if (btnSubmitLogin) btnSubmitLogin.innerHTML = '<i data-lucide="log-in"></i> Masuk ke Dashboard Klien';
+      }
+      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+    });
+  });
+
+  // 3. FORM LOGIN SUBMIT CONTROLLER
+  if (formLogin) {
+    formLogin.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      window.closeAuthModal();
+
+      if (viewLanding) viewLanding.style.display = 'none';
+      if (viewTenantDetail) viewTenantDetail.style.display = 'none';
+
+      const emailVal = loginEmail ? loginEmail.value.toLowerCase() : '';
+
+      if (selectedLoginRole === 'SUPER_ADMIN' || emailVal.includes('admin')) {
+        if (viewSuperAdmin) viewSuperAdmin.style.display = 'block';
+        if (viewDashboard) viewDashboard.style.display = 'none';
+      } else {
+        if (viewDashboard) viewDashboard.style.display = 'block';
+        if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
+      }
+      window.scrollTo(0, 0);
+      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+    });
+  }
+
+  // LOGOUT HANDLERS
+  if (btnLogoutClient) {
+    btnLogoutClient.onclick = () => {
+      if (viewDashboard) viewDashboard.style.display = 'none';
+      if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
+      if (viewTenantDetail) viewTenantDetail.style.display = 'none';
+      if (viewLanding) viewLanding.style.display = 'block';
+      window.scrollTo(0, 0);
+    };
+  }
+
+  if (btnLogoutAdmin) {
+    btnLogoutAdmin.onclick = () => {
+      if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
+      if (viewDashboard) viewDashboard.style.display = 'none';
+      if (viewTenantDetail) viewTenantDetail.style.display = 'none';
+      if (viewLanding) viewLanding.style.display = 'block';
+      window.scrollTo(0, 0);
+    };
+  }
+
+  // DEDICATED TENANT DETAIL PAGE BACK ROUTER
+  function backToTenantsList() {
+    if (viewTenantDetail) viewTenantDetail.style.display = 'none';
+    if (viewSuperAdmin) viewSuperAdmin.style.display = 'block';
+    window.scrollTo(0, 0);
+  }
+
+  if (btnBackToTenants) btnBackToTenants.onclick = backToTenantsList;
+  if (btnTopBackTenants) btnTopBackTenants.onclick = backToTenantsList;
+
+  // 4. DYNAMIC DATABASE FETCHERS
   async function fetchDynamicPortfolio() {
     try {
       const res = await fetch('/api/portfolio');
       const json = await res.json();
       if (json.status === 'success') {
-        rawPortfolioData = json.data;
+        window.rawPortfolioData = json.data;
         renderPortfolioGrid(json.data);
         renderCMSPortfolioTable(json.data);
       }
     } catch (e) {
-      console.log('Using pre-rendered portfolio fallback');
+      console.log('Portfolio fetch fallback');
     }
   }
 
@@ -45,12 +196,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await fetch('/api/features');
       const json = await res.json();
       if (json.status === 'success') {
-        rawFeaturesData = json.data;
+        window.rawFeaturesData = json.data;
         renderFeaturesGrid(json.data);
         renderCMSFeaturesTable(json.data);
       }
     } catch (e) {
-      console.log('Using pre-rendered features fallback');
+      console.log('Features fetch fallback');
     }
   }
 
@@ -59,12 +210,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await fetch('/api/pricing');
       const json = await res.json();
       if (json.status === 'success') {
-        rawPricingData = json.data;
+        window.rawPricingData = json.data;
         renderPricingGrid(json.data);
         renderCMSPricingTable(json.data);
       }
     } catch (e) {
-      console.log('Using pre-rendered pricing fallback');
+      console.log('Pricing fetch fallback');
     }
   }
 
@@ -73,11 +224,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await fetch('/api/admin/tenants');
       const json = await res.json();
       if (json.status === 'success') {
-        rawTenantsData = json.data;
+        window.rawTenantsData = json.data;
         renderAdminTenantsTable(json.data);
       }
     } catch (e) {
-      console.log('Using pre-rendered tenants fallback');
+      console.log('Tenants fetch fallback');
     }
   }
 
@@ -129,7 +280,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const origAnnualTotalVal = origVal * 12;
 
       const monthlyFormatted = monthlyVal.toLocaleString('id-ID');
-      const annualMonthlyFormatted = annualMonthlyVal.toLocaleString('id-ID');
       const annualTotalFormatted = annualTotalVal.toLocaleString('id-ID');
       const origFormatted = origVal.toLocaleString('id-ID');
 
@@ -155,7 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <span class="currency">Rp</span>
               <span class="price-value" id="price-${p.id}" data-monthly="${monthlyFormatted}" data-annual="${annualTotalFormatted}">${monthlyFormatted}</span>
               <span class="period" id="period-${p.id}">/ bulan</span>
-              <div class="equivalent-text" id="equiv-${p.id}" style="display:none; font-size:12px; color:var(--success); margin-top:4px; font-weight:700;">(Hanya Rp ${annualMonthlyFormatted} / bulan)</div>
+              <div class="equivalent-text" id="equiv-${p.id}" style="display:none; font-size:12px; color:var(--success); margin-top:4px; font-weight:700;">(Hanya Rp ${annualMonthlyVal.toLocaleString('id-ID')} / bulan)</div>
             </div>
           </div>
           <ul class="pricing-features">
@@ -172,7 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const toggleCheckbox = document.getElementById('pricing-toggle-checkbox');
     if (toggleCheckbox) {
-      toggleCheckbox.addEventListener('change', () => {
+      toggleCheckbox.onchange = () => {
         const isAnnual = toggleCheckbox.checked;
 
         plans.forEach(p => {
@@ -212,20 +362,20 @@ document.addEventListener('DOMContentLoaded', () => {
             }
           }
         });
-      });
+      };
     }
 
     document.querySelectorAll('.btn-select-plan').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.onclick = () => {
         const planName = btn.getAttribute('data-plan');
         const selectedPlanInput = document.getElementById('selected-plan-input');
         if (selectedPlanInput) selectedPlanInput.value = planName;
-        openAuthModal('register');
-      });
+        window.openAuthModal('register');
+      };
     });
   }
 
-  // --- SUPER ADMIN TENANT TABLE (CLEAN & CRISP) ---
+  // --- SUPER ADMIN TENANT TABLE ---
   function renderAdminTenantsTable(tenants) {
     const tbody = document.getElementById('admin-tenants-table-body');
     if (!tbody) return;
@@ -254,23 +404,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
   }
 
-  // --- DEDICATED PAGE ROUTER FOR TENANT DETAIL VIEW (HALAMAN BARU TANPA POPUP) ---
-  const viewSuperAdmin = document.getElementById('view-superadmin');
-  const viewTenantDetail = document.getElementById('view-tenant-detail');
-  const btnBackToTenants = document.getElementById('btn-back-to-tenants');
-  const btnTopBackTenants = document.getElementById('btn-top-back-tenants');
-
-  function backToTenantsList() {
-    viewTenantDetail.style.display = 'none';
-    viewSuperAdmin.style.display = 'block';
-    window.scrollTo(0, 0);
-  }
-
-  if (btnBackToTenants) btnBackToTenants.addEventListener('click', backToTenantsList);
-  if (btnTopBackTenants) btnTopBackTenants.addEventListener('click', backToTenantsList);
-
   window.openTenantDetailPage = function(tenantId) {
-    const t = rawTenantsData.find(x => x.id === tenantId) || {
+    const t = (window.rawTenantsData && window.rawTenantsData.find(x => x.id === tenantId)) || {
       id: tenantId,
       tenant_code: '#K-9021',
       business_name: 'Toko Baju Kang Devis',
@@ -292,8 +427,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (detailTitle) detailTitle.textContent = t.business_name || t.name;
     if (detailSub) detailSub.textContent = `ID Tenant: ${t.tenant_code || '#K-9021'} • Audit Langganan & Bukti Transfer`;
 
-    viewSuperAdmin.style.display = 'none';
-    viewTenantDetail.style.display = 'block';
+    if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
+    if (viewTenantDetail) viewTenantDetail.style.display = 'block';
     window.scrollTo(0, 0);
 
     const payDateStr = t.payment_date ? new Date(t.payment_date).toLocaleString('id-ID') : '01/07/2026 10:30';
@@ -302,7 +437,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const amtStr = 'Rp ' + parseInt(t.payment_amount || 9480000).toLocaleString('id-ID');
 
     pageContent.innerHTML = `
-      <!-- CARD 1: INFORMASI PEMBAYARAN & BUKTI TRANSFER -->
       <div class="card">
         <div class="card-header">
           <h3><i data-lucide="receipt"></i> Bukti Transfer Bank & Pembayaran</h3>
@@ -322,7 +456,6 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
 
-      <!-- CARD 2: MASA AKTIF & DETAIL BISNIS -->
       <div class="card" style="display:flex; flex-direction:column; justify-content:space-between;">
         <div>
           <div class="card-header">
@@ -358,7 +491,40 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
   };
 
-  // --- CMS CONTENT EDITOR TABLES (SUPER ADMIN) ---
+  // 5. SUPER ADMIN & CMS TABS
+  const adminNavItems = document.querySelectorAll('[data-admin-tab]');
+  const adminTabContents = document.querySelectorAll('.admin-tab-content');
+
+  adminNavItems.forEach(item => {
+    item.addEventListener('click', () => {
+      const target = item.getAttribute('data-admin-tab');
+      adminNavItems.forEach(i => i.classList.remove('active'));
+      adminTabContents.forEach(c => c.style.display = 'none');
+
+      item.classList.add('active');
+      const targetSec = document.getElementById(`admin-tab-${target}`);
+      if (targetSec) targetSec.style.display = 'flex';
+      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+    });
+  });
+
+  const cmsSubtabs = document.querySelectorAll('[data-cms]');
+  const cmsSections = document.querySelectorAll('.cms-sec');
+
+  cmsSubtabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.getAttribute('data-cms');
+      cmsSubtabs.forEach(t => t.classList.remove('active'));
+      cmsSections.forEach(s => s.style.display = 'none');
+
+      tab.classList.add('active');
+      const targetSec = document.getElementById(`cms-sec-${target}`);
+      if (targetSec) targetSec.style.display = 'block';
+      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+    });
+  });
+
+  // --- CMS CONTENT EDITOR TABLES ---
   function renderCMSPortfolioTable(items) {
     const tbody = document.getElementById('cms-portfolio-table-body');
     if (!tbody) return;
@@ -428,164 +594,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
   }
 
-  fetchDynamicPortfolio();
-  fetchDynamicFeatures();
-  fetchDynamicPricing();
-  fetchDynamicTenants();
-
-  // 2. Role-Based Auth Modal Tabs
-  const roleTabs = document.querySelectorAll('.role-tab');
-  const loginEmail = document.getElementById('login-email');
-  const loginEmailLabel = document.getElementById('login-email-label');
-  const btnSubmitLogin = document.getElementById('btn-submit-login');
-  let selectedLoginRole = 'TENANT_OWNER';
-
-  roleTabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      roleTabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      const role = tab.getAttribute('data-role');
-
-      if (role === 'admin') {
-        selectedLoginRole = 'SUPER_ADMIN';
-        if (loginEmail) loginEmail.value = 'admin@kawanai.id';
-        if (loginEmailLabel) loginEmailLabel.textContent = 'Email Super Admin';
-        if (btnSubmitLogin) btnSubmitLogin.innerHTML = '<i data-lucide="shield-check"></i> Masuk ke Super Admin Portal';
-      } else {
-        selectedLoginRole = 'TENANT_OWNER';
-        if (loginEmail) loginEmail.value = 'devis@kawanai.id';
-        if (loginEmailLabel) loginEmailLabel.textContent = 'Email Bisnis Klien';
-        if (btnSubmitLogin) btnSubmitLogin.innerHTML = '<i data-lucide="log-in"></i> Masuk ke Dashboard Klien';
-      }
-      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-    });
-  });
-
-  // 3. View & Modal Controllers
-  const viewLanding = document.getElementById('view-landing');
-  const viewDashboard = document.getElementById('view-dashboard');
-
-  const formLoginWrapper = document.getElementById('form-login-wrapper');
-  const formRegisterWrapper = document.getElementById('form-register-wrapper');
-
-  const btnShowLogin = document.getElementById('btn-show-login');
-  const btnShowRegister = document.getElementById('btn-show-register');
-  const btnCloseModal = document.getElementById('btn-close-modal');
-  const heroBtnStart = document.getElementById('hero-btn-start');
-  const heroBtnDemo = document.getElementById('hero-btn-demo');
-  const switchToRegister = document.getElementById('switch-to-register');
-  const switchToLogin = document.getElementById('switch-to-login');
-  const btnLogoutClient = document.getElementById('btn-logout-client');
-  const btnLogoutAdmin = document.getElementById('btn-logout-admin');
-
-  function openAuthModal(mode = 'login') {
-    modalAuth.style.display = 'flex';
-    if (mode === 'login') {
-      formLoginWrapper.style.display = 'block';
-      formRegisterWrapper.style.display = 'none';
-    } else {
-      formLoginWrapper.style.display = 'none';
-      formRegisterWrapper.style.display = 'block';
-    }
-  }
-
-  function closeModal() {
-    modalAuth.style.display = 'none';
-  }
-
-  if (btnShowLogin) btnShowLogin.addEventListener('click', () => openAuthModal('login'));
-  if (btnShowRegister) btnShowRegister.addEventListener('click', () => openAuthModal('register'));
-  if (heroBtnStart) heroBtnStart.addEventListener('click', () => openAuthModal('register'));
-  if (heroBtnDemo) {
-    heroBtnDemo.addEventListener('click', () => {
-      const portoSec = document.getElementById('portfolio');
-      if (portoSec) portoSec.scrollIntoView({ behavior: 'smooth' });
-    });
-  }
-
-  if (btnCloseModal) btnCloseModal.addEventListener('click', closeModal);
-
-  if (switchToRegister) {
-    switchToRegister.addEventListener('click', (e) => {
-      e.preventDefault();
-      openAuthModal('register');
-    });
-  }
-
-  if (switchToLogin) {
-    switchToLogin.addEventListener('click', (e) => {
-      e.preventDefault();
-      openAuthModal('login');
-    });
-  }
-
-  const formLogin = document.getElementById('form-login');
-  if (formLogin) {
-    formLogin.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      closeModal();
-      viewLanding.style.display = 'none';
-
-      if (selectedLoginRole === 'SUPER_ADMIN' || loginEmail.value.includes('admin')) {
-        viewSuperAdmin.style.display = 'block';
-        viewDashboard.style.display = 'none';
-      } else {
-        viewDashboard.style.display = 'block';
-        viewSuperAdmin.style.display = 'none';
-      }
-      window.scrollTo(0, 0);
-    });
-  }
-
-  if (btnLogoutClient) {
-    btnLogoutClient.addEventListener('click', () => {
-      viewDashboard.style.display = 'none';
-      viewLanding.style.display = 'block';
-      window.scrollTo(0, 0);
-    });
-  }
-
-  if (btnLogoutAdmin) {
-    btnLogoutAdmin.addEventListener('click', () => {
-      viewSuperAdmin.style.display = 'none';
-      viewLanding.style.display = 'block';
-      window.scrollTo(0, 0);
-    });
-  }
-
-  // 4. Super Admin Tab & CMS Sub-Tabs Controller
-  const adminNavItems = document.querySelectorAll('[data-admin-tab]');
-  const adminTabContents = document.querySelectorAll('.admin-tab-content');
-
-  adminNavItems.forEach(item => {
-    item.addEventListener('click', () => {
-      const target = item.getAttribute('data-admin-tab');
-      adminNavItems.forEach(i => i.classList.remove('active'));
-      adminTabContents.forEach(c => c.style.display = 'none');
-
-      item.classList.add('active');
-      const targetSec = document.getElementById(`admin-tab-${target}`);
-      if (targetSec) targetSec.style.display = 'flex';
-      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-    });
-  });
-
-  const cmsSubtabs = document.querySelectorAll('[data-cms]');
-  const cmsSections = document.querySelectorAll('.cms-sec');
-
-  cmsSubtabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      const target = tab.getAttribute('data-cms');
-      cmsSubtabs.forEach(t => t.classList.remove('active'));
-      cmsSections.forEach(s => s.style.display = 'none');
-
-      tab.classList.add('active');
-      const targetSec = document.getElementById(`cms-sec-${target}`);
-      if (targetSec) targetSec.style.display = 'block';
-      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-    });
-  });
-
   // 6. NEAT FORM CMS EDITOR & SOFT DELETE MODAL CONTROLLER
   const modalCMSEditor = document.getElementById('modal-cms-editor');
   const btnCloseCMSModal = document.getElementById('btn-close-cms-modal');
@@ -593,16 +601,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const formCMSEditor = document.getElementById('form-cms-editor');
   const cmsFieldsContainer = document.getElementById('cms-fields-container');
 
-  if (btnCloseCMSModal) btnCloseCMSModal.addEventListener('click', () => modalCMSEditor.style.display = 'none');
-  if (btnCancelCMSEditor) btnCancelCMSEditor.addEventListener('click', () => modalCMSEditor.style.display = 'none');
+  if (btnCloseCMSModal) btnCloseCMSModal.onclick = () => { if (modalCMSEditor) modalCMSEditor.style.display = 'none'; };
+  if (btnCancelCMSEditor) btnCancelCMSEditor.onclick = () => { if (modalCMSEditor) modalCMSEditor.style.display = 'none'; };
 
   window.openCMSEditorModal = function(type, id = null) {
     document.getElementById('cms-item-type').value = type;
     document.getElementById('cms-item-id').value = id || '';
-    modalCMSEditor.style.display = 'flex';
+    if (modalCMSEditor) modalCMSEditor.style.display = 'flex';
 
     if (type === 'portfolio') {
-      const item = id ? rawPortfolioData.find(x => x.id === id) : {};
+      const item = id ? window.rawPortfolioData.find(x => x.id === id) : {};
       document.getElementById('cms-modal-title').textContent = id ? 'Edit Portofolio & Studi Kasus' : 'Tambah Portofolio Baru';
       cmsFieldsContainer.innerHTML = `
         <div class="form-group"><label>Judul Portofolio</label><input type="text" id="p-title" required value="${item?.title || ''}" placeholder="misal: Toko Baju Kang Devis"></div>
@@ -618,7 +626,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
     } else if (type === 'features') {
-      const item = id ? rawFeaturesData.find(x => x.id === id) : {};
+      const item = id ? window.rawFeaturesData.find(x => x.id === id) : {};
       document.getElementById('cms-modal-title').textContent = id ? 'Edit Fitur Utama' : 'Tambah Fitur Utama Baru';
       cmsFieldsContainer.innerHTML = `
         <div class="form-group"><label>Nama Ikon Lucide</label><input type="text" id="f-icon" required value="${item?.icon_name || 'message-square-code'}" placeholder="message-square / bot / file-text"></div>
@@ -626,7 +634,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="form-group"><label>Deskripsi Fitur</label><textarea id="f-desc" rows="4" required placeholder="Jelaskan keunggulan fitur ini...">${item?.description || ''}</textarea></div>
       `;
     } else if (type === 'pricing') {
-      const item = id ? rawPricingData.find(x => x.id === id) : {};
+      const item = id ? window.rawPricingData.find(x => x.id === id) : {};
       document.getElementById('cms-modal-title').textContent = id ? 'Edit Paket Harga Promo' : 'Tambah Paket Harga Baru';
       cmsFieldsContainer.innerHTML = `
         <div class="form-row-2col">
@@ -650,11 +658,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnAddFeature = document.getElementById('btn-add-feature');
   const btnAddPricing = document.getElementById('btn-add-pricing');
 
-  if (btnAddPortfolio) btnAddPortfolio.addEventListener('click', () => openCMSEditorModal('portfolio'));
-  if (btnAddFeature) btnAddFeature.addEventListener('click', () => openCMSEditorModal('features'));
-  if (btnAddPricing) btnAddPricing.addEventListener('click', () => openCMSEditorModal('pricing'));
+  if (btnAddPortfolio) btnAddPortfolio.onclick = () => window.openCMSEditorModal('portfolio');
+  if (btnAddFeature) btnAddFeature.onclick = () => window.openCMSEditorModal('features');
+  if (btnAddPricing) btnAddPricing.onclick = () => window.openCMSEditorModal('pricing');
 
-  // Submit Form CMS (Save or Update)
   if (formCMSEditor) {
     formCMSEditor.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -692,7 +699,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const json = await res.json();
       if (json.status === 'success') {
-        modalCMSEditor.style.display = 'none';
+        if (modalCMSEditor) modalCMSEditor.style.display = 'none';
         if (type === 'portfolio') fetchDynamicPortfolio();
         if (type === 'features') fetchDynamicFeatures();
         if (type === 'pricing') fetchDynamicPricing();
@@ -708,18 +715,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnCancelDelete = document.getElementById('btn-cancel-delete');
   const btnConfirmDeleteAction = document.getElementById('btn-confirm-delete-action');
 
-  if (btnCancelDelete) btnCancelDelete.addEventListener('click', () => modalConfirmDelete.style.display = 'none');
+  if (btnCancelDelete) btnCancelDelete.onclick = () => { if (modalConfirmDelete) modalConfirmDelete.style.display = 'none'; };
 
   window.promptSoftDelete = function(type, id, title) {
     deleteTargetType.value = type;
     deleteTargetId.value = id;
     deleteConfirmText.innerHTML = `Apakah Anda yakin ingin menghapus <strong>"${title}"</strong>?<br><span style="color:var(--text-dim); font-size:12.5px;">Data ini akan dipindahkan ke tempat sampah & tidak hilang permanen.</span>`;
-    modalConfirmDelete.style.display = 'flex';
+    if (modalConfirmDelete) modalConfirmDelete.style.display = 'flex';
     setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
   };
 
   if (btnConfirmDeleteAction) {
-    btnConfirmDeleteAction.addEventListener('click', async () => {
+    btnConfirmDeleteAction.onclick = async () => {
       const type = deleteTargetType.value;
       const id = deleteTargetId.value;
 
@@ -730,12 +737,18 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const json = await res.json();
       if (json.status === 'success') {
-        modalConfirmDelete.style.display = 'none';
+        if (modalConfirmDelete) modalConfirmDelete.style.display = 'none';
         if (type === 'portfolio') fetchDynamicPortfolio();
         if (type === 'features') fetchDynamicFeatures();
         if (type === 'pricing') fetchDynamicPricing();
       }
-    });
+    };
   }
+
+  // INITIAL FETCHERS RUN
+  fetchDynamicPortfolio();
+  fetchDynamicFeatures();
+  fetchDynamicPricing();
+  fetchDynamicTenants();
 
 });
