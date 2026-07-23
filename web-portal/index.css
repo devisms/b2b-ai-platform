@@ -77,6 +77,20 @@ body { background-color: var(--bg-main); color: var(--text-main); min-height: 10
 .card-header h3 svg { width: 20px; height: 20px; color: var(--primary-accent); }
 .card-subtitle { font-size: 13px; color: var(--text-muted); font-weight: 400; }
 
+/* Form Grid & Actions Spacing */
+.neat-form-grid { display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; }
+.form-row-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-actions-row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
+
+/* Delete Confirmation Pop-Up Modal */
+.delete-icon-wrapper {
+  width: 56px; height: 56px; border-radius: 50%; background: rgba(239, 68, 68, 0.1);
+  color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.25); display: flex; align-items: center;
+  justify-content: center; margin: 0 auto 16px auto;
+}
+.delete-icon-wrapper svg { width: 28px; height: 28px; }
+.delete-actions-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+
 /* Navbar */
 .navbar {
   display: flex; justify-content: space-between; align-items: center;

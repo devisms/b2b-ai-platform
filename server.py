@@ -50,12 +50,12 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         else:
             self.send_error(404, "Endpoint Not Found")
 
-    # --- GET ENDPOINTS ---
+    # --- GET ENDPOINTS (FILTER IS_DELETED) ---
     def get_portfolio_api(self):
         try:
             conn = psycopg2.connect(**DB_CONFIG)
             cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cursor.execute("SELECT * FROM cms_service.portfolio_items ORDER BY display_order ASC;")
+            cursor.execute("SELECT * FROM cms_service.portfolio_items WHERE is_deleted IS NOT TRUE ORDER BY display_order ASC;")
             rows = cursor.fetchall()
             conn.close()
 
@@ -67,7 +67,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         try:
             conn = psycopg2.connect(**DB_CONFIG)
             cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cursor.execute("SELECT * FROM cms_service.pricing_plans ORDER BY display_order ASC;")
+            cursor.execute("SELECT * FROM cms_service.pricing_plans WHERE is_deleted IS NOT TRUE ORDER BY display_order ASC;")
             rows = cursor.fetchall()
             conn.close()
 
@@ -79,7 +79,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         try:
             conn = psycopg2.connect(**DB_CONFIG)
             cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cursor.execute("SELECT * FROM cms_service.feature_items ORDER BY display_order ASC;")
+            cursor.execute("SELECT * FROM cms_service.feature_items WHERE is_deleted IS NOT TRUE ORDER BY display_order ASC;")
             rows = cursor.fetchall()
             conn.close()
 
@@ -99,7 +99,7 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         except Exception as e:
             self.send_json_response({"status": "error", "message": str(e)}, 500)
 
-    # --- CRUD POST ENDPOINTS ---
+    # --- SAVE ENDPOINTS ---
     def save_portfolio_api(self):
         try:
             payload = self.read_json_payload()
@@ -133,20 +133,6 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         except Exception as e:
             self.send_json_response({"status": "error", "message": str(e)}, 500)
 
-    def delete_portfolio_api(self):
-        try:
-            payload = self.read_json_payload()
-            item_id = payload.get('id')
-            conn = psycopg2.connect(**DB_CONFIG)
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM cms_service.portfolio_items WHERE id=%s;", (item_id,))
-            conn.commit()
-            conn.close()
-
-            self.send_json_response({"status": "success", "message": "Portofolio berhasil dihapus!"})
-        except Exception as e:
-            self.send_json_response({"status": "error", "message": str(e)}, 500)
-
     def save_feature_api(self):
         try:
             payload = self.read_json_payload()
@@ -172,20 +158,6 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             conn.close()
 
             self.send_json_response({"status": "success", "message": "Fitur berhasil disimpan!"})
-        except Exception as e:
-            self.send_json_response({"status": "error", "message": str(e)}, 500)
-
-    def delete_feature_api(self):
-        try:
-            payload = self.read_json_payload()
-            item_id = payload.get('id')
-            conn = psycopg2.connect(**DB_CONFIG)
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM cms_service.feature_items WHERE id=%s;", (item_id,))
-            conn.commit()
-            conn.close()
-
-            self.send_json_response({"status": "success", "message": "Fitur berhasil dihapus!"})
         except Exception as e:
             self.send_json_response({"status": "error", "message": str(e)}, 500)
 
@@ -220,17 +192,46 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         except Exception as e:
             self.send_json_response({"status": "error", "message": str(e)}, 500)
 
+    # --- SOFT DELETE POST ENDPOINTS ---
+    def delete_portfolio_api(self):
+        try:
+            payload = self.read_json_payload()
+            item_id = payload.get('id')
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor()
+            cursor.execute("UPDATE cms_service.portfolio_items SET is_deleted=TRUE, deleted_at=CURRENT_TIMESTAMP WHERE id=%s;", (item_id,))
+            conn.commit()
+            conn.close()
+
+            self.send_json_response({"status": "success", "message": "Portofolio berhasil dipindahkan ke tempat sampah (Soft Delete)!"})
+        except Exception as e:
+            self.send_json_response({"status": "error", "message": str(e)}, 500)
+
+    def delete_feature_api(self):
+        try:
+            payload = self.read_json_payload()
+            item_id = payload.get('id')
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor()
+            cursor.execute("UPDATE cms_service.feature_items SET is_deleted=TRUE, deleted_at=CURRENT_TIMESTAMP WHERE id=%s;", (item_id,))
+            conn.commit()
+            conn.close()
+
+            self.send_json_response({"status": "success", "message": "Fitur berhasil dipindahkan ke tempat sampah (Soft Delete)!"})
+        except Exception as e:
+            self.send_json_response({"status": "error", "message": str(e)}, 500)
+
     def delete_pricing_api(self):
         try:
             payload = self.read_json_payload()
             item_id = payload.get('id')
             conn = psycopg2.connect(**DB_CONFIG)
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM cms_service.pricing_plans WHERE id=%s;", (item_id,))
+            cursor.execute("UPDATE cms_service.pricing_plans SET is_deleted=TRUE, deleted_at=CURRENT_TIMESTAMP WHERE id=%s;", (item_id,))
             conn.commit()
             conn.close()
 
-            self.send_json_response({"status": "success", "message": "Paket Harga berhasil dihapus!"})
+            self.send_json_response({"status": "success", "message": "Paket Harga berhasil dipindahkan ke tempat sampah (Soft Delete)!"})
         except Exception as e:
             self.send_json_response({"status": "error", "message": str(e)}, 500)
 

@@ -1,4 +1,4 @@
-// KawanAI - Complete Application Controller (Super Admin & Full CMS CRUD Integration)
+// KawanAI - Complete Application Controller (Super Admin, Neat Form Editor, & Soft Delete Modal)
 document.addEventListener('DOMContentLoaded', () => {
 
   // 0. Dual Theme Switcher Controller
@@ -157,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <td>${item.metric_2_label}: <strong>${item.metric_2_value}</strong></td>
         <td>
           <button class="btn-action-edit" onclick="openCMSEditorModal('portfolio', '${item.id}')"><i data-lucide="edit"></i> Edit</button>
-          <button class="btn-action-delete" onclick="deleteCMSItem('portfolio', '${item.id}')"><i data-lucide="trash-2"></i> Hapus</button>
+          <button class="btn-action-delete" onclick="promptSoftDelete('portfolio', '${item.id}', '${item.title.replace(/'/g, "\\'")}')"><i data-lucide="trash-2"></i> Hapus</button>
         </td>
       </tr>
     `).join('');
@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <td>${item.description.substring(0, 70)}...</td>
         <td>
           <button class="btn-action-edit" onclick="openCMSEditorModal('features', '${item.id}')"><i data-lucide="edit"></i> Edit</button>
-          <button class="btn-action-delete" onclick="deleteCMSItem('features', '${item.id}')"><i data-lucide="trash-2"></i> Hapus</button>
+          <button class="btn-action-delete" onclick="promptSoftDelete('features', '${item.id}', '${item.title.replace(/'/g, "\\'")}')"><i data-lucide="trash-2"></i> Hapus</button>
         </td>
       </tr>
     `).join('');
@@ -192,7 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <td>Rp ${parseInt(p.annual_monthly_price).toLocaleString('id-ID')}</td>
         <td>
           <button class="btn-action-edit" onclick="openCMSEditorModal('pricing', '${p.id}')"><i data-lucide="edit"></i> Edit</button>
-          <button class="btn-action-delete" onclick="deleteCMSItem('pricing', '${p.id}')"><i data-lucide="trash-2"></i> Hapus</button>
+          <button class="btn-action-delete" onclick="promptSoftDelete('pricing', '${p.id}', '${p.plan_name.replace(/'/g, "\\'")}')"><i data-lucide="trash-2"></i> Hapus</button>
         </td>
       </tr>
     `).join('');
@@ -358,13 +358,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // 5. CMS MODAL EDITOR & CRUD LOGIC (PORTFOLIO, FEATURES, PRICING)
+  // 5. NEAT FORM CMS EDITOR & SOFT DELETE MODAL CONTROLLER
   const modalCMSEditor = document.getElementById('modal-cms-editor');
   const btnCloseCMSModal = document.getElementById('btn-close-cms-modal');
+  const btnCancelCMSEditor = document.getElementById('btn-cancel-cms-editor');
   const formCMSEditor = document.getElementById('form-cms-editor');
   const cmsFieldsContainer = document.getElementById('cms-fields-container');
 
   if (btnCloseCMSModal) btnCloseCMSModal.addEventListener('click', () => modalCMSEditor.style.display = 'none');
+  if (btnCancelCMSEditor) btnCancelCMSEditor.addEventListener('click', () => modalCMSEditor.style.display = 'none');
 
   window.openCMSEditorModal = function(type, id = null) {
     document.getElementById('cms-item-type').value = type;
@@ -373,32 +375,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (type === 'portfolio') {
       const item = id ? rawPortfolioData.find(x => x.id === id) : {};
-      document.getElementById('cms-modal-title').textContent = id ? 'Edit Portofolio' : 'Tambah Portofolio Baru';
+      document.getElementById('cms-modal-title').textContent = id ? 'Edit Portofolio & Studi Kasus' : 'Tambah Portofolio Baru';
       cmsFieldsContainer.innerHTML = `
-        <div class="form-group"><label>Judul Portofolio</label><input type="text" id="p-title" required value="${item?.title || ''}"></div>
-        <div class="form-group"><label>Kategori</label><input type="text" id="p-category" required value="${item?.category || 'Online Shop'}"></div>
-        <div class="form-group"><label>Deskripsi Studi Kasus</label><textarea id="p-desc" rows="3" required>${item?.description || ''}</textarea></div>
-        <div class="form-group"><label>Metrik 1 Label</label><input type="text" id="p-m1-label" value="${item?.metric_1_label || 'Waktu Respon'}"></div>
-        <div class="form-group"><label>Metrik 1 Value</label><input type="text" id="p-m1-val" value="${item?.metric_1_value || '1.2 Detik'}"></div>
-        <div class="form-group"><label>Metrik 2 Label</label><input type="text" id="p-m2-label" value="${item?.metric_2_label || 'Order Otomatis'}"></div>
-        <div class="form-group"><label>Metrik 2 Value</label><input type="text" id="p-m2-val" value="${item?.metric_2_value || '120+ / Bulan'}"></div>
+        <div class="form-group"><label>Judul Portofolio</label><input type="text" id="p-title" required value="${item?.title || ''}" placeholder="misal: Toko Baju Kang Devis"></div>
+        <div class="form-group"><label>Kategori Bisnis</label><input type="text" id="p-category" required value="${item?.category || 'Online Shop'}" placeholder="Online Shop / Klinik / Legal"></div>
+        <div class="form-group"><label>Deskripsi Hasil Studi Kasus</label><textarea id="p-desc" rows="3" required placeholder="Jelaskan hasil efisiensi setelah pakai KawanAI...">${item?.description || ''}</textarea></div>
+        <div class="form-row-2col">
+          <div class="form-group"><label>Metrik 1 Label</label><input type="text" id="p-m1-label" value="${item?.metric_1_label || 'Waktu Respon'}" placeholder="misal: Waktu Respon"></div>
+          <div class="form-group"><label>Metrik 1 Value</label><input type="text" id="p-m1-val" value="${item?.metric_1_value || '1.2 Detik'}" placeholder="misal: 1.2 Detik"></div>
+        </div>
+        <div class="form-row-2col">
+          <div class="form-group"><label>Metrik 2 Label</label><input type="text" id="p-m2-label" value="${item?.metric_2_label || 'Order Otomatis'}" placeholder="misal: Order Otomatis"></div>
+          <div class="form-group"><label>Metrik 2 Value</label><input type="text" id="p-m2-val" value="${item?.metric_2_value || '120+ / Bulan'}" placeholder="misal: 120+ / Bulan"></div>
+        </div>
       `;
     } else if (type === 'features') {
       const item = id ? rawFeaturesData.find(x => x.id === id) : {};
-      document.getElementById('cms-modal-title').textContent = id ? 'Edit Fitur Utama' : 'Tambah Fitur Baru';
+      document.getElementById('cms-modal-title').textContent = id ? 'Edit Fitur Utama' : 'Tambah Fitur Utama Baru';
       cmsFieldsContainer.innerHTML = `
-        <div class="form-group"><label>Nama Ikon Lucide</label><input type="text" id="f-icon" required value="${item?.icon_name || 'message-square-code'}"></div>
-        <div class="form-group"><label>Judul Fitur</label><input type="text" id="f-title" required value="${item?.title || ''}"></div>
-        <div class="form-group"><label>Deskripsi Fitur</label><textarea id="f-desc" rows="4" required>${item?.description || ''}</textarea></div>
+        <div class="form-group"><label>Nama Ikon Lucide</label><input type="text" id="f-icon" required value="${item?.icon_name || 'message-square-code'}" placeholder="message-square / bot / file-text"></div>
+        <div class="form-group"><label>Judul Fitur</label><input type="text" id="f-title" required value="${item?.title || ''}" placeholder="misal: WhatsApp Live Automation"></div>
+        <div class="form-group"><label>Deskripsi Fitur</label><textarea id="f-desc" rows="4" required placeholder="Jelaskan keunggulan fitur ini...">${item?.description || ''}</textarea></div>
       `;
     } else if (type === 'pricing') {
       const item = id ? rawPricingData.find(x => x.id === id) : {};
-      document.getElementById('cms-modal-title').textContent = id ? 'Edit Paket Harga' : 'Tambah Paket Harga';
+      document.getElementById('cms-modal-title').textContent = id ? 'Edit Paket Harga' : 'Tambah Paket Harga Baru';
       cmsFieldsContainer.innerHTML = `
-        <div class="form-group"><label>Kode Paket (LITE/PRO/ENTERPRISE)</label><input type="text" id="pr-code" required value="${item?.plan_code || 'PRO'}"></div>
-        <div class="form-group"><label>Nama Paket</label><input type="text" id="pr-name" required value="${item?.plan_name || ''}"></div>
-        <div class="form-group"><label>Harga Bulanan (Rp)</label><input type="number" id="pr-monthly" required value="${item?.monthly_price || 990000}"></div>
-        <div class="form-group"><label>Harga Tahunan Bulanan (Rp)</label><input type="number" id="pr-annual" required value="${item?.annual_monthly_price || 790000}"></div>
+        <div class="form-row-2col">
+          <div class="form-group"><label>Kode Paket</label><input type="text" id="pr-code" required value="${item?.plan_code || 'PRO'}" placeholder="LITE / PRO / ENTERPRISE"></div>
+          <div class="form-group"><label>Nama Paket</label><input type="text" id="pr-name" required value="${item?.plan_name || ''}" placeholder="Paket Pro (Bisnis)"></div>
+        </div>
+        <div class="form-row-2col">
+          <div class="form-group"><label>Harga Bulanan (Rp)</label><input type="number" id="pr-monthly" required value="${item?.monthly_price || 990000}"></div>
+          <div class="form-group"><label>Harga Tahunan Bulanan (Rp)</label><input type="number" id="pr-annual" required value="${item?.annual_monthly_price || 790000}"></div>
+        </div>
       `;
     }
   };
@@ -411,7 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnAddFeature) btnAddFeature.addEventListener('click', () => openCMSEditorModal('features'));
   if (btnAddPricing) btnAddPricing.addEventListener('click', () => openCMSEditorModal('pricing'));
 
-  // CMS Form Submit (Save / Update)
+  // Submit Form CMS (Save or Update)
   if (formCMSEditor) {
     formCMSEditor.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -447,7 +457,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const json = await res.json();
       if (json.status === 'success') {
         modalCMSEditor.style.display = 'none';
-        alert('🎉 ' + json.message);
         if (type === 'portfolio') fetchDynamicPortfolio();
         if (type === 'features') fetchDynamicFeatures();
         if (type === 'pricing') fetchDynamicPricing();
@@ -455,21 +464,42 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // CMS Delete Item
-  window.deleteCMSItem = async function(type, id) {
-    if (!confirm('Apakah Anda yakin ingin menghapus data ini dari PostgreSQL?')) return;
-    const res = await fetch(`/api/admin/${type}/delete`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id })
-    });
-    const json = await res.json();
-    if (json.status === 'success') {
-      alert('🗑️ ' + json.message);
-      if (type === 'portfolio') fetchDynamicPortfolio();
-      if (type === 'features') fetchDynamicFeatures();
-      if (type === 'pricing') fetchDynamicPricing();
-    }
+  // 6. SOFT DELETE CONFIRMATION MODAL LOGIC
+  const modalConfirmDelete = document.getElementById('modal-confirm-delete');
+  const deleteConfirmText = document.getElementById('delete-confirm-text');
+  const deleteTargetType = document.getElementById('delete-target-type');
+  const deleteTargetId = document.getElementById('delete-target-id');
+  const btnCancelDelete = document.getElementById('btn-cancel-delete');
+  const btnConfirmDeleteAction = document.getElementById('btn-confirm-delete-action');
+
+  if (btnCancelDelete) btnCancelDelete.addEventListener('click', () => modalConfirmDelete.style.display = 'none');
+
+  window.promptSoftDelete = function(type, id, title) {
+    deleteTargetType.value = type;
+    deleteTargetId.value = id;
+    deleteConfirmText.innerHTML = `Apakah Anda yakin ingin menghapus <strong>"${title}"</strong>?<br><span style="color:var(--text-dim); font-size:12.5px;">Data ini akan dipindahkan ke tempat sampah (Soft Delete) & tidak hilang permanen.</span>`;
+    modalConfirmDelete.style.display = 'flex';
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
   };
+
+  if (btnConfirmDeleteAction) {
+    btnConfirmDeleteAction.addEventListener('click', async () => {
+      const type = deleteTargetType.value;
+      const id = deleteTargetId.value;
+
+      const res = await fetch(`/api/admin/${type}/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      });
+      const json = await res.json();
+      if (json.status === 'success') {
+        modalConfirmDelete.style.display = 'none';
+        if (type === 'portfolio') fetchDynamicPortfolio();
+        if (type === 'features') fetchDynamicFeatures();
+        if (type === 'pricing') fetchDynamicPricing();
+      }
+    });
+  }
 
 });
