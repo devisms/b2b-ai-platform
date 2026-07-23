@@ -1,4 +1,4 @@
-// KawanAI - Complete Application Controller (Dual Strikethrough & Yearly Super-Saver Pricing Engine)
+// KawanAI - Complete Application Controller (Dynamic Period Switcher: / bulan vs / tahun)
 document.addEventListener('DOMContentLoaded', () => {
 
   // 0. Dual Theme Switcher Controller
@@ -109,25 +109,26 @@ document.addEventListener('DOMContentLoaded', () => {
     grid.innerHTML = plans.map(p => {
       const isExpired = p.is_promo_expired;
       const monthlyVal = parseInt(p.monthly_price);
-      const annualVal = parseInt(p.annual_monthly_price);
+      const annualMonthlyVal = parseInt(p.annual_monthly_price);
+      const annualTotalVal = annualMonthlyVal * 12;
       const origVal = p.original_monthly_price ? parseInt(p.original_monthly_price) : monthlyVal * 1.5;
+      const origAnnualTotalVal = origVal * 12;
 
       const monthlyFormatted = monthlyVal.toLocaleString('id-ID');
-      const annualFormatted = annualVal.toLocaleString('id-ID');
+      const annualMonthlyFormatted = annualMonthlyVal.toLocaleString('id-ID');
+      const annualTotalFormatted = annualTotalVal.toLocaleString('id-ID');
       const origFormatted = origVal.toLocaleString('id-ID');
+      const origAnnualFormatted = origAnnualTotalVal.toLocaleString('id-ID');
 
       // Calculate percentage discounts for both Monthly and Yearly modes
       const monthlyDiscountPct = Math.round(((origVal - monthlyVal) / origVal) * 100);
-      const annualDiscountPct = Math.round(((origVal - annualVal) / origVal) * 100);
+      const annualDiscountPct = Math.round(((origAnnualTotalVal - annualTotalVal) / origAnnualTotalVal) * 100);
 
       const featuresList = (typeof p.features_json === 'string' ? JSON.parse(p.features_json) : p.features_json)
         .map(f => `<li><i data-lucide="check-circle-2"></i> ${f}</li>`).join('');
 
       const strikeMonthlyHtml = `<s>Rp ${origFormatted}</s>`;
-      const strikeAnnualHtml = `<s>Rp ${origFormatted}</s> (atau <s>Rp ${monthlyFormatted}</s>)`;
-
       const promoBadgeMonthly = `🔥 Diskon ${monthlyDiscountPct}% • Promo Bulanan`;
-      const promoBadgeAnnual = `🔥 Diskon ${annualDiscountPct}% • Pesen Setaun Jauh Lebih Hemat!`;
 
       return `
         <div class="pricing-card card ${p.is_popular ? 'popular' : ''}" data-plan-code="${p.plan_code}">
@@ -139,10 +140,11 @@ document.addEventListener('DOMContentLoaded', () => {
               <i data-lucide="flame"></i> <span class="badge-text">${promoBadgeMonthly}</span>
             </div>
             <div class="price-box">
-              <span class="price-original-strikethrough" id="strike-${p.id}" data-strike-monthly="${strikeMonthlyHtml}" data-strike-annual="${strikeAnnualHtml}">${strikeMonthlyHtml}</span>
+              <span class="price-original-strikethrough" id="strike-${p.id}">${strikeMonthlyHtml}</span>
               <span class="currency">Rp</span>
-              <span class="price-value" id="price-${p.id}" data-monthly="${monthlyFormatted}" data-annual="${annualFormatted}">${monthlyFormatted}</span>
+              <span class="price-value" id="price-${p.id}" data-monthly="${monthlyFormatted}" data-annual="${annualTotalFormatted}">${monthlyFormatted}</span>
               <span class="period" id="period-${p.id}">/ bulan</span>
+              <div class="equivalent-text" id="equiv-${p.id}" style="display:none; font-size:12px; color:var(--success); margin-top:4px; font-weight:700;">(Hanya Rp ${annualMonthlyFormatted} / bulan)</div>
             </div>
           </div>
           <ul class="pricing-features">
@@ -157,7 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
 
-    // DUAL MONTHLY / YEARLY TOGGLE SWITCHER ENGINE WITH STRIKETHROUGH & DISCOUNT BADGES
+    // DUAL MONTHLY / YEARLY TOGGLE SWITCHER ENGINE (/ bulan vs / tahun)
     const toggleCheckbox = document.getElementById('pricing-toggle-checkbox');
     if (toggleCheckbox) {
       toggleCheckbox.addEventListener('change', () => {
@@ -168,29 +170,35 @@ document.addEventListener('DOMContentLoaded', () => {
           const periodSpan = document.getElementById(`period-${p.id}`);
           const strikeSpan = document.getElementById(`strike-${p.id}`);
           const badgeElem = document.getElementById(`badge-${p.id}`);
+          const equivElem = document.getElementById(`equiv-${p.id}`);
 
           if (priceSpan && periodSpan && strikeSpan && badgeElem) {
             const monthlyVal = parseInt(p.monthly_price);
-            const annualVal = parseInt(p.annual_monthly_price);
+            const annualMonthlyVal = parseInt(p.annual_monthly_price);
+            const annualTotalVal = annualMonthlyVal * 12;
             const origVal = p.original_monthly_price ? parseInt(p.original_monthly_price) : monthlyVal * 1.5;
+            const origAnnualTotalVal = origVal * 12;
 
             const monthlyFormatted = monthlyVal.toLocaleString('id-ID');
-            const annualFormatted = annualVal.toLocaleString('id-ID');
+            const annualTotalFormatted = annualTotalVal.toLocaleString('id-ID');
             const origFormatted = origVal.toLocaleString('id-ID');
+            const origAnnualFormatted = origAnnualTotalVal.toLocaleString('id-ID');
 
             const monthlyDiscountPct = Math.round(((origVal - monthlyVal) / origVal) * 100);
-            const annualDiscountPct = Math.round(((origVal - annualVal) / origVal) * 100);
+            const annualDiscountPct = Math.round(((origAnnualTotalVal - annualTotalVal) / origAnnualTotalVal) * 100);
 
             if (isAnnual) {
-              priceSpan.textContent = annualFormatted;
-              periodSpan.textContent = '/ bulan (ditagih tahunan)';
-              strikeSpan.innerHTML = `<s>Rp ${origFormatted}</s>`;
+              priceSpan.textContent = annualTotalFormatted;
+              periodSpan.textContent = '/ tahun';
+              strikeSpan.innerHTML = `<s>Rp ${origAnnualFormatted}</s>`;
               badgeElem.querySelector('.badge-text').textContent = `🔥 Diskon ${annualDiscountPct}% • Pesen Setaun Jauh Lebih Hemat!`;
+              if (equivElem) equivElem.style.display = 'block';
             } else {
               priceSpan.textContent = monthlyFormatted;
               periodSpan.textContent = '/ bulan';
               strikeSpan.innerHTML = `<s>Rp ${origFormatted}</s>`;
               badgeElem.querySelector('.badge-text').textContent = `🔥 Diskon ${monthlyDiscountPct}% • Promo Bulanan`;
+              if (equivElem) equivElem.style.display = 'none';
             }
           }
         });
@@ -490,7 +498,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="form-group"><label>Teks Label Promo</label><input type="text" id="pr-badge" value="${item?.promo_badge || 'Promo Terbatas'}" placeholder="misal: Promo Terbatas"></div>
         <div class="form-row-2col">
           <div class="form-group"><label>Batas Tanggal Expiry Promo</label><input type="date" id="pr-ends" value="${item?.promo_ends_at ? item.promo_ends_at.substring(0,10) : '2026-08-31'}"></div>
-          <div class="form-group"><label>Harga Setaun Tahunan (Jauh Lebih Murah)</label><input type="number" id="pr-annual" required value="${item?.annual_monthly_price || 790000}"></div>
+          <div class="form-group"><label>Harga Setaun Tahunan (Bulanan Rp)</label><input type="number" id="pr-annual" required value="${item?.annual_monthly_price || 790000}"></div>
         </div>
       `;
     }
