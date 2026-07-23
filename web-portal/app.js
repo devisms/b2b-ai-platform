@@ -1,4 +1,4 @@
-// KawanAI - Complete Application Controller (Unverified Registration, Manual Verification & Expiry Automation Engine)
+// KawanAI - Complete Application Controller (Harmonized Badges & Action Buttons System)
 document.addEventListener('DOMContentLoaded', () => {
 
   // Global State Stores
@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // 3. FORM REGISTER SUBMIT CONTROLLER (NEW UNVERIFIED TENANT)
+  // 3. FORM REGISTER SUBMIT CONTROLLER
   if (formRegister) {
     formRegister.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -164,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 4. FORM LOGIN SUBMIT CONTROLLER (EXPIRY & VERIFICATION CHECK ENFORCED)
+  // 4. FORM LOGIN SUBMIT CONTROLLER
   if (formLogin) {
     formLogin.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -467,7 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- PARA KAWANAI TENANT TABLE (DYNAMIC VERIFICATION BADGING) ---
+  // --- PARA KAWANAI TENANT TABLE (HARMONIZED STATUS BADGES) ---
   function renderAdminTenantsTable(tenants) {
     const tbody = document.getElementById('admin-tenants-table-body');
     if (!tbody) return;
@@ -485,11 +485,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const wa = t.whatsapp_number || '081234567890';
       const statusStr = t.payment_status || 'VERIFIED';
 
-      let statusBadge = '<span class="badge badge-success">VERIFIED</span>';
+      let statusBadge = '<span class="badge badge-success"><i data-lucide="check-circle-2"></i> VERIFIED</span>';
       if (statusStr === 'UNVERIFIED') {
-        statusBadge = '<span class="badge badge-warning" style="background:rgba(217,119,6,0.15); color:#d97706; border:1px solid rgba(217,119,6,0.3);">UNVERIFIED</span>';
+        statusBadge = '<span class="badge badge-warning"><i data-lucide="clock"></i> UNVERIFIED</span>';
       } else if (statusStr === 'EXPIRED') {
-        statusBadge = '<span class="badge badge-danger" style="background:rgba(225,29,72,0.15); color:#e11d48; border:1px solid rgba(225,29,72,0.3);">EXPIRED</span>';
+        statusBadge = '<span class="badge badge-danger"><i data-lucide="alert-circle"></i> EXPIRED</span>';
       }
 
       return `
@@ -543,7 +543,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // --- DEDICATED TENANT DETAIL PAGE ROUTER ---
+  // --- DEDICATED TENANT DETAIL PAGE ROUTER (HARMONIZED BADGES & BUTTONS) ---
   window.openTenantDetailPage = function(tenantId) {
     const t = (window.rawTenantsData && window.rawTenantsData.find(x => x.id === tenantId)) || {
       id: tenantId,
@@ -570,13 +570,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const currentStatus = t.payment_status || 'VERIFIED';
     if (statusBadgeElem) {
-      statusBadgeElem.textContent = currentStatus;
       if (currentStatus === 'UNVERIFIED') {
         statusBadgeElem.className = 'badge badge-warning';
+        statusBadgeElem.innerHTML = '<i data-lucide="clock"></i> UNVERIFIED';
       } else if (currentStatus === 'EXPIRED') {
         statusBadgeElem.className = 'badge badge-danger';
+        statusBadgeElem.innerHTML = '<i data-lucide="alert-circle"></i> EXPIRED';
       } else {
         statusBadgeElem.className = 'badge badge-success';
+        statusBadgeElem.innerHTML = '<i data-lucide="check-circle-2"></i> VERIFIED';
       }
     }
 
@@ -590,11 +592,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const amtStr = 'Rp ' + parseInt(t.payment_amount || 9480000).toLocaleString('id-ID');
     const proofUrl = t.payment_proof_url || 'https://dummyimage.com/600x800/0f172a/3b82f6.png&text=Bukti+Transfer+BCA+B2B+Kang+Devis+Rp+9.480.000';
 
+    let cardHeaderBadge = '<span class="badge badge-success"><i data-lucide="check-circle-2"></i> VERIFIED</span>';
+    if (currentStatus === 'UNVERIFIED') {
+      cardHeaderBadge = '<span class="badge badge-warning"><i data-lucide="clock"></i> UNVERIFIED</span>';
+    } else if (currentStatus === 'EXPIRED') {
+      cardHeaderBadge = '<span class="badge badge-danger"><i data-lucide="alert-circle"></i> EXPIRED</span>';
+    }
+
     pageContent.innerHTML = `
       <div class="card">
         <div class="card-header">
           <h3><i data-lucide="receipt"></i> Informasi Pembayaran Bank</h3>
-          <span class="badge ${currentStatus === 'UNVERIFIED' ? 'badge-warning' : (currentStatus === 'EXPIRED' ? 'badge-danger' : 'badge-success')}">${currentStatus}</span>
+          ${cardHeaderBadge}
         </div>
         <div class="neat-form-grid" style="gap:20px;">
           <div class="form-row-2col">
@@ -641,18 +650,18 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
 
-        <!-- MANUAL VERIFICATION ACTIONS -->
+        <!-- HARMONIZED DESIGN SYSTEM ACTION BUTTONS -->
         <div style="border-top:1px solid var(--border-card); padding-top:16px; margin-top:20px; display:flex; flex-direction:column; gap:10px;">
           <span class="card-subtitle" style="font-weight:700;">Aksi Verifikasi Manual Super Admin:</span>
           <div style="display:flex; gap:10px;">
             <button class="btn btn-primary" style="flex:1;" onclick="updateTenantStatus('${t.id}', 'VERIFIED')">
-              <i data-lucide="check-circle-2"></i> Verifikasi (Set VERIFIED & Aktifkan 1 Thn)
+              <i data-lucide="check-circle-2"></i> Verifikasi Pembayaran
             </button>
-            <button class="btn btn-outline" style="color:#d97706; border-color:rgba(217,119,6,0.3);" onclick="updateTenantStatus('${t.id}', 'UNVERIFIED')">
-              <i data-lucide="alert-circle"></i> Set UNVERIFIED
+            <button class="btn btn-outline" style="color:var(--warning); border-color:rgba(217,119,6,0.3);" onclick="updateTenantStatus('${t.id}', 'UNVERIFIED')">
+              <i data-lucide="clock"></i> Set Belum Diverifikasi
             </button>
             <button class="btn btn-logout-red" onclick="updateTenantStatus('${t.id}', 'EXPIRED')">
-              <i data-lucide="clock"></i> Set EXPIRED
+              <i data-lucide="alert-circle"></i> Set Kadaluwarsa
             </button>
           </div>
         </div>
