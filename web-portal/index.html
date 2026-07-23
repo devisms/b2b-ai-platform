@@ -17,7 +17,9 @@
     <header class="navbar">
       <div class="brand">
         <img src="kawanai_logo.png" alt="KawanAI Logo" class="brand-logo-img">
-        <h2>KawanAI</h2>
+        <div class="brand-text">
+          <h2>KawanAI</h2>
+        </div>
       </div>
       <nav class="nav-links">
         <a href="#portfolio">Portofolio</a>
@@ -201,7 +203,7 @@
               <span class="user-role">Owner Toko Baju</span>
             </div>
           </div>
-          <button class="btn btn-outline btn-sm btn-logout" id="btn-logout-client"><i data-lucide="log-out"></i> Keluar</button>
+          <button class="btn-logout-red" id="btn-logout-client"><i data-lucide="log-out"></i> Keluar Dashboard</button>
         </div>
       </aside>
 
@@ -374,7 +376,7 @@
               <span class="user-role">Super Admin Platform</span>
             </div>
           </div>
-          <button class="btn btn-outline btn-sm btn-logout" id="btn-logout-admin"><i data-lucide="log-out"></i> Keluar Super Admin</button>
+          <button class="btn-logout-red" id="btn-logout-admin"><i data-lucide="log-out"></i> Keluar Super Admin</button>
         </div>
       </aside>
 
@@ -415,8 +417,29 @@
               <h3><i data-lucide="users"></i> Daftar Klien B2B (Tenant Management)</h3>
               <button class="btn btn-primary btn-sm"><i data-lucide="plus"></i> Tambah Tenant Baru</button>
             </div>
-            <div id="admin-tenants-list">
-              <!-- Rendered dynamically from PostgreSQL database /api/admin/tenants -->
+            <div class="admin-table-wrapper">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>ID Tenant</th>
+                    <th>Nama Bisnis</th>
+                    <th>Pemilik</th>
+                    <th>Email</th>
+                    <th>Paket Tier</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>#K-9021</td>
+                    <td><strong>Toko Baju Kang Devis</strong></td>
+                    <td>Kang Devis</td>
+                    <td>devis@kawanai.id</td>
+                    <td><span class="badge badge-accent">Paket Pro</span></td>
+                    <td><span class="badge badge-success">Aktif</span></td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </section>
