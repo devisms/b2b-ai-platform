@@ -1,4 +1,4 @@
-// KawanAI - Complete Application Controller (Full Sections & Interactivity)
+// KawanAI - Complete Dynamic Application Controller (PostgreSQL API Driven)
 document.addEventListener('DOMContentLoaded', () => {
 
   // 0. Dual Theme Switcher Controller
@@ -19,14 +19,105 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 1. Pricing Toggle Handler (Monthly vs Annual 20% Discount)
-  const pricingToggle = document.getElementById('pricing-toggle-checkbox');
-  const priceValues = document.querySelectorAll('.price-value');
+  // 1. Dynamic Database API Fetchers (PostgreSQL Integration)
+  async function fetchDynamicPortfolio() {
+    try {
+      const res = await fetch('/api/portfolio');
+      const json = await res.json();
+      if (json.status === 'success' && json.data.length > 0) {
+        renderPortfolioGrid(json.data);
+      }
+    } catch (e) {
+      console.log('Using pre-rendered portfolio fallback');
+    }
+  }
 
+  async function fetchDynamicPricing() {
+    try {
+      const res = await fetch('/api/pricing');
+      const json = await res.json();
+      if (json.status === 'success' && json.data.length > 0) {
+        renderPricingGrid(json.data);
+      }
+    } catch (e) {
+      console.log('Using pre-rendered pricing fallback');
+    }
+  }
+
+  function renderPortfolioGrid(items) {
+    const grid = document.querySelector('.portfolio-grid');
+    if (!grid) return;
+    grid.innerHTML = items.map(item => `
+      <div class="portfolio-card card">
+        <div class="porto-header">
+          <div class="porto-icon blue"><i data-lucide="${item.icon_name || 'shopping-bag'}"></i></div>
+          <span class="badge badge-success">${item.category}</span>
+        </div>
+        <h3>${item.title}</h3>
+        <p class="porto-desc">${item.description}</p>
+        <div class="porto-stats">
+          <div><span>${item.metric_1_label}</span><strong>${item.metric_1_value}</strong></div>
+          <div><span>${item.metric_2_label}</span><strong>${item.metric_2_value}</strong></div>
+        </div>
+      </div>
+    `).join('');
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function renderPricingGrid(plans) {
+    const grid = document.querySelector('.pricing-grid');
+    if (!grid) return;
+    grid.innerHTML = plans.map(p => {
+      const monthlyFormatted = parseInt(p.monthly_price).toLocaleString('id-ID');
+      const annualFormatted = parseInt(p.annual_monthly_price).toLocaleString('id-ID');
+      const featuresList = (typeof p.features_json === 'string' ? JSON.parse(p.features_json) : p.features_json)
+        .map(f => `<li><i data-lucide="check-circle-2"></i> ${f}</li>`).join('');
+
+      return `
+        <div class="pricing-card card ${p.is_popular ? 'popular' : ''}">
+          ${p.is_popular ? '<div class="popular-tag">Paling Populer</div>' : ''}
+          <div class="pricing-header">
+            <h3>${p.plan_name}</h3>
+            <p>${p.subtitle || ''}</p>
+            <div class="price-box">
+              <span class="currency">Rp</span>
+              <span class="price-value" data-monthly="${monthlyFormatted}" data-annual="${annualFormatted}">${monthlyFormatted}</span>
+              <span class="period">/ bulan</span>
+            </div>
+          </div>
+          <ul class="pricing-features">
+            ${featuresList}
+          </ul>
+          <button class="btn ${p.is_popular ? 'btn-primary' : 'btn-outline'} btn-block btn-select-plan" data-plan="${p.plan_name}">
+            <i data-lucide="${p.is_popular ? 'sparkles' : 'arrow-right'}"></i> Pilih ${p.plan_name}
+          </button>
+        </div>
+      `;
+    }).join('');
+
+    if (window.lucide) lucide.createIcons();
+
+    // Re-bind Select Plan Buttons
+    document.querySelectorAll('.btn-select-plan').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const planName = btn.getAttribute('data-plan');
+        const selectedPlanInput = document.getElementById('selected-plan-input');
+        if (selectedPlanInput) selectedPlanInput.value = planName;
+        openAuthModal('register');
+      });
+    });
+  }
+
+  // Initial API Execution
+  fetchDynamicPortfolio();
+  fetchDynamicPricing();
+
+  // 2. Pricing Toggle Handler (Monthly vs Annual 20% Discount)
+  const pricingToggle = document.getElementById('pricing-toggle-checkbox');
   if (pricingToggle) {
     pricingToggle.addEventListener('change', (e) => {
       const isAnnual = e.target.checked;
-      priceValues.forEach(pv => {
+      document.querySelectorAll('.price-value').forEach(pv => {
         if (isAnnual) {
           pv.textContent = pv.getAttribute('data-annual');
         } else {
@@ -35,20 +126,6 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   }
-
-  // 2. Select Plan Buttons -> Auto Populate Plan & Open Sign Up Modal
-  const btnSelectPlans = document.querySelectorAll('.btn-select-plan');
-  const selectedPlanInput = document.getElementById('selected-plan-input');
-
-  btnSelectPlans.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const planName = btn.getAttribute('data-plan');
-      if (selectedPlanInput) {
-        selectedPlanInput.value = `Paket ${planName}`;
-      }
-      openAuthModal('register');
-    });
-  });
 
   // 3. View & Modal Controllers
   const viewLanding = document.getElementById('view-landing');
