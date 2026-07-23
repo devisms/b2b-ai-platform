@@ -85,7 +85,6 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                     else:
                         promo_dt = promo_ends
                     
-                    # If current time is past promo date, revert to normal price automatically!
                     if now > promo_dt.replace(tzinfo=None):
                         is_expired = True
 

@@ -1,4 +1,4 @@
-// KawanAI - Complete Application Controller (Promo Strikethrough, Expiry Engine, & Clean Subtitles)
+// KawanAI - Complete Application Controller (Dynamic Pricing Switcher & Percentage Discount Engine)
 document.addEventListener('DOMContentLoaded', () => {
 
   // 0. Dual Theme Switcher Controller
@@ -107,20 +107,26 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!grid) return;
     grid.innerHTML = plans.map(p => {
       const isExpired = p.is_promo_expired;
-      const monthlyFormatted = parseInt(p.monthly_price).toLocaleString('id-ID');
-      const annualFormatted = parseInt(p.annual_monthly_price).toLocaleString('id-ID');
-      
-      const origMonthly = p.original_monthly_price ? parseInt(p.original_monthly_price).toLocaleString('id-ID') : null;
+      const monthlyVal = parseInt(p.monthly_price);
+      const annualVal = parseInt(p.annual_monthly_price);
+      const origVal = p.original_monthly_price ? parseInt(p.original_monthly_price) : null;
 
-      // Strikethrough logic & expiry fallback
+      const monthlyFormatted = monthlyVal.toLocaleString('id-ID');
+      const annualFormatted = annualVal.toLocaleString('id-ID');
+      const origFormatted = origVal ? origVal.toLocaleString('id-ID') : null;
+
+      // Calculate percentage discount automatically (misal: (1490000 - 990000) / 1490000 = 33.5% -> 34%)
+      let discountPct = 0;
+      if (origVal && origVal > monthlyVal) {
+        discountPct = Math.round(((origVal - monthlyVal) / origVal) * 100);
+      }
+
       let strikeHtml = '';
       let promoBadgeHtml = '';
 
-      if (!isExpired && origMonthly) {
-        strikeHtml = `<span class="price-original-strikethrough">Rp ${origMonthly}</span>`;
-        if (p.promo_badge) {
-          promoBadgeHtml = `<div class="promo-timer-badge"><i data-lucide="flame"></i> ${p.promo_badge}</div>`;
-        }
+      if (!isExpired && origVal && origVal > monthlyVal) {
+        strikeHtml = `<span class="price-original-strikethrough" data-orig-monthly="Rp ${origFormatted}" data-orig-annual="Rp ${origFormatted}"><s>Rp ${origFormatted}</s></span>`;
+        promoBadgeHtml = `<div class="promo-timer-badge"><i data-lucide="flame"></i> Diskon ${discountPct}% • ${p.promo_badge || 'Promo Terbatas'}</div>`;
       }
 
       const featuresList = (typeof p.features_json === 'string' ? JSON.parse(p.features_json) : p.features_json)
@@ -151,6 +157,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }).join('');
 
     setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+
+    // DYNAMIC MONTHLY / ANNUAL TOGGLE SWITCHER ENGINE
+    const toggleCheckbox = document.getElementById('pricing-toggle-checkbox');
+    if (toggleCheckbox) {
+      toggleCheckbox.addEventListener('change', () => {
+        const isAnnual = toggleCheckbox.checked;
+        document.querySelectorAll('.price-value').forEach(priceSpan => {
+          const monthly = priceSpan.getAttribute('data-monthly');
+          const annual = priceSpan.getAttribute('data-annual');
+          priceSpan.textContent = isAnnual ? annual : monthly;
+        });
+        document.querySelectorAll('.pricing-header .period').forEach(periodSpan => {
+          periodSpan.textContent = isAnnual ? '/ bulan (ditagih tahunan)' : '/ bulan';
+        });
+      });
+    }
 
     document.querySelectorAll('.btn-select-plan').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -202,14 +224,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const tbody = document.getElementById('cms-pricing-table-body');
     if (!tbody) return;
     tbody.innerHTML = items.map(p => {
-      const origStr = p.original_monthly_price ? `<s>Rp ${parseInt(p.original_monthly_price).toLocaleString('id-ID')}</s>` : '-';
-      const promoStr = `Rp ${parseInt(p.monthly_price).toLocaleString('id-ID')}`;
+      const origVal = p.original_monthly_price ? parseInt(p.original_monthly_price) : null;
+      const promoVal = parseInt(p.monthly_price);
+      let pctStr = '';
+
+      if (origVal && origVal > promoVal) {
+        const pct = Math.round(((origVal - promoVal) / origVal) * 100);
+        pctStr = `<span class="badge badge-success">Diskon ${pct}%</span>`;
+      }
+
+      const origStr = origVal ? `<s>Rp ${origVal.toLocaleString('id-ID')}</s>` : '-';
+      const promoStr = `Rp ${promoVal.toLocaleString('id-ID')}`;
       const endsStr = p.promo_ends_at ? new Date(p.promo_ends_at).toLocaleDateString('id-ID') : 'Selamanya';
 
       return `
         <tr>
           <td><code>${p.plan_code}</code></td>
-          <td><strong>${p.plan_name}</strong></td>
+          <td><strong>${p.plan_name}</strong> ${pctStr}</td>
           <td><span style="color:var(--text-dim);">${origStr}</span></td>
           <td><strong style="color:var(--primary-accent);">${promoStr}</strong></td>
           <td><span class="badge badge-accent">${endsStr}</span></td>
@@ -430,10 +461,10 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="form-group"><label>Nama Paket</label><input type="text" id="pr-name" required value="${item?.plan_name || ''}" placeholder="Paket Pro (Bisnis)"></div>
         </div>
         <div class="form-row-2col">
-          <div class="form-group"><label>Harga Normal Coret (Rp)</label><input type="number" id="pr-orig" value="${item?.original_monthly_price || 1490000}" placeholder="misal: 1490000"></div>
-          <div class="form-group"><label>Harga Promo Diskon (Rp)</label><input type="number" id="pr-monthly" required value="${item?.monthly_price || 990000}" placeholder="misal: 990000"></div>
+          <div class="form-group"><label>Harga Normal (Lebih Mahal)</label><input type="number" id="pr-orig" value="${item?.original_monthly_price || 1490000}" placeholder="misal: 1490000"></div>
+          <div class="form-group"><label>Harga Diskon Promo (Lebih Murah)</label><input type="number" id="pr-monthly" required value="${item?.monthly_price || 990000}" placeholder="misal: 990000"></div>
         </div>
-        <div class="form-group"><label>Teks Label Promo</label><input type="text" id="pr-badge" value="${item?.promo_badge || 'Diskon 33% Promo Terbatas'}" placeholder="misal: Diskon 33% Promo Terbatas"></div>
+        <div class="form-group"><label>Teks Label Promo</label><input type="text" id="pr-badge" value="${item?.promo_badge || 'Promo Terbatas'}" placeholder="misal: Promo Terbatas"></div>
         <div class="form-row-2col">
           <div class="form-group"><label>Batas Tanggal Expiry Promo</label><input type="date" id="pr-ends" value="${item?.promo_ends_at ? item.promo_ends_at.substring(0,10) : '2026-08-31'}"></div>
           <div class="form-group"><label>Harga Tahunan Bulanan (Rp)</label><input type="number" id="pr-annual" required value="${item?.annual_monthly_price || 790000}"></div>
