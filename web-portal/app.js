@@ -1,4 +1,4 @@
-// KawanAI - Complete Application Controller (Super Admin & RBAC Integration)
+// KawanAI - Complete Application Controller (Super Admin & Full CMS CRUD Integration)
 document.addEventListener('DOMContentLoaded', () => {
 
   // 0. Dual Theme Switcher Controller
@@ -19,13 +19,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Global State Stores
+  let rawPortfolioData = [];
+  let rawFeaturesData = [];
+  let rawPricingData = [];
+
   // 1. Dynamic Database API Fetchers
   async function fetchDynamicPortfolio() {
     try {
       const res = await fetch('/api/portfolio');
       const json = await res.json();
-      if (json.status === 'success' && json.data.length > 0) {
+      if (json.status === 'success') {
+        rawPortfolioData = json.data;
         renderPortfolioGrid(json.data);
+        renderCMSPortfolioTable(json.data);
       }
     } catch (e) {
       console.log('Using pre-rendered portfolio fallback');
@@ -36,8 +43,10 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const res = await fetch('/api/features');
       const json = await res.json();
-      if (json.status === 'success' && json.data.length > 0) {
+      if (json.status === 'success') {
+        rawFeaturesData = json.data;
         renderFeaturesGrid(json.data);
+        renderCMSFeaturesTable(json.data);
       }
     } catch (e) {
       console.log('Using pre-rendered features fallback');
@@ -48,8 +57,10 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const res = await fetch('/api/pricing');
       const json = await res.json();
-      if (json.status === 'success' && json.data.length > 0) {
+      if (json.status === 'success') {
+        rawPricingData = json.data;
         renderPricingGrid(json.data);
+        renderCMSPricingTable(json.data);
       }
     } catch (e) {
       console.log('Using pre-rendered pricing fallback');
@@ -134,11 +145,65 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // --- CMS CONTENT EDITOR TABLES (SUPER ADMIN) ---
+  function renderCMSPortfolioTable(items) {
+    const tbody = document.getElementById('cms-portfolio-table-body');
+    if (!tbody) return;
+    tbody.innerHTML = items.map(item => `
+      <tr>
+        <td><strong>${item.title}</strong></td>
+        <td><span class="badge badge-accent">${item.category}</span></td>
+        <td>${item.metric_1_label}: <strong>${item.metric_1_value}</strong></td>
+        <td>${item.metric_2_label}: <strong>${item.metric_2_value}</strong></td>
+        <td>
+          <button class="btn-action-edit" onclick="openCMSEditorModal('portfolio', '${item.id}')"><i data-lucide="edit"></i> Edit</button>
+          <button class="btn-action-delete" onclick="deleteCMSItem('portfolio', '${item.id}')"><i data-lucide="trash-2"></i> Hapus</button>
+        </td>
+      </tr>
+    `).join('');
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+  }
+
+  function renderCMSFeaturesTable(items) {
+    const tbody = document.getElementById('cms-features-table-body');
+    if (!tbody) return;
+    tbody.innerHTML = items.map(item => `
+      <tr>
+        <td><code>${item.icon_name}</code></td>
+        <td><strong>${item.title}</strong></td>
+        <td>${item.description.substring(0, 70)}...</td>
+        <td>
+          <button class="btn-action-edit" onclick="openCMSEditorModal('features', '${item.id}')"><i data-lucide="edit"></i> Edit</button>
+          <button class="btn-action-delete" onclick="deleteCMSItem('features', '${item.id}')"><i data-lucide="trash-2"></i> Hapus</button>
+        </td>
+      </tr>
+    `).join('');
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+  }
+
+  function renderCMSPricingTable(items) {
+    const tbody = document.getElementById('cms-pricing-table-body');
+    if (!tbody) return;
+    tbody.innerHTML = items.map(p => `
+      <tr>
+        <td><code>${p.plan_code}</code></td>
+        <td><strong>${p.plan_name}</strong></td>
+        <td>Rp ${parseInt(p.monthly_price).toLocaleString('id-ID')}</td>
+        <td>Rp ${parseInt(p.annual_monthly_price).toLocaleString('id-ID')}</td>
+        <td>
+          <button class="btn-action-edit" onclick="openCMSEditorModal('pricing', '${p.id}')"><i data-lucide="edit"></i> Edit</button>
+          <button class="btn-action-delete" onclick="deleteCMSItem('pricing', '${p.id}')"><i data-lucide="trash-2"></i> Hapus</button>
+        </td>
+      </tr>
+    `).join('');
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+  }
+
   fetchDynamicPortfolio();
   fetchDynamicFeatures();
   fetchDynamicPricing();
 
-  // 2. Role-Based Auth Modal Tabs (Tenant vs Super Admin Login)
+  // 2. Role-Based Auth Modal Tabs
   const roleTabs = document.querySelectorAll('.role-tab');
   const loginEmail = document.getElementById('login-email');
   const loginEmailLabel = document.getElementById('login-email-label');
@@ -226,7 +291,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Handle Role-Based Login Submission
   const formLogin = document.getElementById('form-login');
   if (formLogin) {
     formLogin.addEventListener('submit', async (e) => {
@@ -261,7 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 4. Super Admin Tab Navigation
+  // 4. Super Admin Tab & CMS Sub-Tabs Controller
   const adminNavItems = document.querySelectorAll('[data-admin-tab]');
   const adminTabContents = document.querySelectorAll('.admin-tab-content');
 
@@ -277,4 +341,135 @@ document.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
     });
   });
+
+  const cmsSubtabs = document.querySelectorAll('[data-cms]');
+  const cmsSections = document.querySelectorAll('.cms-sec');
+
+  cmsSubtabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.getAttribute('data-cms');
+      cmsSubtabs.forEach(t => t.classList.remove('active'));
+      cmsSections.forEach(s => s.style.display = 'none');
+
+      tab.classList.add('active');
+      const targetSec = document.getElementById(`cms-sec-${target}`);
+      if (targetSec) targetSec.style.display = 'block';
+      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+    });
+  });
+
+  // 5. CMS MODAL EDITOR & CRUD LOGIC (PORTFOLIO, FEATURES, PRICING)
+  const modalCMSEditor = document.getElementById('modal-cms-editor');
+  const btnCloseCMSModal = document.getElementById('btn-close-cms-modal');
+  const formCMSEditor = document.getElementById('form-cms-editor');
+  const cmsFieldsContainer = document.getElementById('cms-fields-container');
+
+  if (btnCloseCMSModal) btnCloseCMSModal.addEventListener('click', () => modalCMSEditor.style.display = 'none');
+
+  window.openCMSEditorModal = function(type, id = null) {
+    document.getElementById('cms-item-type').value = type;
+    document.getElementById('cms-item-id').value = id || '';
+    modalCMSEditor.style.display = 'flex';
+
+    if (type === 'portfolio') {
+      const item = id ? rawPortfolioData.find(x => x.id === id) : {};
+      document.getElementById('cms-modal-title').textContent = id ? 'Edit Portofolio' : 'Tambah Portofolio Baru';
+      cmsFieldsContainer.innerHTML = `
+        <div class="form-group"><label>Judul Portofolio</label><input type="text" id="p-title" required value="${item?.title || ''}"></div>
+        <div class="form-group"><label>Kategori</label><input type="text" id="p-category" required value="${item?.category || 'Online Shop'}"></div>
+        <div class="form-group"><label>Deskripsi Studi Kasus</label><textarea id="p-desc" rows="3" required>${item?.description || ''}</textarea></div>
+        <div class="form-group"><label>Metrik 1 Label</label><input type="text" id="p-m1-label" value="${item?.metric_1_label || 'Waktu Respon'}"></div>
+        <div class="form-group"><label>Metrik 1 Value</label><input type="text" id="p-m1-val" value="${item?.metric_1_value || '1.2 Detik'}"></div>
+        <div class="form-group"><label>Metrik 2 Label</label><input type="text" id="p-m2-label" value="${item?.metric_2_label || 'Order Otomatis'}"></div>
+        <div class="form-group"><label>Metrik 2 Value</label><input type="text" id="p-m2-val" value="${item?.metric_2_value || '120+ / Bulan'}"></div>
+      `;
+    } else if (type === 'features') {
+      const item = id ? rawFeaturesData.find(x => x.id === id) : {};
+      document.getElementById('cms-modal-title').textContent = id ? 'Edit Fitur Utama' : 'Tambah Fitur Baru';
+      cmsFieldsContainer.innerHTML = `
+        <div class="form-group"><label>Nama Ikon Lucide</label><input type="text" id="f-icon" required value="${item?.icon_name || 'message-square-code'}"></div>
+        <div class="form-group"><label>Judul Fitur</label><input type="text" id="f-title" required value="${item?.title || ''}"></div>
+        <div class="form-group"><label>Deskripsi Fitur</label><textarea id="f-desc" rows="4" required>${item?.description || ''}</textarea></div>
+      `;
+    } else if (type === 'pricing') {
+      const item = id ? rawPricingData.find(x => x.id === id) : {};
+      document.getElementById('cms-modal-title').textContent = id ? 'Edit Paket Harga' : 'Tambah Paket Harga';
+      cmsFieldsContainer.innerHTML = `
+        <div class="form-group"><label>Kode Paket (LITE/PRO/ENTERPRISE)</label><input type="text" id="pr-code" required value="${item?.plan_code || 'PRO'}"></div>
+        <div class="form-group"><label>Nama Paket</label><input type="text" id="pr-name" required value="${item?.plan_name || ''}"></div>
+        <div class="form-group"><label>Harga Bulanan (Rp)</label><input type="number" id="pr-monthly" required value="${item?.monthly_price || 990000}"></div>
+        <div class="form-group"><label>Harga Tahunan Bulanan (Rp)</label><input type="number" id="pr-annual" required value="${item?.annual_monthly_price || 790000}"></div>
+      `;
+    }
+  };
+
+  const btnAddPortfolio = document.getElementById('btn-add-portfolio');
+  const btnAddFeature = document.getElementById('btn-add-feature');
+  const btnAddPricing = document.getElementById('btn-add-pricing');
+
+  if (btnAddPortfolio) btnAddPortfolio.addEventListener('click', () => openCMSEditorModal('portfolio'));
+  if (btnAddFeature) btnAddFeature.addEventListener('click', () => openCMSEditorModal('features'));
+  if (btnAddPricing) btnAddPricing.addEventListener('click', () => openCMSEditorModal('pricing'));
+
+  // CMS Form Submit (Save / Update)
+  if (formCMSEditor) {
+    formCMSEditor.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const type = document.getElementById('cms-item-type').value;
+      const id = document.getElementById('cms-item-id').value;
+      let endpoint = `/api/admin/${type}/save`;
+      let payload = { id };
+
+      if (type === 'portfolio') {
+        payload.title = document.getElementById('p-title').value;
+        payload.category = document.getElementById('p-category').value;
+        payload.description = document.getElementById('p-desc').value;
+        payload.metric_1_label = document.getElementById('p-m1-label').value;
+        payload.metric_1_value = document.getElementById('p-m1-val').value;
+        payload.metric_2_label = document.getElementById('p-m2-label').value;
+        payload.metric_2_value = document.getElementById('p-m2-val').value;
+      } else if (type === 'features') {
+        payload.icon_name = document.getElementById('f-icon').value;
+        payload.title = document.getElementById('f-title').value;
+        payload.description = document.getElementById('f-desc').value;
+      } else if (type === 'pricing') {
+        payload.plan_code = document.getElementById('pr-code').value;
+        payload.plan_name = document.getElementById('pr-name').value;
+        payload.monthly_price = document.getElementById('pr-monthly').value;
+        payload.annual_monthly_price = document.getElementById('pr-annual').value;
+      }
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const json = await res.json();
+      if (json.status === 'success') {
+        modalCMSEditor.style.display = 'none';
+        alert('🎉 ' + json.message);
+        if (type === 'portfolio') fetchDynamicPortfolio();
+        if (type === 'features') fetchDynamicFeatures();
+        if (type === 'pricing') fetchDynamicPricing();
+      }
+    });
+  }
+
+  // CMS Delete Item
+  window.deleteCMSItem = async function(type, id) {
+    if (!confirm('Apakah Anda yakin ingin menghapus data ini dari PostgreSQL?')) return;
+    const res = await fetch(`/api/admin/${type}/delete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id })
+    });
+    const json = await res.json();
+    if (json.status === 'success') {
+      alert('🗑️ ' + json.message);
+      if (type === 'portfolio') fetchDynamicPortfolio();
+      if (type === 'features') fetchDynamicFeatures();
+      if (type === 'pricing') fetchDynamicPricing();
+    }
+  };
+
 });

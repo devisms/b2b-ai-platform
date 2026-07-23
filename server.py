@@ -35,9 +35,22 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
         if self.path == '/api/auth/login':
             self.handle_login_api()
+        elif self.path == '/api/admin/portfolio/save':
+            self.save_portfolio_api()
+        elif self.path == '/api/admin/portfolio/delete':
+            self.delete_portfolio_api()
+        elif self.path == '/api/admin/features/save':
+            self.save_feature_api()
+        elif self.path == '/api/admin/features/delete':
+            self.delete_feature_api()
+        elif self.path == '/api/admin/pricing/save':
+            self.save_pricing_api()
+        elif self.path == '/api/admin/pricing/delete':
+            self.delete_pricing_api()
         else:
             self.send_error(404, "Endpoint Not Found")
 
+    # --- GET ENDPOINTS ---
     def get_portfolio_api(self):
         try:
             conn = psycopg2.connect(**DB_CONFIG)
@@ -86,11 +99,144 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         except Exception as e:
             self.send_json_response({"status": "error", "message": str(e)}, 500)
 
+    # --- CRUD POST ENDPOINTS ---
+    def save_portfolio_api(self):
+        try:
+            payload = self.read_json_payload()
+            item_id = payload.get('id')
+            title = payload.get('title')
+            category = payload.get('category')
+            description = payload.get('description')
+            metric_1_label = payload.get('metric_1_label')
+            metric_1_value = payload.get('metric_1_value')
+            metric_2_label = payload.get('metric_2_label')
+            metric_2_value = payload.get('metric_2_value')
+            icon_name = payload.get('icon_name', 'shopping-bag')
+
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor()
+            if item_id:
+                cursor.execute("""
+                    UPDATE cms_service.portfolio_items
+                    SET title=%s, category=%s, description=%s, metric_1_label=%s, metric_1_value=%s, metric_2_label=%s, metric_2_value=%s, icon_name=%s
+                    WHERE id=%s;
+                """, (title, category, description, metric_1_label, metric_1_value, metric_2_label, metric_2_value, icon_name, item_id))
+            else:
+                cursor.execute("""
+                    INSERT INTO cms_service.portfolio_items (title, category, description, metric_1_label, metric_1_value, metric_2_label, metric_2_value, icon_name)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
+                """, (title, category, description, metric_1_label, metric_1_value, metric_2_label, metric_2_value, icon_name))
+            conn.commit()
+            conn.close()
+
+            self.send_json_response({"status": "success", "message": "Portofolio berhasil disimpan!"})
+        except Exception as e:
+            self.send_json_response({"status": "error", "message": str(e)}, 500)
+
+    def delete_portfolio_api(self):
+        try:
+            payload = self.read_json_payload()
+            item_id = payload.get('id')
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM cms_service.portfolio_items WHERE id=%s;", (item_id,))
+            conn.commit()
+            conn.close()
+
+            self.send_json_response({"status": "success", "message": "Portofolio berhasil dihapus!"})
+        except Exception as e:
+            self.send_json_response({"status": "error", "message": str(e)}, 500)
+
+    def save_feature_api(self):
+        try:
+            payload = self.read_json_payload()
+            item_id = payload.get('id')
+            title = payload.get('title')
+            description = payload.get('description')
+            icon_name = payload.get('icon_name', 'message-square-code')
+
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor()
+            if item_id:
+                cursor.execute("""
+                    UPDATE cms_service.feature_items
+                    SET title=%s, description=%s, icon_name=%s
+                    WHERE id=%s;
+                """, (title, description, icon_name, item_id))
+            else:
+                cursor.execute("""
+                    INSERT INTO cms_service.feature_items (title, description, icon_name)
+                    VALUES (%s, %s, %s);
+                """, (title, description, icon_name))
+            conn.commit()
+            conn.close()
+
+            self.send_json_response({"status": "success", "message": "Fitur berhasil disimpan!"})
+        except Exception as e:
+            self.send_json_response({"status": "error", "message": str(e)}, 500)
+
+    def delete_feature_api(self):
+        try:
+            payload = self.read_json_payload()
+            item_id = payload.get('id')
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM cms_service.feature_items WHERE id=%s;", (item_id,))
+            conn.commit()
+            conn.close()
+
+            self.send_json_response({"status": "success", "message": "Fitur berhasil dihapus!"})
+        except Exception as e:
+            self.send_json_response({"status": "error", "message": str(e)}, 500)
+
+    def save_pricing_api(self):
+        try:
+            payload = self.read_json_payload()
+            item_id = payload.get('id')
+            plan_code = payload.get('plan_code')
+            plan_name = payload.get('plan_name')
+            subtitle = payload.get('subtitle')
+            monthly_price = payload.get('monthly_price')
+            annual_monthly_price = payload.get('annual_monthly_price')
+            features_json = json.dumps(payload.get('features_json', []))
+
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor()
+            if item_id:
+                cursor.execute("""
+                    UPDATE cms_service.pricing_plans
+                    SET plan_code=%s, plan_name=%s, subtitle=%s, monthly_price=%s, annual_monthly_price=%s, features_json=%s
+                    WHERE id=%s;
+                """, (plan_code, plan_name, subtitle, monthly_price, annual_monthly_price, features_json, item_id))
+            else:
+                cursor.execute("""
+                    INSERT INTO cms_service.pricing_plans (plan_code, plan_name, subtitle, monthly_price, annual_monthly_price, features_json)
+                    VALUES (%s, %s, %s, %s, %s, %s);
+                """, (plan_code, plan_name, subtitle, monthly_price, annual_monthly_price, features_json))
+            conn.commit()
+            conn.close()
+
+            self.send_json_response({"status": "success", "message": "Paket Harga berhasil disimpan!"})
+        except Exception as e:
+            self.send_json_response({"status": "error", "message": str(e)}, 500)
+
+    def delete_pricing_api(self):
+        try:
+            payload = self.read_json_payload()
+            item_id = payload.get('id')
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM cms_service.pricing_plans WHERE id=%s;", (item_id,))
+            conn.commit()
+            conn.close()
+
+            self.send_json_response({"status": "success", "message": "Paket Harga berhasil dihapus!"})
+        except Exception as e:
+            self.send_json_response({"status": "error", "message": str(e)}, 500)
+
     def handle_login_api(self):
         try:
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
-            payload = json.loads(post_data.decode('utf-8'))
+            payload = self.read_json_payload()
             email = payload.get('email', '').strip()
 
             conn = psycopg2.connect(**DB_CONFIG)
@@ -113,6 +259,11 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 })
         except Exception as e:
             self.send_json_response({"status": "error", "message": str(e)}, 500)
+
+    def read_json_payload(self):
+        content_length = int(self.headers['Content-Length'])
+        post_data = self.rfile.read(content_length)
+        return json.loads(post_data.decode('utf-8'))
 
     def send_json_response(self, data, status_code=200):
         self.send_response(status_code)
