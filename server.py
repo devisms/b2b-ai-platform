@@ -31,7 +31,27 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         elif self.path == '/api/admin/tenants':
             self.get_admin_tenants_api()
         else:
-            super().do_GET()
+            # Disable Cache for development static files
+            self.send_response(200)
+            if self.path.endswith('.css'):
+                self.send_header('Content-Type', 'text/css')
+            elif self.path.endswith('.js'):
+                self.send_header('Content-Type', 'application/javascript')
+            elif self.path.endswith('.html') or self.path == '/':
+                self.send_header('Content-Type', 'text/html')
+            
+            self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+            self.send_header('Pragma', 'no-cache')
+            self.send_header('Expires', '0')
+            self.end_headers()
+
+            filepath = os.path.join(DIRECTORY, 'index.html' if self.path == '/' else self.path.lstrip('/'))
+            if os.path.exists(filepath) and os.path.isfile(filepath):
+                with open(filepath, 'rb') as f:
+                    self.wfile.write(f.read())
+            else:
+                super().do_GET()
+
 
     def do_POST(self):
         if self.path == '/api/auth/login':
