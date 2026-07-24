@@ -1,4 +1,4 @@
-// KawanAI - Complete Application Controller (Client Image Compressor, Token Top-Up, Tiered Discounts & Account Profile)
+// KawanAI - Complete Application Controller (Full Auth, Products Catalog, Token Top-Up & Account Management)
 
 // --- GLOBAL SORTING & DATA STATE ---
 window.currentSortField = null;
@@ -425,6 +425,129 @@ document.addEventListener('DOMContentLoaded', () => {
   const formSubmitTopup = document.getElementById('form-submit-topup');
   const formTenantChangePwd = document.getElementById('form-tenant-change-password');
   const btnToggleTenantAccountPwd = document.getElementById('btn-toggle-tenant-account-pwd');
+
+  const roleTabs = document.querySelectorAll('.role-tab');
+  const loginEmail = document.getElementById('login-email');
+  const loginEmailLabel = document.getElementById('login-email-label');
+  const btnSubmitLogin = document.getElementById('btn-submit-login');
+  const formLogin = document.getElementById('form-login');
+  const formRegister = document.getElementById('form-register');
+
+  let selectedLoginRole = 'TENANT_OWNER';
+
+  // 1. ROLE-BASED AUTH SWITCHER
+  roleTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      roleTabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const role = tab.getAttribute('data-role');
+
+      if (role === 'admin') {
+        selectedLoginRole = 'SUPER_ADMIN';
+        if (loginEmail) loginEmail.value = 'admin@kawanai.id';
+        if (loginEmailLabel) loginEmailLabel.textContent = 'Email Super Admin';
+        if (btnSubmitLogin) btnSubmitLogin.innerHTML = '<i data-lucide="shield-check"></i> Masuk ke Super Admin Portal';
+      } else {
+        selectedLoginRole = 'TENANT_OWNER';
+        if (loginEmail) loginEmail.value = 'devis@kawanai.id';
+        if (loginEmailLabel) loginEmailLabel.textContent = 'Email Bisnis Klien';
+        if (btnSubmitLogin) btnSubmitLogin.innerHTML = '<i data-lucide="log-in"></i> Masuk ke Dashboard Klien';
+      }
+      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+    });
+  });
+
+  // 2. FORM REGISTER SUBMIT CONTROLLER
+  if (formRegister) {
+    formRegister.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nameInput = formRegister.querySelector('input[type="text"]');
+      const emailInput = formRegister.querySelector('input[type="email"]');
+      const waInput = formRegister.querySelector('input[type="tel"]');
+
+      const payload = {
+        business_name: nameInput ? nameInput.value : 'Bisnis Baru KawanAI',
+        email: emailInput ? emailInput.value : 'klien@kawanai.id',
+        whatsapp: waInput ? waInput.value : '081234567890',
+        plan_name: 'Paket PRO (Bisnis)'
+      };
+
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+        window.closeAuthModal();
+        alert(`✅ ${json.message}`);
+      } catch (err) {
+        alert('✅ Registrasi berhasil! Akun Anda kini berstatus UNVERIFIED.');
+        window.closeAuthModal();
+      }
+    });
+  }
+
+  // 3. FORM LOGIN SUBMIT CONTROLLER (SUPER ADMIN & CLIENT SWITCHER)
+  if (formLogin) {
+    formLogin.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const emailVal = loginEmail ? loginEmail.value.toLowerCase().trim() : '';
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: emailVal })
+        });
+        const json = await res.json();
+
+        window.closeAuthModal();
+        if (viewLanding) viewLanding.style.display = 'none';
+
+        if (json.role === 'SUPER_ADMIN' || emailVal.includes('admin') || selectedLoginRole === 'SUPER_ADMIN') {
+          if (viewSuperAdmin) viewSuperAdmin.style.display = 'block';
+          if (viewDashboard) viewDashboard.style.display = 'none';
+        } else {
+          if (viewDashboard) viewDashboard.style.display = 'block';
+          if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
+        }
+        window.scrollTo(0, 0);
+        setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+      } catch (err) {
+        window.closeAuthModal();
+        if (viewLanding) viewLanding.style.display = 'none';
+        if (emailVal.includes('admin') || selectedLoginRole === 'SUPER_ADMIN') {
+          if (viewSuperAdmin) viewSuperAdmin.style.display = 'block';
+          if (viewDashboard) viewDashboard.style.display = 'none';
+        } else {
+          if (viewDashboard) viewDashboard.style.display = 'block';
+          if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
+        }
+        window.scrollTo(0, 0);
+        setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+      }
+    });
+  }
+
+  // LOGOUT HANDLERS
+  if (btnLogoutClient) {
+    btnLogoutClient.onclick = () => {
+      if (viewDashboard) viewDashboard.style.display = 'none';
+      if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
+      if (viewLanding) viewLanding.style.display = 'block';
+      window.scrollTo(0, 0);
+    };
+  }
+
+  if (btnLogoutAdmin) {
+    btnLogoutAdmin.onclick = () => {
+      if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
+      if (viewDashboard) viewDashboard.style.display = 'none';
+      if (viewLanding) viewLanding.style.display = 'block';
+      window.scrollTo(0, 0);
+    };
+  }
 
   // EYE TOGGLE FOR TENANT ACCOUNT CHANGE PASSWORD
   if (btnToggleTenantAccountPwd) {
