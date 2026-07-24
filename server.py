@@ -103,7 +103,10 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.update_tenant_account_password_api()
         elif self.path == '/api/tenant/sop/save':
             self.save_tenant_sop_api()
+        elif self.path == '/api/admin/topups/update-status':
+            self.update_admin_topup_status_api()
         else:
+
 
 
 
@@ -470,6 +473,36 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.send_json_response({"status": "success", "message": "Dokumen SOP Knowledge Base KawanAI berhasil diperbarui & disimpan!"})
         except Exception as e:
             self.send_json_response({"status": "error", "message": str(e)}, 500)
+
+    def update_admin_topup_status_api(self):
+        try:
+            payload = self.read_json_payload()
+            topup_id = payload.get('id')
+            new_status = payload.get('status', 'VERIFIED')
+
+            if not topup_id:
+                self.send_json_response({"status": "error", "message": "ID transaksi top-up wajib diisi"}, 400)
+                return
+
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+            cursor.execute("""
+                UPDATE tenant_service.tenant_token_topups 
+                SET status = %s 
+                WHERE id = %s
+                RETURNING *;
+            """, (new_status, topup_id))
+            topup_row = cursor.fetchone()
+            conn.commit()
+            conn.close()
+
+            status_label = "BERHASIL DIVERIFIKASI" if new_status == "VERIFIED" else "DITOLAK"
+            msg = f"Transaksi Top-Up {topup_row['topup_code'] if topup_row else ''} ({new_status}) {status_label}! Kuota token sebesar +{topup_row['token_amount'] if topup_row else ''} Chat otomatis aktif."
+            self.send_json_response({"status": "success", "message": msg})
+        except Exception as e:
+            self.send_json_response({"status": "error", "message": str(e)}, 500)
+
 
 
 

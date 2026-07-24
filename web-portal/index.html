@@ -784,7 +784,13 @@
             <i data-lucide="database"></i>
             <span>CMS Content Editor</span>
           </button>
+          <button class="nav-item" data-admin-tab="topups">
+            <i data-lucide="zap"></i>
+            <span>Verifikasi Top-Up Token</span>
+            <span class="unverified-count-badge" id="pending-topups-count-badge" style="display:none; background:#f59e0b; color:black;">0 Baru</span>
+          </button>
         </nav>
+
 
         <div class="sidebar-footer">
           <div class="user-profile">
@@ -961,9 +967,40 @@
                   </tbody>
                 </table>
               </div>
+        </section>
+
+        <!-- ADMIN TAB 4: VERIFIKASI TOP-UP TOKEN CHAT -->
+        <section class="admin-tab-content" id="admin-tab-topups" style="display:none;">
+          <div class="card">
+            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-card); padding-bottom:14px; margin-bottom:16px;">
+              <div>
+                <h3 style="font-size:20px; font-weight:800; color:var(--text-main);"><i data-lucide="zap"></i> Kelola & Verifikasi Transaksi Top-Up Token Chat</h3>
+                <p class="card-subtitle">Verifikasi resi bukti transfer bank pembelian token add-on dari para tenant KawanAI</p>
+              </div>
+              <span class="badge badge-accent">Token Add-on System</span>
+            </div>
+
+            <div class="admin-table-wrapper">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Kode Top-Up</th>
+                    <th>Nama Tenant / Toko</th>
+                    <th>Paket Add-on</th>
+                    <th>Nominal Transfer</th>
+                    <th>Tanggal Pengajuan</th>
+                    <th>Resi Bukti Transfer</th>
+                    <th>Status & Aksi Super Admin</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-topups-table-body">
+                  <!-- Rendered dynamically via app.js -->
+                </tbody>
+              </table>
             </div>
           </div>
         </section>
+
 
       </main>
     </div>

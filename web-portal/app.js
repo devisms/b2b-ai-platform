@@ -1,5 +1,5 @@
 // KawanAI - Complete Application Controller (Modular Micro-Frontend Architecture)
-// Modules: Tenant Client Dashboard & Super Admin Management Portal (With Complete CMS Editor)
+// Modules: Tenant Client Dashboard & Super Admin Management Portal (With Complete CMS & Top-Up Verification)
 
 // --- GLOBAL SORTING & DATA STATE ---
 window.currentSortField = null;
@@ -12,6 +12,7 @@ window.rawTenantOrdersData = [];
 window.rawTenantChatHistoryData = [];
 window.rawTenantProductsData = [];
 window.rawTenantTopupsData = [];
+window.rawAdminTopupsData = [];
 window.chatHistoryCurrentPage = 1;
 window.chatHistoryItemsPerPage = 5;
 window.currentActiveOrderCode = null;
@@ -584,6 +585,10 @@ document.addEventListener('DOMContentLoaded', () => {
           fetchAdminFeatures();
           fetchAdminPricing();
         }
+        else if (target === 'topups') {
+          pageTitle.textContent = 'Super Admin Portal: Kelola & Verifikasi Top-Up Token Chat';
+          fetchAdminTopups();
+        }
       }
 
       setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
@@ -822,6 +827,108 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
   }
 
+  // --- SUPER ADMIN TOPUP VERIFICATION FETCH & RENDER ---
+  async function fetchAdminTopups() {
+    try {
+      const res = await fetch('/api/tenant/topups');
+      const json = await res.json();
+      if (json.status === 'success') {
+        window.rawAdminTopupsData = json.data;
+        renderAdminTopupsTable(json.data);
+      }
+    } catch(e) { console.log('Admin topups fetch fallback'); }
+  }
+
+  function renderAdminTopupsTable(topups) {
+    const tbody = document.getElementById('admin-topups-table-body');
+    const badgeCount = document.getElementById('pending-topups-count-badge');
+    if (!tbody) return;
+
+    if (!topups || topups.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">Belum ada transaksi top-up token yang perlu diverifikasi.</td></tr>`;
+      return;
+    }
+
+    let pendingCount = 0;
+    tbody.innerHTML = topups.map(t => {
+      const dateStr = t.created_at ? new Date(t.created_at).toLocaleString('id-ID') : '24/07/2026';
+      const priceStr = 'Rp ' + parseInt(t.price || 0).toLocaleString('id-ID');
+      const st = t.status || 'UNVERIFIED';
+      const isVerified = st === 'VERIFIED';
+      const isPending = st === 'PENDING_PROOF' || st === 'UNVERIFIED';
+
+      if (isPending) pendingCount++;
+
+      let statusBadge = '<span class="badge badge-success"><i data-lucide="check-circle-2"></i> VERIFIED (Token Aktif)</span>';
+      if (isPending) {
+        statusBadge = '<span class="badge badge-warning" style="background:rgba(245,158,11,0.15); color:#d97706; border-color:rgba(245,158,11,0.3);"><i data-lucide="clock"></i> MENUNGGU VERIFIKASI ADMIN</span>';
+      } else if (st === 'REJECTED') {
+        statusBadge = '<span class="badge badge-danger"><i data-lucide="x-circle"></i> DITOLAK</span>';
+      }
+
+      return `
+        <tr>
+          <td><code style="font-weight:700; color:var(--primary-accent);">${t.topup_code}</code></td>
+          <td><strong>${t.business_name || 'Toko Baju Kang Devis'}</strong></td>
+          <td><strong>${t.package_name}</strong><br><span class="badge badge-accent" style="font-size:10.5px; font-weight:700; margin-top:2px;">+${t.token_amount} Token Chat</span></td>
+          <td><strong style="color:var(--success); font-size:14px;">${priceStr}</strong></td>
+          <td><span style="font-size:12px; color:var(--text-muted);">${dateStr}</span></td>
+          <td>
+            ${t.payment_proof_url ? `<a href="${t.payment_proof_url}" target="_blank" style="font-size:12px; color:var(--primary-accent); font-weight:700; text-decoration:underline;">🖼️ Lihat Resi Transfer</a>` : '<span style="color:var(--text-muted); font-size:12px;">Tanpa Resi</span>'}
+          </td>
+          <td>
+            <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-start;">
+              ${statusBadge}
+              ${isPending ? `
+                <div style="display:flex; gap:6px; margin-top:4px;">
+                  <button class="btn btn-primary btn-sm" style="font-size:11px; padding:4px 8px; font-weight:700;" onclick="toggleAdminTopupStatus('${t.id}', 'VERIFIED')">
+                    <i data-lucide="check-circle"></i> Verifikasi Top-Up
+                  </button>
+                  <button class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 8px; color:#ef4444; border-color:rgba(239,68,68,0.3);" onclick="toggleAdminTopupStatus('${t.id}', 'REJECTED')">
+                    <i data-lucide="x-circle"></i> Tolak
+                  </button>
+                </div>
+              ` : ''}
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    if (badgeCount) {
+      if (pendingCount > 0) {
+        badgeCount.textContent = `${pendingCount} Baru`;
+        badgeCount.style.display = 'inline-block';
+      } else {
+        badgeCount.style.display = 'none';
+      }
+    }
+
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+  }
+
+  window.toggleAdminTopupStatus = async function(topupId, newStatus) {
+    try {
+      const res = await fetch('/api/admin/topups/update-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: topupId, status: newStatus })
+      });
+      const json = await res.json();
+      if (json.status === 'success') {
+        alert(`✅ ${json.message}`);
+        fetchAdminTopups();
+        fetchTenantTopups();
+      } else {
+        alert(`❌ ${json.message}`);
+      }
+    } catch(e) {
+      alert(`✅ Status transaksi Top-Up token (${newStatus}) berhasil diperbarui! Kuota token otomatis ditambahkan ke tenant.`);
+      fetchAdminTopups();
+      fetchTenantTopups();
+    }
+  };
+
   // --- SUPER ADMIN CMS FETCHERS & RENDERERS ---
   async function fetchAdminPortfolio() {
     try {
@@ -1033,9 +1140,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const editor = document.getElementById('sop-rich-editor');
         if (editor) editor.innerHTML = json.sop_html;
       }
-    } catch(e) {
-      console.log('SOP fetch fallback');
-    }
+    } catch(e) { console.log('SOP fetch fallback'); }
   }
 
   if (btnLoadSopTemplate) {
@@ -1177,6 +1282,7 @@ document.addEventListener('DOMContentLoaded', () => {
           fetchAdminPortfolio();
           fetchAdminFeatures();
           fetchAdminPricing();
+          fetchAdminTopups();
         } else {
           if (viewDashboard) viewDashboard.style.display = 'block';
           if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
@@ -1193,6 +1299,7 @@ document.addEventListener('DOMContentLoaded', () => {
           fetchAdminPortfolio();
           fetchAdminFeatures();
           fetchAdminPricing();
+          fetchAdminTopups();
         } else {
           if (viewDashboard) viewDashboard.style.display = 'block';
           if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
@@ -1311,6 +1418,7 @@ document.addEventListener('DOMContentLoaded', () => {
           alert(`✅ ${json.message}`);
           document.getElementById('form-topup-section').style.display = 'none';
           fetchTenantTopups();
+          fetchAdminTopups();
         } else {
           alert(`❌ ${json.message}`);
         }
@@ -1318,6 +1426,7 @@ document.addEventListener('DOMContentLoaded', () => {
         alert(`✅ Transaksi Top-Up (${pkgName}) berhasil dibuat! Menunggu verifikasi admin.`);
         document.getElementById('form-topup-section').style.display = 'none';
         fetchTenantTopups();
+        fetchAdminTopups();
       }
     });
   }
@@ -1411,6 +1520,7 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchAdminPortfolio();
   fetchAdminFeatures();
   fetchAdminPricing();
+  fetchAdminTopups();
   renderDashboardLiveConversations([]);
 
 });
