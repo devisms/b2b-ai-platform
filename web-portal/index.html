@@ -246,21 +246,29 @@
 
         <!-- TAB 1: OVERVIEW & DASHBOARD -->
         <section class="tab-content active" id="tab-overview">
-          <div class="metrics-grid">
-            <div class="metric-card card">
+          <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+            <div class="metric-card card" style="cursor:pointer; transition:transform 0.2s;" onclick="document.querySelector('[data-tab=\'chat-history\']').click();" title="Klik untuk lihat Riwayat Chat Harian & Grup WA">
               <div class="metric-icon blue"><i data-lucide="message-circle"></i></div>
               <div class="metric-data">
                 <span class="label">Chat Dijawab Hari Ini</span>
                 <h3 class="value">148 Chat</h3>
-                <span class="trend positive"><i data-lucide="trending-up"></i> +12% dari kemarin</span>
+                <span class="trend positive"><i data-lucide="trending-up"></i> +12% dari kemarin • Lihat Riwayat &rarr;</span>
               </div>
             </div>
-            <div class="metric-card card">
+            <div class="metric-card card" style="cursor:pointer; transition:transform 0.2s;" onclick="document.querySelector('[data-tab=\'orders\']').click();" title="Klik untuk lihat Daftar Pesanan Otomatis">
               <div class="metric-icon green"><i data-lucide="shopping-bag"></i></div>
               <div class="metric-data">
                 <span class="label">Pesanan Otomatis Dicatat</span>
                 <h3 class="value">24 Order</h3>
-                <span class="trend positive"><i data-lucide="trending-up"></i> Rp 4.800.000 Omset</span>
+                <span class="trend positive"><i data-lucide="trending-up"></i> Rp 4.800.000 Omset • Lihat Pesanan &rarr;</span>
+              </div>
+            </div>
+            <div class="metric-card card" style="cursor:pointer; transition:transform 0.2s;" onclick="document.querySelector('[data-tab=\'topup\']').click();" title="Klik untuk Top-Up Kuota Token Chat">
+              <div class="metric-icon yellow" style="background:rgba(245,158,11,0.1); color:#d97706;"><i data-lucide="zap"></i></div>
+              <div class="metric-data">
+                <span class="label">Sisa Kuota Token Chat</span>
+                <h3 class="value" style="color:#d97706;">3.760 Chat</h3>
+                <span class="trend positive" style="color:var(--primary-accent); font-weight:700;">+ Top-Up Extra Token &rarr;</span>
               </div>
             </div>
             <div class="metric-card card">
@@ -268,10 +276,11 @@
               <div class="metric-data">
                 <span class="label">Waktu Respon Rata-Rata</span>
                 <h3 class="value">1,2 Detik</h3>
-                <span class="trend positive">24 Jam Nonstop</span>
+                <span class="trend positive">24 Jam Nonstop Online</span>
               </div>
             </div>
           </div>
+
 
           <div class="dashboard-split">
             <div class="card conversations-panel">

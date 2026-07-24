@@ -1,4 +1,4 @@
-// KawanAI - Complete Application Controller (Full Auth, Products Catalog, Token Top-Up & Account Management)
+// KawanAI - Complete Application Controller (Full Auth, Orders, Products, Token Top-Up, Chat History & Navigation)
 
 // --- GLOBAL SORTING & DATA STATE ---
 window.currentSortField = null;
@@ -389,9 +389,6 @@ window.closeAuthModal = function() {
 
 document.addEventListener('DOMContentLoaded', () => {
 
-  const themeToggle = document.getElementById('theme-toggle');
-  const htmlRoot = document.documentElement;
-
   const viewLanding = document.getElementById('view-landing');
   const viewDashboard = document.getElementById('view-dashboard');
   const viewSuperAdmin = document.getElementById('view-superadmin');
@@ -400,7 +397,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnShowRegister = document.getElementById('btn-show-register');
   const btnCloseModal = document.getElementById('btn-close-modal');
   const heroBtnStart = document.getElementById('hero-btn-start');
-  const heroBtnDemo = document.getElementById('hero-btn-demo');
   const switchToRegister = document.getElementById('switch-to-register');
   const switchToLogin = document.getElementById('switch-to-login');
 
@@ -412,7 +408,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnCloseOrderDetailModal = document.getElementById('btn-close-order-detail-modal');
   const btnCloseOrderModalAction = document.getElementById('btn-close-order-modal-action');
   const modalOrderDetail = document.getElementById('modal-order-detail');
-  const btnSaveOrderStatus = document.getElementById('btn-save-order-status');
 
   const btnAddNewProduct = document.getElementById('btn-add-new-product');
   const modalProductEditor = document.getElementById('modal-product-editor');
@@ -432,6 +427,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnSubmitLogin = document.getElementById('btn-submit-login');
   const formLogin = document.getElementById('form-login');
   const formRegister = document.getElementById('form-register');
+
+  const chatFilterDate = document.getElementById('chat-filter-date');
+  const chatFilterType = document.getElementById('chat-filter-type');
 
   let selectedLoginRole = 'TENANT_OWNER';
 
@@ -488,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 3. FORM LOGIN SUBMIT CONTROLLER (SUPER ADMIN & CLIENT SWITCHER)
+  // 3. FORM LOGIN SUBMIT CONTROLLER
   if (formLogin) {
     formLogin.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -883,6 +881,54 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function renderTenantOrdersTable(orders) {
+    const tbody = document.getElementById('tenant-orders-table-body');
+    if (!tbody) return;
+
+    if (!orders || orders.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);">Belum ada pesanan otomatis yang dicatat.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = orders.map(o => {
+      const dateStr = o.order_date ? new Date(o.order_date).toLocaleString('id-ID') : '24/07/2026';
+      const priceStr = 'Rp ' + parseInt(o.total_price || 0).toLocaleString('id-ID');
+      const st = o.order_status || 'UNVERIFIED';
+
+      let statusBadge = '<span class="badge badge-success"><i data-lucide="check-circle-2"></i> LUNAS (PAID)</span>';
+      if (st === 'PENDING_PROOF') {
+        statusBadge = '<span class="badge badge-warning"><i data-lucide="clock"></i> CEK RESI</span>';
+      } else if (st === 'CANCELLED') {
+        statusBadge = '<span class="badge badge-danger"><i data-lucide="x-circle"></i> CANCELLED</span>';
+      } else if (st === 'UNVERIFIED') {
+        statusBadge = '<span class="badge badge-warning" style="background:rgba(239,68,68,0.1); color:#ef4444; border-color:rgba(239,68,68,0.2);"><i data-lucide="alert-triangle"></i> UNVERIFIED</span>';
+      }
+
+      let chatTypeBadge = '<span class="badge badge-accent">💬 Direct WA</span>';
+      if (o.chat_type === 'GROUP') {
+        chatTypeBadge = `<span class="badge badge-accent" style="background:rgba(147,51,234,0.1); color:#9333ea;">👥 ${o.group_name || 'Grup WA'}</span>`;
+      }
+
+      return `
+        <tr>
+          <td><code style="font-weight:700; color:var(--primary-accent);">${o.order_code}</code></td>
+          <td><strong>${o.customer_name}</strong><br><span class="wa-phone-link"><i data-lucide="phone"></i> ${o.customer_phone}</span></td>
+          <td><span style="font-size:13px; font-weight:600; color:var(--text-main);">${o.item_summary}</span><br><span style="font-size:11.5px; color:var(--text-muted);">${dateStr}</span></td>
+          <td><strong style="color:var(--success); font-size:14px;">${priceStr}</strong></td>
+          <td>${chatTypeBadge}</td>
+          <td>
+            ${statusBadge}<br>
+            <button class="btn btn-outline btn-sm" style="margin-top:6px; font-size:11.5px; padding:4px 10px; font-weight:700;" onclick="openOrderDetailModal('${o.order_code}')">
+              <i data-lucide="eye"></i> Detail & Ubah Status
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+  }
+
   async function fetchTenantChatHistory() {
     try {
       const res = await fetch('/api/tenant/chat-history');
@@ -895,6 +941,139 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log('Chat history fetch fallback');
     }
   }
+
+  function renderTenantChatHistoryGroupedByDate() {
+    const container = document.getElementById('tenant-chat-history-container');
+    const paginationWrapper = document.getElementById('chat-history-pagination-wrapper');
+    if (!container) return;
+
+    let logs = [...(window.rawTenantChatHistoryData || [])];
+    const selectedDate = chatFilterDate ? chatFilterDate.value : '';
+    const selectedType = chatFilterType ? chatFilterType.value : 'ALL';
+
+    if (selectedDate) {
+      logs = logs.filter(l => (l.log_date || '').startsWith(selectedDate));
+    }
+
+    if (selectedType !== 'ALL') {
+      logs = logs.filter(l => l.chat_type === selectedType);
+    }
+
+    if (logs.length === 0) {
+      container.innerHTML = `<div class="card" style="text-align:center; padding:30px; color:var(--text-muted);">Tidak ada riwayat chat pada kriteria filter ini.</div>`;
+      if (paginationWrapper) paginationWrapper.innerHTML = '';
+      return;
+    }
+
+    // Grouping by Date
+    const grouped = {};
+    logs.forEach(l => {
+      const dKey = l.log_date ? new Date(l.log_date).toISOString().split('T')[0] : '2026-07-24';
+      if (!grouped[dKey]) grouped[dKey] = [];
+      grouped[dKey].push(l);
+    });
+
+    const sortedDateKeys = Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a));
+
+    const totalDates = sortedDateKeys.length;
+    const itemsPerPage = window.chatHistoryItemsPerPage || 5;
+    const totalPages = Math.ceil(totalDates / itemsPerPage);
+
+    if (window.chatHistoryCurrentPage > totalPages) window.chatHistoryCurrentPage = totalPages;
+    if (window.chatHistoryCurrentPage < 1) window.chatHistoryCurrentPage = 1;
+
+    const startIndex = (window.chatHistoryCurrentPage - 1) * itemsPerPage;
+    const paginatedDateKeys = sortedDateKeys.slice(startIndex, startIndex + itemsPerPage);
+
+    container.innerHTML = paginatedDateKeys.map(dateKey => {
+      const dayLogs = grouped[dateKey];
+      const dateTitle = new Date(dateKey).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+      const rowsHtml = dayLogs.map(item => {
+        const timeFormatted = item.message_time ? new Date(item.message_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '09:17';
+
+        let badgeType = '<span class="badge badge-accent">💬 Direct WA</span>';
+        if (item.chat_type === 'GROUP') {
+          badgeType = `<span class="badge badge-accent" style="background:rgba(147,51,234,0.1); color:#9333ea;">👥 Grup: ${item.group_name || 'Grup WA'}</span>`;
+        }
+
+        return `
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--bg-body); border-radius:10px; border:1px solid var(--border-card); gap:12px;">
+            <div style="display:flex; align-items:center; gap:12px; flex:1;">
+              <div style="width:40px; height:40px; border-radius:10px; background:rgba(37,99,235,0.1); color:var(--primary-accent); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px; flex-shrink:0;">
+                ${item.sender_name.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <strong style="font-size:14px; color:var(--text-main);">${item.sender_name}</strong>
+                  ${badgeType}
+                </div>
+                <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:2px;">
+                  <i data-lucide="phone" style="width:12px; height:12px; display:inline-block; vertical-align:middle;"></i> ${item.sender_phone ? item.sender_phone : 'Sesi Percakapan Pelanggan WA'}
+                </span>
+              </div>
+            </div>
+
+            <button class="btn btn-outline btn-sm" style="font-size:12px; font-weight:700; white-space:nowrap; padding:6px 12px;" 
+                    onclick="openChatThreadModal('${item.sender_name.replace(/'/g, "\\'")}', '${(item.group_name || '').replace(/'/g, "\\'")}', '${item.user_message.replace(/'/g, "\\'")}', '${item.bot_response.replace(/'/g, "\\'")}', '${timeFormatted}')">
+              <i data-lucide="message-square"></i> Lihat Percakapan Utuh
+            </button>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="card" style="padding:18px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; border-bottom:1px solid var(--border-card); padding-bottom:10px;">
+            <h4 style="font-size:16px; font-weight:800; color:var(--primary-accent); margin:0;"><i data-lucide="calendar"></i> ${dateTitle}</h4>
+            <span class="badge badge-accent" style="font-weight:700;">${dayLogs.length} Percakapan Masuk</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            ${rowsHtml}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    if (paginationWrapper) {
+      if (totalPages <= 1) {
+        paginationWrapper.innerHTML = `<span style="font-size:12.5px; color:var(--text-muted);">Menampilkan total ${totalDates} tanggal percakapan.</span>`;
+      } else {
+        paginationWrapper.innerHTML = `
+          <button class="btn btn-outline btn-sm" ${window.chatHistoryCurrentPage === 1 ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} id="btn-prev-chat-page">
+            <i data-lucide="chevron-left"></i> Sebelumnya
+          </button>
+          <span style="font-size:13px; font-weight:700; color:var(--text-main);">
+            Halaman ${window.chatHistoryCurrentPage} dari ${totalPages} <span style="font-weight:400; color:var(--text-muted); font-size:12px;">(${totalDates} Tanggal Terdaftar)</span>
+          </span>
+          <button class="btn btn-outline btn-sm" ${window.chatHistoryCurrentPage === totalPages ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} id="btn-next-chat-page">
+            Berikutnya <i data-lucide="chevron-right"></i>
+          </button>
+        `;
+
+        const btnPrev = document.getElementById('btn-prev-chat-page');
+        const btnNext = document.getElementById('btn-next-chat-page');
+
+        if (btnPrev && window.chatHistoryCurrentPage > 1) {
+          btnPrev.onclick = () => {
+            window.chatHistoryCurrentPage--;
+            renderTenantChatHistoryGroupedByDate();
+          };
+        }
+        if (btnNext && window.chatHistoryCurrentPage < totalPages) {
+          btnNext.onclick = () => {
+            window.chatHistoryCurrentPage++;
+            renderTenantChatHistoryGroupedByDate();
+          };
+        }
+      }
+    }
+
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+  }
+
+  if (chatFilterDate) chatFilterDate.addEventListener('change', () => { window.chatHistoryCurrentPage = 1; renderTenantChatHistoryGroupedByDate(); });
+  if (chatFilterType) chatFilterType.addEventListener('change', () => { window.chatHistoryCurrentPage = 1; renderTenantChatHistoryGroupedByDate(); });
 
   // INITIAL FETCHERS RUN
   fetchTenantProducts();
