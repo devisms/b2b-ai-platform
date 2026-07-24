@@ -1,4 +1,4 @@
-// KawanAI - Complete Application Controller (Tenant Daily Chat History & WhatsApp Orders System)
+// KawanAI - Complete Application Controller (Order Detail & Payment Verification Modal)
 
 // --- GLOBAL SORTING & DATA STATE (DECLARED OUTSIDE DOMCONTENTLOADED) ---
 window.currentSortField = null;
@@ -124,6 +124,55 @@ window.openChatThreadModal = function(senderName, groupOrWa, userMsg, botMsg, ti
   setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
 };
 
+// --- ORDER DETAIL & PAYMENT VERIFICATION MODAL CONTROLLER ---
+window.openOrderDetailModal = function(orderCode) {
+  const modal = document.getElementById('modal-order-detail');
+  const codeElem = document.getElementById('order-detail-modal-code');
+  const custNameElem = document.getElementById('order-modal-customer-name');
+  const custPhoneElem = document.getElementById('order-modal-customer-phone');
+  const itemSummaryElem = document.getElementById('order-modal-item-summary');
+  const totalPriceElem = document.getElementById('order-modal-total-price');
+  const proofImgElem = document.getElementById('order-modal-proof-img');
+  const statusBadgeElem = document.getElementById('order-detail-status-badge');
+  const btnContactWa = document.getElementById('btn-contact-customer-wa');
+
+  const order = (window.rawTenantOrdersData && window.rawTenantOrdersData.find(o => o.order_code === orderCode)) || {
+    order_code: orderCode,
+    customer_name: 'Budi Santoso',
+    customer_phone: '0812-3456-7890',
+    item_summary: '2x Gamis Syari Premium (Navy L)',
+    total_price: 370000.00,
+    payment_proof_url: 'https://dummyimage.com/600x800/0f172a/10b981.png&text=Bukti+Transfer+Budi+Rp+370.000',
+    order_status: 'PAID'
+  };
+
+  if (codeElem) codeElem.textContent = `Detail Pesanan ${order.order_code}`;
+  if (custNameElem) custNameElem.textContent = order.customer_name;
+  if (custPhoneElem) custPhoneElem.innerHTML = `<i data-lucide="phone"></i> ${order.customer_phone}`;
+  if (itemSummaryElem) itemSummaryElem.textContent = order.item_summary;
+  if (totalPriceElem) totalPriceElem.textContent = 'Rp ' + parseInt(order.total_price || 0).toLocaleString('id-ID');
+  if (proofImgElem) proofImgElem.src = order.payment_proof_url || 'https://dummyimage.com/600x800/0f172a/10b981.png&text=Bukti+Transfer+Order';
+
+  if (statusBadgeElem) {
+    if (order.order_status === 'PAID') {
+      statusBadgeElem.innerHTML = '<span class="badge badge-success"><i data-lucide="check-circle-2"></i> LUNAS (PAID)</span>';
+    } else {
+      statusBadgeElem.innerHTML = '<span class="badge badge-warning"><i data-lucide="clock"></i> MENUNGGU VERIFIKASI</span>';
+    }
+  }
+
+  if (btnContactWa) {
+    const rawPhone = (order.customer_phone || '').replace(/[^0-9]/g, '');
+    const formattedPhone = rawPhone.startsWith('0') ? '62' + rawPhone.slice(1) : rawPhone;
+    btnContactWa.onclick = () => {
+      window.open(`https://wa.me/${formattedPhone}?text=Halo%20${encodeURIComponent(order.customer_name)},%20terima%20kasih%20sudah%20memesan%20${encodeURIComponent(order.item_summary)}%20di%20Toko%20kami!`, '_blank');
+    };
+  }
+
+  if (modal) modal.style.display = 'flex';
+  setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+};
+
 let globalFetchTenantsRef = null;
 async function fetchDynamicTenantsGlobal() {
   if (globalFetchTenantsRef) await globalFetchTenantsRef();
@@ -157,10 +206,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnResetAdminPwd = document.getElementById('btn-reset-admin-pwd');
   const btnBackToTenants = document.getElementById('btn-back-to-tenants');
   const btnTopBackTenants = document.getElementById('btn-top-back-tenants');
+
   const btnCloseChatThreadModal = document.getElementById('btn-close-chat-thread-modal');
   const modalViewChatThread = document.getElementById('modal-view-chat-thread');
+  const btnCloseOrderDetailModal = document.getElementById('btn-close-order-detail-modal');
+  const btnCloseOrderModalAction = document.getElementById('btn-close-order-modal-action');
+  const modalOrderDetail = document.getElementById('modal-order-detail');
 
   if (btnCloseChatThreadModal) btnCloseChatThreadModal.onclick = () => { if (modalViewChatThread) modalViewChatThread.style.display = 'none'; };
+  if (btnCloseOrderDetailModal) btnCloseOrderDetailModal.onclick = () => { if (modalOrderDetail) modalOrderDetail.style.display = 'none'; };
+  if (btnCloseOrderModalAction) btnCloseOrderModalAction.onclick = () => { if (modalOrderDetail) modalOrderDetail.style.display = 'none'; };
 
   const roleTabs = document.querySelectorAll('.role-tab');
   const loginEmail = document.getElementById('login-email');
@@ -551,7 +606,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   globalFetchTenantsRef = fetchDynamicTenants;
 
-  // RENDER TENANT ORDERS TABLE (AUTOMATED WHATSAPP ORDERS)
+  // RENDER TENANT ORDERS TABLE WITH DETAILED POPUP VERIFICATION TRIGGER
   function renderTenantOrdersTable(orders) {
     const tbody = document.getElementById('tenant-orders-table-body');
     if (!tbody) return;
@@ -564,7 +619,6 @@ document.addEventListener('DOMContentLoaded', () => {
     tbody.innerHTML = orders.map(o => {
       const dateStr = o.order_date ? new Date(o.order_date).toLocaleString('id-ID') : '24/07/2026';
       const priceStr = 'Rp ' + parseInt(o.total_price || 0).toLocaleString('id-ID');
-      const proofUrl = o.payment_proof_url || 'https://dummyimage.com/600x800/0f172a/10b981.png&text=Bukti+Transfer+Order';
 
       let statusBadge = '<span class="badge badge-success"><i data-lucide="check-circle-2"></i> LUNAS (PAID)</span>';
       if (o.order_status === 'PENDING_PROOF') {
@@ -585,8 +639,8 @@ document.addEventListener('DOMContentLoaded', () => {
           <td>${chatTypeBadge}</td>
           <td>
             ${statusBadge}<br>
-            <button class="btn btn-outline btn-sm" style="margin-top:6px; font-size:11px; padding:3px 8px;" onclick="openImagePreviewModal('${proofUrl}', 'Order ${o.order_code} • ${o.customer_name.replace(/'/g, "\\'")}')">
-              <i data-lucide="image"></i> Lihat Resi (Popup)
+            <button class="btn btn-outline btn-sm" style="margin-top:6px; font-size:11.5px; padding:4px 10px; font-weight:700;" onclick="openOrderDetailModal('${o.order_code}')">
+              <i data-lucide="eye"></i> Detail Order & Transfer
             </button>
           </td>
         </tr>
@@ -869,7 +923,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- PARA KAWANAI TENANT TABLE ---
+  // PARA KAWANAI TENANT TABLE
   function renderAdminTenantsTable(tenants) {
     const tbody = document.getElementById('admin-tenants-table-body');
     if (!tbody) return;
@@ -908,317 +962,6 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }).join('');
 
-    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-  }
-
-  // LIGHTWEIGHT IMAGE PREVIEW MODAL
-  const modalImagePreview = document.getElementById('modal-image-preview');
-  const btnCloseImageModal = document.getElementById('btn-close-image-modal');
-  const previewModalImg = document.getElementById('preview-modal-img');
-  const previewModalCaption = document.getElementById('preview-modal-caption');
-
-  if (btnCloseImageModal) btnCloseImageModal.onclick = () => { if (modalImagePreview) modalImagePreview.style.display = 'none'; };
-
-  window.openImagePreviewModal = function(imgUrl, caption) {
-    if (previewModalImg) previewModalImg.src = imgUrl;
-    if (previewModalCaption) previewModalCaption.textContent = `Resi Bukti Transfer BCA • ${caption}`;
-    if (modalImagePreview) modalImagePreview.style.display = 'flex';
-    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-  };
-
-  // SUPER ADMIN MANUAL VERIFICATION STATUS UPDATER
-  window.updateTenantStatus = async function(tenantId, newStatus) {
-    try {
-      const res = await fetch('/api/admin/tenants/update-status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: tenantId, payment_status: newStatus })
-      });
-      const json = await res.json();
-      if (json.status === 'success') {
-        alert(`✅ Status tenant berhasil diubah menjadi ${newStatus}!`);
-        await fetchDynamicTenants();
-        window.openTenantDetailPage(tenantId);
-      }
-    } catch (e) {
-      alert(`Status tenant diubah menjadi ${newStatus}.`);
-    }
-  };
-
-  // DEDICATED TENANT DETAIL PAGE ROUTER
-  window.openTenantDetailPage = function(tenantId) {
-    const t = (window.rawTenantsData && window.rawTenantsData.find(x => x.id === tenantId)) || {
-      id: tenantId,
-      tenant_code: '#KWN-20260724-0001',
-      business_name: 'Toko Baju Kang Devis',
-      owner_name: 'Kang Devis',
-      owner_email: 'devis@kawanai.id',
-      tenant_password: '123456',
-      whatsapp_number: '081234567890',
-      contact_person_name: 'Mba Rani (CS Lead)',
-      shop_whatsapp: '081234567890',
-      business_category: 'Fashion & Busana Muslim',
-      ai_assistant_name: 'Siti - CS Toko Baju Kang Devis',
-      ai_persona_tone: 'Ramah & Casual (Pakai Kak/Sis)',
-      total_chat_count: 2480,
-      total_orders_count: 312,
-      total_omset_amount: 62400000.00,
-      catalog_pdf_filename: 'Katalog_Gamis_Syari_Kang_Devis_2026.pdf',
-      payment_date: '2026-07-01T10:30:00+07:00',
-      subscription_starts_at: '2026-07-01T00:00:00+07:00',
-      subscription_ends_at: '2027-07-01T23:59:59+07:00',
-      payment_amount: 9480000.00,
-      payment_proof_url: 'https://dummyimage.com/600x800/0f172a/3b82f6.png&text=Bukti+Transfer+BCA+B2B+Kang+Devis+Rp+9.480.000',
-      payment_status: 'VERIFIED'
-    };
-
-    const detailTitle = document.getElementById('detail-tenant-title');
-    const detailSub = document.getElementById('detail-tenant-subtitle');
-    const statusBadgeElem = document.getElementById('detail-tenant-status-badge');
-    const pageContent = document.getElementById('tenant-detail-page-content');
-
-    if (detailTitle) detailTitle.textContent = t.business_name || t.name;
-    if (detailSub) detailSub.textContent = `ID Tenant: ${t.tenant_code || '#KWN-20260724-0001'}`;
-
-    const currentStatus = t.payment_status || 'VERIFIED';
-    if (statusBadgeElem) {
-      if (currentStatus === 'UNVERIFIED') {
-        statusBadgeElem.className = 'badge badge-warning';
-        statusBadgeElem.innerHTML = '<i data-lucide="clock"></i> UNVERIFIED';
-      } else if (currentStatus === 'EXPIRED') {
-        statusBadgeElem.className = 'badge badge-danger';
-        statusBadgeElem.innerHTML = '<i data-lucide="alert-circle"></i> EXPIRED';
-      } else {
-        statusBadgeElem.className = 'badge badge-success';
-        statusBadgeElem.innerHTML = '<i data-lucide="check-circle-2"></i> VERIFIED';
-      }
-    }
-
-    if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
-    if (viewTenantDetail) viewTenantDetail.style.display = 'block';
-    window.scrollTo(0, 0);
-
-    const payDateStr = t.payment_date ? new Date(t.payment_date).toLocaleString('id-ID') : '01/07/2026 10:30';
-    const startStr = t.subscription_starts_at ? new Date(t.subscription_starts_at).toLocaleDateString('id-ID') : '01/07/2026';
-    const endStr = t.subscription_ends_at ? new Date(t.subscription_ends_at).toLocaleDateString('id-ID') : '01/07/2027';
-    const amtStr = 'Rp ' + parseInt(t.payment_amount || 9480000).toLocaleString('id-ID');
-    const proofUrl = t.payment_proof_url || 'https://dummyimage.com/600x800/0f172a/3b82f6.png&text=Bukti+Transfer+BCA+B2B+Kang+Devis+Rp+9.480.000';
-
-    let cardHeaderBadge = '<span class="badge badge-success"><i data-lucide="check-circle-2"></i> VERIFIED</span>';
-    if (currentStatus === 'UNVERIFIED') {
-      cardHeaderBadge = '<span class="badge badge-warning"><i data-lucide="clock"></i> UNVERIFIED</span>';
-    } else if (currentStatus === 'EXPIRED') {
-      cardHeaderBadge = '<span class="badge badge-danger"><i data-lucide="alert-circle"></i> EXPIRED</span>';
-    }
-
-    pageContent.innerHTML = `
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
-        <div class="card">
-          <div class="card-header">
-            <h3><i data-lucide="store"></i> Informasi Toko & Perusahaan</h3>
-            <span class="badge badge-accent">${t.business_category || 'Online Shop'}</span>
-          </div>
-          <div class="neat-form-grid" style="gap:16px;">
-            <div>
-              <span class="card-subtitle">Nama Perusahaan / Bisnis</span>
-              <h3 style="font-size:18px; font-weight:800; margin-top:2px;">${t.business_name || t.name}</h3>
-            </div>
-            <div class="form-row-2col">
-              <div><span class="card-subtitle">Contact Person Toko</span><br><strong>${t.contact_person_name || 'Mba Rani (CS Lead)'}</strong></div>
-              <div><span class="card-subtitle">No. WhatsApp Bisnis (Live)</span><br><span class="wa-phone-link"><i data-lucide="phone"></i> ${t.shop_whatsapp || t.whatsapp_number || '081234567890'}</span></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header">
-            <h3><i data-lucide="user-check"></i> Informasi Pemilik (Owner)</h3>
-            <span class="badge badge-accent">Owner Profile</span>
-          </div>
-          <div class="neat-form-grid" style="gap:14px;">
-            <div>
-              <span class="card-subtitle">Nama Pemilik Bisnis</span>
-              <h3 style="font-size:18px; font-weight:800; margin-top:2px;">${t.owner_name || 'Kang Devis'}</h3>
-            </div>
-            <div class="form-row-2col">
-              <div><span class="card-subtitle">Email Terdaftar</span><br><strong>${t.owner_email || 'devis@kawanai.id'}</strong></div>
-              <div><span class="card-subtitle">No. HP Personal</span><br><span class="wa-phone-link"><i data-lucide="phone"></i> ${t.whatsapp_number || '081234567890'}</span></div>
-            </div>
-            
-            <div style="border-top:1px solid var(--border-card); padding-top:12px; margin-top:4px;">
-              <span class="card-subtitle" style="display:block; margin-bottom:6px; font-weight:700;">Kata Sandi (Password Login Tenant):</span>
-              <div style="display:flex; align-items:center; gap:8px;">
-                <div style="position:relative; flex:1;">
-                  <input type="password" id="tenant-pwd-input-${t.id}" value="${t.tenant_password || '123456'}" readonly 
-                         style="width:100%; padding:8px 36px 8px 12px; border-radius:8px; border:1px solid var(--border-card); background:var(--bg-body); font-family:monospace; font-weight:700; font-size:14px; color:var(--text-main);">
-                  <button type="button" onclick="toggleTenantPasswordVisibility('${t.id}')" title="Lihat / Sembunyikan Password"
-                          style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-muted); cursor:pointer; padding:4px;">
-                    <i data-lucide="eye" id="pwd-eye-icon-${t.id}"></i>
-                  </button>
-                </div>
-                <button class="btn btn-outline btn-sm" onclick="promptResetTenantPassword('${t.id}', '${(t.business_name || 'Tenant').replace(/'/g, "\\'")}')" style="white-space:nowrap; font-weight:700;">
-                  <i data-lucide="key-round"></i> Reset Password
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-top:4px;">
-        <div class="card">
-          <div class="card-header">
-            <h3><i data-lucide="bot"></i> Metrik Pemakaian Chat & Asisten AI</h3>
-            <span class="badge badge-success">Active 24/7</span>
-          </div>
-          <div class="neat-form-grid" style="gap:16px;">
-            <div class="form-row-2col">
-              <div style="background:rgba(37,99,235,0.05); padding:12px 14px; border-radius:10px; border:1px solid rgba(37,99,235,0.15);">
-                <span class="card-subtitle">Total Chat Dijawab</span>
-                <h3 style="font-size:20px; font-weight:800; color:var(--primary-accent); margin-top:2px;">${(t.total_chat_count || 1420).toLocaleString('id-ID')} Chat</h3>
-              </div>
-              <div style="background:rgba(5,150,105,0.05); padding:12px 14px; border-radius:10px; border:1px solid rgba(5,150,105,0.15);">
-                <span class="card-subtitle">Pesanan Otomatis</span>
-                <h3 style="font-size:20px; font-weight:800; color:var(--success); margin-top:2px;">${t.total_orders_count || 184} Order</h3>
-              </div>
-            </div>
-            <div class="form-row-2col">
-              <div><span class="card-subtitle">Nama Karyawan AI Specialist</span><br><strong>${t.ai_assistant_name || 'Siti - CS KawanAI'}</strong></div>
-              <div><span class="card-subtitle">Tone Persona</span><br><strong>${t.ai_persona_tone || 'Ramah & Casual'}</strong></div>
-            </div>
-            
-            <div style="border-top:1px solid var(--border-card); padding-top:14px; margin-top:4px;">
-              <span class="card-subtitle" style="display:block; margin-bottom:8px; font-weight:700;">File Katalog & SOP Knowledge Base (RAG PDF):</span>
-              <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(225,29,72,0.04); padding:12px 16px; border-radius:12px; border:1px solid rgba(225,29,72,0.18);">
-                <div style="display:flex; align-items:center; gap:10px;">
-                  <div style="width:36px; height:36px; border-radius:8px; background:rgba(225,29,72,0.12); color:#e11d48; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                    <i data-lucide="file-text" style="width:18px; height:18px;"></i>
-                  </div>
-                  <div>
-                    <strong style="font-size:13px; color:var(--text-main); display:block; font-family:monospace;">${t.catalog_pdf_filename || 'Katalog_Produk_Utama_2026.pdf'}</strong>
-                    <span style="font-size:11.5px; color:var(--text-muted);">Dokumen PDF RAG Vector DB • AI Assistant Ready</span>
-                  </div>
-                </div>
-                <button class="btn btn-outline btn-sm" style="font-size:11.5px; color:#e11d48; border-color:rgba(225,29,72,0.3);" onclick="alert('Membuka file ${t.catalog_pdf_filename || 'Katalog_Produk_Utama_2026.pdf'}...')">
-                  <i data-lucide="file-text"></i> Buka PDF
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card" style="display:flex; flex-direction:column; justify-content:space-between;">
-          <div>
-            <div class="card-header">
-              <h3><i data-lucide="receipt"></i> Masa Aktif & Pembayaran Bank</h3>
-              ${cardHeaderBadge}
-            </div>
-            <div class="neat-form-grid" style="gap:16px;">
-              <div class="form-row-2col">
-                <div><span class="card-subtitle">Tanggal Transaksi</span><br><strong style="font-size:14px;">${payDateStr}</strong></div>
-                <div><span class="card-subtitle">Nominal Pembayaran</span><br><strong style="font-size:16px; color:var(--primary-accent);">${amtStr}</strong></div>
-              </div>
-              <div class="form-row-2col" style="border-top:1px solid var(--border-card); padding-top:12px;">
-                <div><span class="card-subtitle">Masa Aktif Mulai</span><br><strong style="font-size:14px;">${startStr}</strong></div>
-                <div><span class="card-subtitle">Berakhir Pada (Kadaluwarsa)</span><br><strong style="font-size:14px; color:var(--success);">${endStr}</strong></div>
-              </div>
-              <div style="border-top:1px solid var(--border-card); padding-top:12px;">
-                <span class="card-subtitle" style="display:block; margin-bottom:6px;">File Resi Bukti Transfer:</span>
-                <button class="btn btn-outline btn-sm" onclick="openImagePreviewModal('${proofUrl}', '${(t.business_name || 'KawanAI').replace(/'/g, "\\'")}')">
-                  <i data-lucide="image"></i> Lihat Resi Transfer (Popup)
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div style="border-top:1px solid var(--border-card); padding-top:14px; margin-top:16px; display:flex; flex-direction:column; gap:8px;">
-            <span class="card-subtitle" style="font-weight:700;">Aksi Verifikasi Manual Super Admin:</span>
-            <div style="display:flex; gap:8px;">
-              <button class="btn btn-primary btn-sm" style="flex:1;" onclick="updateTenantStatus('${t.id}', 'VERIFIED')">
-                <i data-lucide="check-circle-2"></i> Verifikasi Pembayaran
-              </button>
-              <button class="btn btn-outline btn-sm" style="color:var(--warning); border-color:rgba(217,119,6,0.3);" onclick="updateTenantStatus('${t.id}', 'UNVERIFIED')">
-                <i data-lucide="clock"></i> Set Belum Diverifikasi
-              </button>
-              <button class="btn btn-logout-red btn-sm" onclick="updateTenantStatus('${t.id}', 'EXPIRED')">
-                <i data-lucide="alert-circle"></i> Set Kadaluwarsa
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-
-    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-  };
-
-  // CMS CONTENT EDITOR TABLES
-  function renderCMSPortfolioTable(items) {
-    const tbody = document.getElementById('cms-portfolio-table-body');
-    if (!tbody) return;
-    tbody.innerHTML = items.map(item => `
-      <tr>
-        <td><strong>${item.title}</strong></td>
-        <td><span class="badge badge-accent">${item.category}</span></td>
-        <td>${item.metric_1_label}: <strong>${item.metric_1_value}</strong></td>
-        <td>${item.metric_2_label}: <strong>${item.metric_2_value}</strong></td>
-        <td>
-          <button class="btn-action-edit" onclick="openCMSEditorModal('portfolio', '${item.id}')"><i data-lucide="edit"></i> Edit</button>
-          <button class="btn-action-delete" onclick="promptSoftDelete('portfolio', '${item.id}', '${item.title.replace(/'/g, "\\'")}')"><i data-lucide="trash-2"></i> Hapus</button>
-        </td>
-      </tr>
-    `).join('');
-    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-  }
-
-  function renderCMSFeaturesTable(items) {
-    const tbody = document.getElementById('cms-features-table-body');
-    if (!tbody) return;
-    tbody.innerHTML = items.map(item => `
-      <tr>
-        <td><code style="color:var(--primary-accent); font-weight:700;"><i data-lucide="${item.icon_name || 'sparkles'}"></i> ${item.icon_name}</code></td>
-        <td><strong>${item.title}</strong></td>
-        <td>${item.description.substring(0, 70)}...</td>
-        <td>
-          <button class="btn-action-edit" onclick="openCMSEditorModal('features', '${item.id}')"><i data-lucide="edit"></i> Edit</button>
-          <button class="btn-action-delete" onclick="promptSoftDelete('features', '${item.id}', '${item.title.replace(/'/g, "\\'")}')"><i data-lucide="trash-2"></i> Hapus</button>
-        </td>
-      </tr>
-    `).join('');
-    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-  }
-
-  function renderCMSPricingTable(items) {
-    const tbody = document.getElementById('cms-pricing-table-body');
-    if (!tbody) return;
-    tbody.innerHTML = items.map(p => {
-      const origVal = p.original_monthly_price ? parseInt(p.original_monthly_price) : null;
-      const promoVal = parseInt(p.monthly_price);
-      let pctStr = '';
-
-      if (origVal && origVal > promoVal) {
-        const pct = Math.round(((origVal - promoVal) / origVal) * 100);
-        pctStr = `<span class="badge badge-success">Diskon ${pct}%</span>`;
-      }
-
-      const origStr = origVal ? `<s>Rp ${origVal.toLocaleString('id-ID')}</s>` : '-';
-      const promoStr = `Rp ${promoVal.toLocaleString('id-ID')}`;
-      const endsStr = p.promo_ends_at ? new Date(p.promo_ends_at).toLocaleDateString('id-ID') : 'Selamanya';
-
-      return `
-        <tr>
-          <td><code>${p.plan_code}</code></td>
-          <td><strong>${p.plan_name}</strong> ${pctStr}</td>
-          <td><span style="color:var(--text-dim);">${origStr}</span></td>
-          <td><strong style="color:var(--primary-accent);">${promoStr}</strong></td>
-          <td><span class="badge badge-accent">${endsStr}</span></td>
-          <td>
-            <button class="btn-action-edit" onclick="openCMSEditorModal('pricing', '${p.id}')"><i data-lucide="edit"></i> Edit</button>
-            <button class="btn-action-delete" onclick="promptSoftDelete('pricing', '${p.id}', '${p.plan_name.replace(/'/g, "\\'")}')"><i data-lucide="trash-2"></i> Hapus</button>
-          </td>
-        </tr>
-      `;
-    }).join('');
     setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
   }
 
