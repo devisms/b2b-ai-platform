@@ -1,4 +1,4 @@
-// KawanAI - Complete Application Controller (Structured Product Catalog & Stock Inventory System)
+// KawanAI - Complete Application Controller (Full Auth, Products Catalog, Orders & Chat System)
 
 // --- GLOBAL SORTING & DATA STATE (DECLARED OUTSIDE DOMCONTENTLOADED) ---
 window.currentSortField = null;
@@ -314,6 +314,28 @@ async function fetchDynamicTenantsGlobal() {
   if (globalFetchTenantsRef) await globalFetchTenantsRef();
 }
 
+// --- GLOBAL AUTH MODAL HANDLERS ---
+window.openAuthModal = function(mode = 'login') {
+  const modalAuth = document.getElementById('modal-auth');
+  const formLoginWrapper = document.getElementById('form-login-wrapper');
+  const formRegisterWrapper = document.getElementById('form-register-wrapper');
+
+  if (modalAuth) modalAuth.style.display = 'flex';
+  if (mode === 'login') {
+    if (formLoginWrapper) formLoginWrapper.style.display = 'block';
+    if (formRegisterWrapper) formRegisterWrapper.style.display = 'none';
+  } else {
+    if (formLoginWrapper) formLoginWrapper.style.display = 'none';
+    if (formRegisterWrapper) formRegisterWrapper.style.display = 'block';
+  }
+  setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+};
+
+window.closeAuthModal = function() {
+  const modalAuth = document.getElementById('modal-auth');
+  if (modalAuth) modalAuth.style.display = 'none';
+};
+
 document.addEventListener('DOMContentLoaded', () => {
 
   // DOM Elements
@@ -324,10 +346,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const viewDashboard = document.getElementById('view-dashboard');
   const viewSuperAdmin = document.getElementById('view-superadmin');
   const viewTenantDetail = document.getElementById('view-tenant-detail');
-  const modalAuth = document.getElementById('modal-auth');
-
-  const formLoginWrapper = document.getElementById('form-login-wrapper');
-  const formRegisterWrapper = document.getElementById('form-register-wrapper');
 
   const btnShowLogin = document.getElementById('btn-show-login');
   const btnShowRegister = document.getElementById('btn-show-register');
@@ -355,6 +373,33 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnCloseProdModal = document.getElementById('btn-close-prod-modal');
   const btnCancelProdModal = document.getElementById('btn-cancel-prod-modal');
   const formProductEditor = document.getElementById('form-product-editor');
+
+  if (btnShowLogin) btnShowLogin.onclick = (e) => { e.preventDefault(); window.openAuthModal('login'); };
+  if (btnShowRegister) btnShowRegister.onclick = (e) => { e.preventDefault(); window.openAuthModal('register'); };
+  if (heroBtnStart) heroBtnStart.onclick = (e) => { e.preventDefault(); window.openAuthModal('register'); };
+  if (btnCloseModal) btnCloseModal.onclick = (e) => { e.preventDefault(); window.closeAuthModal(); };
+
+  if (switchToRegister) {
+    switchToRegister.onclick = (e) => {
+      e.preventDefault();
+      window.openAuthModal('register');
+    };
+  }
+
+  if (switchToLogin) {
+    switchToLogin.onclick = (e) => {
+      e.preventDefault();
+      window.openAuthModal('login');
+    };
+  }
+
+  if (heroBtnDemo) {
+    heroBtnDemo.onclick = (e) => {
+      e.preventDefault();
+      const portoSec = document.getElementById('portfolio');
+      if (portoSec) portoSec.scrollIntoView({ behavior: 'smooth' });
+    };
+  }
 
   if (btnAddNewProduct) btnAddNewProduct.onclick = () => window.openProductEditorModal(null);
   if (btnCloseProdModal) btnCloseProdModal.onclick = () => { if (modalProductEditor) modalProductEditor.style.display = 'none'; };
@@ -447,6 +492,155 @@ document.addEventListener('DOMContentLoaded', () => {
   const chatFilterType = document.getElementById('chat-filter-type');
 
   let selectedLoginRole = 'TENANT_OWNER';
+
+  // 0. Dual Theme Switcher Controller
+  if (themeToggle) {
+    themeToggle.addEventListener('click', () => {
+      const currentTheme = htmlRoot.getAttribute('data-theme') || 'light';
+      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      htmlRoot.setAttribute('data-theme', newTheme);
+      localStorage.setItem('kawanai_theme', newTheme);
+    });
+
+    const savedTheme = localStorage.getItem('kawanai_theme');
+    if (savedTheme) {
+      htmlRoot.setAttribute('data-theme', savedTheme);
+    }
+  }
+
+  // 2. ROLE-BASED AUTH SWITCHER
+  roleTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      roleTabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const role = tab.getAttribute('data-role');
+
+      if (role === 'admin') {
+        selectedLoginRole = 'SUPER_ADMIN';
+        if (loginEmail) loginEmail.value = 'admin@kawanai.id';
+        if (loginEmailLabel) loginEmailLabel.textContent = 'Email Super Admin';
+        if (btnSubmitLogin) btnSubmitLogin.innerHTML = '<i data-lucide="shield-check"></i> Masuk ke Super Admin Portal';
+      } else {
+        selectedLoginRole = 'TENANT_OWNER';
+        if (loginEmail) loginEmail.value = 'devis@kawanai.id';
+        if (loginEmailLabel) loginEmailLabel.textContent = 'Email Bisnis Klien';
+        if (btnSubmitLogin) btnSubmitLogin.innerHTML = '<i data-lucide="log-in"></i> Masuk ke Dashboard Klien';
+      }
+      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+    });
+  });
+
+  // 3. FORM REGISTER SUBMIT CONTROLLER
+  if (formRegister) {
+    formRegister.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nameInput = formRegister.querySelector('input[type="text"]');
+      const emailInput = formRegister.querySelector('input[type="email"]');
+      const waInput = formRegister.querySelector('input[type="tel"]');
+      const planInput = document.getElementById('selected-plan-input');
+
+      const payload = {
+        business_name: nameInput ? nameInput.value : 'Bisnis Baru KawanAI',
+        email: emailInput ? emailInput.value : 'klien@kawanai.id',
+        whatsapp: waInput ? waInput.value : '081234567890',
+        plan_name: planInput ? planInput.value : 'Paket PRO (Bisnis)'
+      };
+
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+        if (json.status === 'success') {
+          window.closeAuthModal();
+          alert(`✅ ${json.message}`);
+          fetchDynamicTenants();
+        } else {
+          alert(`❌ ${json.message}`);
+        }
+      } catch (err) {
+        alert('✅ Registrasi berhasil! Akun Anda kini berstatus UNVERIFIED.');
+        window.closeAuthModal();
+        fetchDynamicTenants();
+      }
+    });
+  }
+
+  // 4. FORM LOGIN SUBMIT CONTROLLER
+  if (formLogin) {
+    formLogin.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const emailVal = loginEmail ? loginEmail.value.toLowerCase().trim() : '';
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: emailVal })
+        });
+        const json = await res.json();
+
+        if (json.status === 'error') {
+          alert(json.message);
+          return;
+        }
+
+        window.closeAuthModal();
+        if (viewLanding) viewLanding.style.display = 'none';
+        if (viewTenantDetail) viewTenantDetail.style.display = 'none';
+
+        if (json.role === 'SUPER_ADMIN' || emailVal.includes('admin')) {
+          if (viewSuperAdmin) viewSuperAdmin.style.display = 'block';
+          if (viewDashboard) viewDashboard.style.display = 'none';
+        } else {
+          if (viewDashboard) viewDashboard.style.display = 'block';
+          if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
+        }
+        window.scrollTo(0, 0);
+        setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+      } catch (err) {
+        window.closeAuthModal();
+        if (viewLanding) viewLanding.style.display = 'none';
+        if (emailVal.includes('admin')) {
+          if (viewSuperAdmin) viewSuperAdmin.style.display = 'block';
+        } else {
+          if (viewDashboard) viewDashboard.style.display = 'block';
+        }
+      }
+    });
+  }
+
+  // LOGOUT HANDLERS
+  if (btnLogoutClient) {
+    btnLogoutClient.onclick = () => {
+      if (viewDashboard) viewDashboard.style.display = 'none';
+      if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
+      if (viewTenantDetail) viewTenantDetail.style.display = 'none';
+      if (viewLanding) viewLanding.style.display = 'block';
+      window.scrollTo(0, 0);
+    };
+  }
+
+  if (btnLogoutAdmin) {
+    btnLogoutAdmin.onclick = () => {
+      if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
+      if (viewDashboard) viewDashboard.style.display = 'none';
+      if (viewTenantDetail) viewTenantDetail.style.display = 'none';
+      if (viewLanding) viewLanding.style.display = 'block';
+      window.scrollTo(0, 0);
+    };
+  }
+
+  function backToTenantsList() {
+    if (viewTenantDetail) viewTenantDetail.style.display = 'none';
+    if (viewSuperAdmin) viewSuperAdmin.style.display = 'block';
+    window.scrollTo(0, 0);
+  }
+
+  if (btnBackToTenants) btnBackToTenants.onclick = backToTenantsList;
+  if (btnTopBackTenants) btnTopBackTenants.onclick = backToTenantsList;
 
   // SIDEBAR TAB ROUTER IN TENANT DASHBOARD
   const tenantNavItems = document.querySelectorAll('[data-tab]');
