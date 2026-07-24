@@ -36,7 +36,10 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.get_tenant_chat_history_api()
         elif self.path.startswith('/api/tenant/products'):
             self.get_tenant_products_api()
+        elif self.path.startswith('/api/tenant/topups'):
+            self.get_tenant_topups_api()
         else:
+
 
 
             # Disable Cache for development static files & enforce UTF-8
@@ -91,7 +94,12 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.save_tenant_product_api()
         elif self.path == '/api/tenant/products/delete':
             self.delete_tenant_product_api()
+        elif self.path == '/api/tenant/topups/buy':
+            self.buy_tenant_topup_api()
+        elif self.path == '/api/tenant/account/update-password':
+            self.update_tenant_account_password_api()
         else:
+
 
 
             self.send_json_response({"status": "error", "message": "Not Found"}, 404)
@@ -332,6 +340,78 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.send_json_response({"status": "success", "message": "Produk berhasil dihapus dari katalog stok!"})
         except Exception as e:
             self.send_json_response({"status": "error", "message": str(e)}, 500)
+
+    def get_tenant_topups_api(self):
+        try:
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor.execute("""
+                SELECT tp.*, t.business_name 
+                FROM tenant_service.tenant_token_topups tp
+                JOIN tenant_service.tenants t ON tp.tenant_id = t.id
+                ORDER BY tp.created_at DESC;
+            """)
+            rows = cursor.fetchall()
+            conn.close()
+
+            processed = []
+            for r in rows:
+                r_dict = dict(r)
+                if r_dict.get('price'): r_dict['price'] = float(r_dict['price'])
+                if r_dict.get('created_at'): r_dict['created_at'] = r_dict['created_at'].isoformat()
+                processed.append(r_dict)
+
+            self.send_json_response({"status": "success", "data": processed})
+        except Exception as e:
+            self.send_json_response({"status": "error", "message": str(e)}, 500)
+
+    def buy_tenant_topup_api(self):
+        try:
+            payload = self.read_json_payload()
+            package_name = payload.get('package_name', 'Booster 1.000 Chat AI')
+            token_amount = int(payload.get('token_amount', 1000))
+            price = float(payload.get('price', 75000))
+            payment_proof_url = payload.get('payment_proof_url', '')
+
+            topup_code = '#TPU-' + datetime.now().strftime('%Y%m%d') + '-' + str(random.randint(100, 999))
+
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor()
+
+            cursor.execute("SELECT id FROM tenant_service.tenants LIMIT 1;")
+            t_id = cursor.fetchone()[0]
+
+            cursor.execute("""
+                INSERT INTO tenant_service.tenant_token_topups 
+                (tenant_id, topup_code, package_name, token_amount, price, payment_proof_url, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s);
+            """, (t_id, topup_code, package_name, token_amount, price, payment_proof_url, 'PENDING_PROOF'))
+
+            conn.commit()
+            conn.close()
+
+            self.send_json_response({"status": "success", "message": f"Transaksi Pembelian Token {topup_code} ({package_name}) berhasil dibuat! Menunggu verifikasi bukti transfer."})
+        except Exception as e:
+            self.send_json_response({"status": "error", "message": str(e)}, 500)
+
+    def update_tenant_account_password_api(self):
+        try:
+            payload = self.read_json_payload()
+            new_password = payload.get('new_password')
+            if not new_password:
+                self.send_json_response({"status": "error", "message": "Password baru wajib diisi"}, 400)
+                return
+
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor()
+            cursor.execute("UPDATE tenant_service.tenants SET tenant_password=%s WHERE business_name='Toko Baju Kang Devis';", (new_password,))
+            conn.commit()
+            conn.close()
+
+            self.send_json_response({"status": "success", "message": f"Password akun tenant berhasil diperbarui!"})
+        except Exception as e:
+            self.send_json_response({"status": "error", "message": str(e)}, 500)
+
 
 
 
