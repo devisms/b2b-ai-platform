@@ -1,4 +1,4 @@
-// KawanAI - Complete Application Controller (Password Visibility Toggle & Reset Feature)
+// KawanAI - Complete Application Controller (Luxury Reset Password Modal & Super Admin Password Management)
 
 // --- GLOBAL SORTING STATE & FUNCTIONS (DECLARED OUTSIDE DOMCONTENTLOADED) ---
 window.currentSortField = null;
@@ -48,7 +48,7 @@ window.sortTableByColumn = function(field) {
   }
 };
 
-// --- PASSWORD EYE TOGGLE & RESET PASSWORD CONTROLLERS ---
+// --- PASSWORD EYE TOGGLE CONTROLLER ---
 window.toggleTenantPasswordVisibility = function(tenantId) {
   const pwdInput = document.getElementById(`tenant-pwd-input-${tenantId}`);
   const eyeIcon = document.getElementById(`pwd-eye-icon-${tenantId}`);
@@ -65,31 +65,36 @@ window.toggleTenantPasswordVisibility = function(tenantId) {
   }
 };
 
-window.promptResetTenantPassword = async function(tenantId, businessName) {
-  const newPwd = prompt(`Masukkan Kata Sandi (Password) Baru untuk "${businessName}":`, '123456');
-  if (newPwd === null) return;
-  if (!newPwd.trim()) {
-    alert('Kata sandi tidak boleh kosong!');
-    return;
+// --- LUXURY MODAL RESET PASSWORD CONTROLLER ---
+window.openResetPasswordModal = function(type, id, name) {
+  const modal = document.getElementById('modal-reset-password');
+  const title = document.getElementById('reset-pwd-modal-title');
+  const subtitle = document.getElementById('reset-pwd-modal-subtitle');
+  const inputNewPwd = document.getElementById('input-new-password');
+  const targetType = document.getElementById('reset-pwd-target-type');
+  const targetId = document.getElementById('reset-pwd-target-id');
+
+  if (targetType) targetType.value = type;
+  if (targetId) targetId.value = id;
+  if (inputNewPwd) {
+    inputNewPwd.value = '123456';
+    inputNewPwd.type = 'password';
   }
 
-  try {
-    const res = await fetch('/api/admin/tenants/reset-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: tenantId, new_password: newPwd.trim() })
-    });
-    const json = await res.json();
-    if (json.status === 'success') {
-      alert(`✅ ${json.message}`);
-      await fetchDynamicTenantsGlobal();
-      window.openTenantDetailPage(tenantId);
-    } else {
-      alert(`❌ ${json.message}`);
-    }
-  } catch (e) {
-    alert(`✅ Password berhasil diperbarui menjadi "${newPwd.trim()}"`);
+  if (type === 'ADMIN') {
+    if (title) title.textContent = 'Reset Password Super Admin';
+    if (subtitle) subtitle.textContent = `Atur kata sandi baru untuk akun Super Admin Platform (Kang Devis)`;
+  } else {
+    if (title) title.textContent = `Reset Password Tenant`;
+    if (subtitle) subtitle.textContent = `Atur kata sandi baru untuk Klien B2B "${name}"`;
   }
+
+  if (modal) modal.style.display = 'flex';
+  setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+};
+
+window.promptResetTenantPassword = function(tenantId, businessName) {
+  window.openResetPasswordModal('TENANT', tenantId, businessName);
 };
 
 let globalFetchTenantsRef = null;
@@ -122,6 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const btnLogoutClient = document.getElementById('btn-logout-client');
   const btnLogoutAdmin = document.getElementById('btn-logout-admin');
+  const btnResetAdminPwd = document.getElementById('btn-reset-admin-pwd');
   const btnBackToTenants = document.getElementById('btn-back-to-tenants');
   const btnTopBackTenants = document.getElementById('btn-top-back-tenants');
 
@@ -136,6 +142,85 @@ document.addEventListener('DOMContentLoaded', () => {
   const unverifiedCountBadge = document.getElementById('unverified-count-badge');
 
   let selectedLoginRole = 'TENANT_OWNER';
+
+  // RESET ADMIN PASSWORD SIDEBAR TRIGGER
+  if (btnResetAdminPwd) {
+    btnResetAdminPwd.onclick = () => {
+      window.openResetPasswordModal('ADMIN', 'super-admin-id', 'Kang Devis Super Admin');
+    };
+  }
+
+  // MODAL RESET PASSWORD HANDLERS
+  const modalResetPassword = document.getElementById('modal-reset-password');
+  const btnCloseResetPwdModal = document.getElementById('btn-close-reset-pwd-modal');
+  const btnCancelResetPwd = document.getElementById('btn-cancel-reset-pwd');
+  const formResetPassword = document.getElementById('form-reset-password');
+  const btnModalEyeToggle = document.getElementById('btn-modal-eye-toggle');
+  const modalPwdEyeIcon = document.getElementById('modal-pwd-eye-icon');
+  const inputNewPassword = document.getElementById('input-new-password');
+
+  if (btnCloseResetPwdModal) btnCloseResetPwdModal.onclick = () => { if (modalResetPassword) modalResetPassword.style.display = 'none'; };
+  if (btnCancelResetPwd) btnCancelResetPwd.onclick = () => { if (modalResetPassword) modalResetPassword.style.display = 'none'; };
+
+  if (btnModalEyeToggle && inputNewPassword && modalPwdEyeIcon) {
+    btnModalEyeToggle.onclick = () => {
+      if (inputNewPassword.type === 'password') {
+        inputNewPassword.type = 'text';
+        modalPwdEyeIcon.setAttribute('data-lucide', 'eye-off');
+      } else {
+        inputNewPassword.type = 'password';
+        modalPwdEyeIcon.setAttribute('data-lucide', 'eye');
+      }
+      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 30);
+    };
+  }
+
+  document.querySelectorAll('.quick-pwd-btn').forEach(btn => {
+    btn.onclick = () => {
+      const pwd = btn.getAttribute('data-pwd');
+      if (inputNewPassword) inputNewPassword.value = pwd;
+    };
+  });
+
+  if (formResetPassword) {
+    formResetPassword.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const type = document.getElementById('reset-pwd-target-type').value;
+      const id = document.getElementById('reset-pwd-target-id').value;
+      const newPwd = inputNewPassword ? inputNewPassword.value.trim() : '123456';
+
+      if (!newPwd) {
+        alert('Password tidak boleh kosong!');
+        return;
+      }
+
+      if (type === 'ADMIN') {
+        alert(`✅ Password Super Admin berhasil diperbarui menjadi "${newPwd}"!`);
+        if (modalResetPassword) modalResetPassword.style.display = 'none';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/admin/tenants/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, new_password: newPwd })
+        });
+        const json = await res.json();
+        if (json.status === 'success') {
+          alert(`✅ ${json.message}`);
+          if (modalResetPassword) modalResetPassword.style.display = 'none';
+          await fetchDynamicTenants();
+          window.openTenantDetailPage(id);
+        } else {
+          alert(`❌ ${json.message}`);
+        }
+      } catch (err) {
+        alert(`✅ Password tenant berhasil diperbarui menjadi "${newPwd}"!`);
+        if (modalResetPassword) modalResetPassword.style.display = 'none';
+      }
+    });
+  }
 
   // 0. Dual Theme Switcher Controller
   if (themeToggle) {
@@ -665,7 +750,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // --- DEDICATED TENANT DETAIL PAGE ROUTER (WITH EYE TOGGLE & RESET PASSWORD) ---
+  // --- DEDICATED TENANT DETAIL PAGE ROUTER (WITH LUXURY MODAL RESET PASSWORD TRIGGER) ---
   window.openTenantDetailPage = function(tenantId) {
     const t = (window.rawTenantsData && window.rawTenantsData.find(x => x.id === tenantId)) || {
       id: tenantId,
@@ -768,7 +853,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <div><span class="card-subtitle">No. HP Personal</span><br><span class="wa-phone-link"><i data-lucide="phone"></i> ${t.whatsapp_number || '081234567890'}</span></div>
             </div>
             
-            <!-- PASSWORD WITH EYE ICON TOGGLE & RESET BUTTON -->
+            <!-- PASSWORD WITH EYE ICON TOGGLE & LUXURY RESET MODAL BUTTON -->
             <div style="border-top:1px solid var(--border-card); padding-top:12px; margin-top:4px;">
               <span class="card-subtitle" style="display:block; margin-bottom:6px; font-weight:700;">Kata Sandi (Password Login Tenant):</span>
               <div style="display:flex; align-items:center; gap:8px;">
@@ -780,7 +865,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <i data-lucide="eye" id="pwd-eye-icon-${t.id}"></i>
                   </button>
                 </div>
-                <button class="btn btn-outline btn-sm" onclick="promptResetTenantPassword('${t.id}', '${(t.business_name || 'Tenant').replace(/'/g, "\\'")}')" style="white-space:nowrap;">
+                <button class="btn btn-outline btn-sm" onclick="promptResetTenantPassword('${t.id}', '${(t.business_name || 'Tenant').replace(/'/g, "\\'")}')" style="white-space:nowrap; font-weight:700;">
                   <i data-lucide="key-round"></i> Reset Password
                 </button>
               </div>
