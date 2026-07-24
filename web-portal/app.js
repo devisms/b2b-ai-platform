@@ -1,15 +1,44 @@
-// KawanAI - Complete Application Controller (Interactive 10px Column Sorting & Refined RAG PDF Component)
+// KawanAI - Complete Application Controller (Bulletproof Global Sorting & Refined RAG PDF Component)
+
+// --- GLOBAL SORTING STATE & FUNCTIONS (DECLARED OUTSIDE DOMCONTENTLOADED) ---
+window.currentSortField = null;
+window.currentSortDir = 'asc';
+window.rawPortfolioData = [];
+window.rawFeaturesData = [];
+window.rawPricingData = [];
+window.rawTenantsData = [];
+
+window.sortTableByColumn = function(field) {
+  if (window.currentSortField === field) {
+    window.currentSortDir = window.currentSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    window.currentSortField = field;
+    window.currentSortDir = 'asc';
+  }
+
+  // Update icons on table headers
+  ['tenant_code', 'business_name', 'owner_email', 'payment_status'].forEach(f => {
+    const iconElem = document.getElementById(`sort-icon-${f}`);
+    if (iconElem) {
+      if (f === window.currentSortField) {
+        iconElem.setAttribute('data-lucide', window.currentSortDir === 'asc' ? 'chevron-up' : 'chevron-down');
+        iconElem.style.opacity = '1';
+        iconElem.style.color = 'var(--primary-accent)';
+      } else {
+        iconElem.setAttribute('data-lucide', 'chevrons-up-down');
+        iconElem.style.opacity = '0.4';
+        iconElem.style.color = 'inherit';
+      }
+    }
+  });
+
+  setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 30);
+  if (typeof window.applyTenantFilterAndSort === 'function') {
+    window.applyTenantFilterAndSort();
+  }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
-
-  // Global State Stores
-  window.rawPortfolioData = [];
-  window.rawFeaturesData = [];
-  window.rawPricingData = [];
-  window.rawTenantsData = [];
-
-  // Sorting Global State
-  window.currentSortField = null;
-  window.currentSortDir = 'asc';
 
   // DOM Elements
   const themeToggle = document.getElementById('theme-toggle');
@@ -294,7 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (json.status === 'success') {
         window.rawTenantsData = json.data;
         updateUnverifiedNotificationBadge(json.data);
-        applyTenantFilterAndSort();
+        window.applyTenantFilterAndSort();
       }
     } catch (e) {
       console.log('Tenants fetch fallback');
@@ -314,37 +343,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // GLOBAL SORT BY TABLE COLUMN HANDLER
-  window.sortTableByColumn = function(field) {
-    if (window.currentSortField === field) {
-      window.currentSortDir = window.currentSortDir === 'asc' ? 'desc' : 'asc';
-    } else {
-      window.currentSortField = field;
-      window.currentSortDir = 'asc';
-    }
-
-    // Update icons on table headers
-    ['tenant_code', 'business_name', 'owner_email', 'payment_status'].forEach(f => {
-      const iconElem = document.getElementById(`sort-icon-${f}`);
-      if (iconElem) {
-        if (f === window.currentSortField) {
-          iconElem.setAttribute('data-lucide', window.currentSortDir === 'asc' ? 'chevron-up' : 'chevron-down');
-          iconElem.style.opacity = '1';
-          iconElem.style.color = 'var(--primary-accent)';
-        } else {
-          iconElem.setAttribute('data-lucide', 'chevrons-up-down');
-          iconElem.style.opacity = '0.4';
-          iconElem.style.color = 'inherit';
-        }
-      }
-    });
-
-    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 30);
-    applyTenantFilterAndSort();
-  };
-
   // SEARCH FILTER & COLUMN SORT ENGINE (UNVERIFIED PINNED AT TOP)
-  function applyTenantFilterAndSort() {
+  window.applyTenantFilterAndSort = function() {
     let tenants = [...(window.rawTenantsData || [])];
     const query = tenantSearchInput ? tenantSearchInput.value.toLowerCase().trim() : '';
 
@@ -382,9 +382,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     renderAdminTenantsTable(tenants);
-  }
+  };
 
-  if (tenantSearchInput) tenantSearchInput.addEventListener('input', applyTenantFilterAndSort);
+  if (tenantSearchInput) tenantSearchInput.addEventListener('input', window.applyTenantFilterAndSort);
 
   function renderPortfolioGrid(items) {
     const grid = document.querySelector('.portfolio-grid');

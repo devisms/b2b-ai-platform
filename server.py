@@ -31,19 +31,20 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         elif self.path == '/api/admin/tenants':
             self.get_admin_tenants_api()
         else:
-            # Disable Cache for development static files
+            # Disable Cache for development static files & enforce UTF-8
             self.send_response(200)
             if self.path.endswith('.css'):
-                self.send_header('Content-Type', 'text/css')
+                self.send_header('Content-Type', 'text/css; charset=utf-8')
             elif self.path.endswith('.js'):
-                self.send_header('Content-Type', 'application/javascript')
+                self.send_header('Content-Type', 'application/javascript; charset=utf-8')
             elif self.path.endswith('.html') or self.path == '/':
-                self.send_header('Content-Type', 'text/html')
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
             
             self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
             self.send_header('Pragma', 'no-cache')
             self.send_header('Expires', '0')
             self.end_headers()
+
 
             filepath = os.path.join(DIRECTORY, 'index.html' if self.path == '/' else self.path.lstrip('/'))
             if os.path.exists(filepath) and os.path.isfile(filepath):
