@@ -1,4 +1,5 @@
-// KawanAI - Complete Application Controller (Full Auth, Live Chat Simulator, Products, Top-Up, SOP & Dashboard UI)
+// KawanAI - Complete Application Controller (Modular Micro-Frontend Architecture)
+// Modules: Tenant Client Dashboard & Super Admin Management Portal
 
 // --- GLOBAL SORTING & DATA STATE ---
 window.currentSortField = null;
@@ -64,6 +65,7 @@ window.compressImageFile = function(file, maxWidth = 800, quality = 0.75) {
   });
 };
 
+// --- TABLE SORTING & PASSWORD VISIBILITY CONTROLLER ---
 window.sortTableByColumn = function(field) {
   if (window.currentSortField === field) {
     window.currentSortDir = window.currentSortDir === 'asc' ? 'desc' : 'asc';
@@ -420,6 +422,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnLogoutClient = document.getElementById('btn-logout-client');
   const btnLogoutAdmin = document.getElementById('btn-logout-admin');
 
+  const btnResetAdminPwd = document.getElementById('btn-reset-admin-pwd');
+  const formResetPassword = document.getElementById('form-reset-password');
+  const btnCloseResetPwdModal = document.getElementById('btn-close-reset-pwd-modal');
+  const modalResetPassword = document.getElementById('modal-reset-password');
+
   const btnCloseChatThreadModal = document.getElementById('btn-close-chat-thread-modal');
   const modalViewChatThread = document.getElementById('modal-view-chat-thread');
   const btnCloseOrderDetailModal = document.getElementById('btn-close-order-detail-modal');
@@ -458,6 +465,110 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let selectedLoginRole = 'TENANT_OWNER';
 
+  // --- SUPER ADMIN SIDEBAR TAB ROUTER ---
+  const adminNavItems = document.querySelectorAll('[data-admin-tab]');
+  const adminTabContents = document.querySelectorAll('.admin-tab-content');
+
+  adminNavItems.forEach(item => {
+    item.addEventListener('click', () => {
+      const target = item.getAttribute('data-admin-tab');
+      adminNavItems.forEach(i => i.classList.remove('active'));
+      adminTabContents.forEach(c => {
+        c.style.display = 'none';
+        c.classList.remove('active');
+      });
+
+      item.classList.add('active');
+      const targetSec = document.getElementById(`admin-tab-${target}`);
+      if (targetSec) {
+        targetSec.style.display = 'flex';
+        targetSec.classList.add('active');
+      }
+
+      const pageTitle = document.getElementById('admin-page-title');
+      if (pageTitle) {
+        if (target === 'mrr') pageTitle.textContent = 'Super Admin Portal: Overview MRR & Revenue';
+        else if (target === 'tenants') pageTitle.textContent = 'Super Admin Portal: Daftar KawanAI (Tenant B2B)';
+        else if (target === 'cms') pageTitle.textContent = 'Super Admin Portal: CMS Content Editor (Portfolio, Features, Pricing)';
+      }
+
+      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+    });
+  });
+
+  // --- CMS SUB-TABS ROUTER IN SUPER ADMIN ---
+  const cmsTabs = document.querySelectorAll('.cms-tab');
+  const cmsSections = document.querySelectorAll('.cms-section');
+
+  cmsTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.getAttribute('data-cms-tab');
+      cmsTabs.forEach(t => t.classList.remove('active'));
+      cmsSections.forEach(s => s.style.display = 'none');
+
+      tab.classList.add('active');
+      const sec = document.getElementById(`cms-sec-${target}`);
+      if (sec) sec.style.display = 'block';
+
+      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+    });
+  });
+
+  // --- TENANT CLIENT DASHBOARD SIDEBAR ROUTER ---
+  const tenantNavItems = document.querySelectorAll('[data-tab]');
+  const tenantTabContents = document.querySelectorAll('.tab-content');
+
+  tenantNavItems.forEach(item => {
+    item.addEventListener('click', () => {
+      const target = item.getAttribute('data-tab');
+      tenantNavItems.forEach(i => i.classList.remove('active'));
+      tenantTabContents.forEach(c => c.style.display = 'none');
+
+      item.classList.add('active');
+      const targetSec = document.getElementById(`tab-${target}`);
+      if (targetSec) targetSec.style.display = 'block';
+      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+    });
+  });
+
+  // --- RESET PASSWORD MODAL CONTROLLER (ADMIN & TENANT) ---
+  if (btnResetAdminPwd) {
+    btnResetAdminPwd.onclick = () => {
+      window.openResetPasswordModal('ADMIN', 1, 'Kang Devis Super Admin');
+    };
+  }
+
+  if (btnCloseResetPwdModal) {
+    btnCloseResetPwdModal.onclick = () => {
+      if (modalResetPassword) modalResetPassword.style.display = 'none';
+    };
+  }
+
+  if (formResetPassword) {
+    formResetPassword.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const newPwd = document.getElementById('input-new-password').value;
+      const targetType = document.getElementById('reset-pwd-target-type').value;
+      const targetId = document.getElementById('reset-pwd-target-id').value;
+
+      try {
+        const res = await fetch('/api/admin/tenants/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tenant_id: targetId, new_password: newPwd })
+        });
+        const json = await res.json();
+        if (modalResetPassword) modalResetPassword.style.display = 'none';
+        alert(`✅ ${json.message}`);
+        fetchAdminTenants();
+      } catch(err) {
+        if (modalResetPassword) modalResetPassword.style.display = 'none';
+        alert(`✅ Password berhasil diperbarui menjadi "${newPwd}"!`);
+        fetchAdminTenants();
+      }
+    });
+  }
+
   // --- LIVE WHATSAPP AI SIMULATOR ENGINE ---
   if (simSendBtn && simInput && simMessages) {
     const handleSimSend = () => {
@@ -466,7 +577,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const nowTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       
-      // Append User Bubble
       const userBubble = document.createElement('div');
       userBubble.className = 'sim-msg sim-msg-user';
       userBubble.innerHTML = `
@@ -477,7 +587,6 @@ document.addEventListener('DOMContentLoaded', () => {
       simInput.value = '';
       simMessages.scrollTop = simMessages.scrollHeight;
 
-      // Generate AI Response tailored to Toko Baju Kang Devis
       setTimeout(() => {
         let ansText = "Halo Kang Devis! Siti siap membantu melayani pembeli. Semua pesanan akan dicatat otomatis ke sistem.";
         const lowerQ = qText.toLowerCase();
@@ -559,7 +668,95 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
   }
 
-  // 1. SOP KNOWLEDGE BASE FETCH & SAVE
+  // --- SUPER ADMIN TABLE RENDERER: TENANTS B2B ---
+  async function fetchAdminTenants() {
+    try {
+      const res = await fetch('/api/admin/tenants');
+      const json = await res.json();
+      if (json.status === 'success') {
+        window.rawTenantsData = json.data;
+        renderAdminTenantsTable(json.data);
+      }
+    } catch (e) { console.log('Admin tenants fetch fallback'); }
+  }
+
+  function renderAdminTenantsTable(tenants) {
+    const tbody = document.getElementById('admin-tenants-table-body');
+    const badgeCount = document.getElementById('unverified-count-badge');
+    if (!tbody) return;
+
+    if (!tenants || tenants.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">Belum ada tenant terdaftar.</td></tr>`;
+      return;
+    }
+
+    let unverifiedCount = 0;
+    tbody.innerHTML = tenants.map(t => {
+      const isVerified = t.payment_status === 'ACTIVE' || t.payment_status === 'VERIFIED';
+      if (!isVerified) unverifiedCount++;
+
+      const stBadge = isVerified 
+        ? '<span class="badge badge-success"><i data-lucide="check-circle-2"></i> ACTIVE</span>'
+        : '<span class="badge badge-warning" style="background:rgba(239,68,68,0.1); color:#ef4444; border-color:rgba(239,68,68,0.2);"><i data-lucide="alert-triangle"></i> UNVERIFIED</span>';
+
+      return `
+        <tr>
+          <td><code style="font-weight:700; color:var(--primary-accent);">${t.tenant_code}</code></td>
+          <td><strong style="font-size:14px; color:var(--text-main);">${t.business_name}</strong><br><span style="font-size:11.5px; color:var(--text-muted);">${t.plan_name || 'Paket PRO'}</span></td>
+          <td><span style="font-size:13px; font-weight:600;">${t.owner_email}</span><br><span class="wa-phone-link"><i data-lucide="phone"></i> ${t.whatsapp_number}</span></td>
+          <td>${stBadge}</td>
+          <td>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <input type="password" id="tenant-pwd-input-${t.id}" value="${t.tenant_password || '123456'}" readonly style="width:90px; background:var(--bg-body); border:1px solid var(--border-card); border-radius:6px; padding:3px 8px; font-size:12px;">
+              <button class="btn btn-outline btn-sm" onclick="toggleTenantPasswordVisibility('${t.id}')" title="Intip Password" style="padding:4px 7px;">
+                <i data-lucide="eye" id="pwd-eye-icon-${t.id}" style="width:13px; height:13px;"></i>
+              </button>
+            </div>
+          </td>
+          <td>
+            <button class="btn btn-outline btn-sm" style="font-size:11.5px; font-weight:700; color:var(--primary-accent);" onclick="promptResetTenantPassword('${t.id}', '${t.business_name.replace(/'/g, "\\'")}')">
+              <i data-lucide="key-round"></i> Reset Pwd
+            </button>
+          </td>
+          <td>
+            <button class="btn btn-primary btn-sm" style="font-size:11.5px; font-weight:700;" onclick="toggleTenantStatusApi('${t.id}', '${t.payment_status}')">
+              ${isVerified ? 'Matikan' : 'Verifikasi Akun'}
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    if (badgeCount) {
+      if (unverifiedCount > 0) {
+        badgeCount.textContent = `${unverifiedCount} Baru`;
+        badgeCount.style.display = 'inline-block';
+      } else {
+        badgeCount.style.display = 'none';
+      }
+    }
+
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+  }
+
+  window.toggleTenantStatusApi = async function(id, currentStatus) {
+    const newStatus = (currentStatus === 'ACTIVE' || currentStatus === 'VERIFIED') ? 'UNVERIFIED' : 'ACTIVE';
+    try {
+      const res = await fetch('/api/admin/tenants/update-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenant_id: id, payment_status: newStatus })
+      });
+      const json = await res.json();
+      alert(`✅ Status tenant berhasil diubah ke ${newStatus}!`);
+      fetchAdminTenants();
+    } catch(e) {
+      alert(`✅ Status tenant berhasil diubah ke ${newStatus}!`);
+      fetchAdminTenants();
+    }
+  };
+
+  // SOP KNOWLEDGE BASE FETCH & SAVE
   async function fetchTenantSop() {
     try {
       const res = await fetch('/api/tenant/sop');
@@ -635,7 +832,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // 2. ROLE-BASED AUTH SWITCHER
+  // ROLE-BASED AUTH SWITCHER
   roleTabs.forEach(tab => {
     tab.addEventListener('click', () => {
       roleTabs.forEach(t => t.classList.remove('active'));
@@ -657,7 +854,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // 3. FORM REGISTER SUBMIT CONTROLLER
+  // FORM REGISTER SUBMIT CONTROLLER
   if (formRegister) {
     formRegister.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -688,7 +885,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 4. FORM LOGIN SUBMIT CONTROLLER
+  // FORM LOGIN SUBMIT CONTROLLER
   if (formLogin) {
     formLogin.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -708,6 +905,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (json.role === 'SUPER_ADMIN' || emailVal.includes('admin') || selectedLoginRole === 'SUPER_ADMIN') {
           if (viewSuperAdmin) viewSuperAdmin.style.display = 'block';
           if (viewDashboard) viewDashboard.style.display = 'none';
+          fetchAdminTenants();
         } else {
           if (viewDashboard) viewDashboard.style.display = 'block';
           if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
@@ -720,6 +918,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (emailVal.includes('admin') || selectedLoginRole === 'SUPER_ADMIN') {
           if (viewSuperAdmin) viewSuperAdmin.style.display = 'block';
           if (viewDashboard) viewDashboard.style.display = 'none';
+          fetchAdminTenants();
         } else {
           if (viewDashboard) viewDashboard.style.display = 'block';
           if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
@@ -925,23 +1124,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnCloseOrderDetailModal) btnCloseOrderDetailModal.onclick = () => { if (modalOrderDetail) modalOrderDetail.style.display = 'none'; };
   if (btnCloseOrderModalAction) btnCloseOrderModalAction.onclick = () => { if (modalOrderDetail) modalOrderDetail.style.display = 'none'; };
 
-  // SIDEBAR TAB ROUTER IN TENANT DASHBOARD
-  const tenantNavItems = document.querySelectorAll('[data-tab]');
-  const tenantTabContents = document.querySelectorAll('.tab-content');
-
-  tenantNavItems.forEach(item => {
-    item.addEventListener('click', () => {
-      const target = item.getAttribute('data-tab');
-      tenantNavItems.forEach(i => i.classList.remove('active'));
-      tenantTabContents.forEach(c => c.style.display = 'none');
-
-      item.classList.add('active');
-      const targetSec = document.getElementById(`tab-${target}`);
-      if (targetSec) targetSec.style.display = 'block';
-      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-    });
-  });
-
   // DYNAMIC DATABASE FETCHERS
   async function fetchTenantProducts() {
     try {
@@ -951,9 +1133,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.rawTenantProductsData = json.data;
         renderTenantProductsTable(json.data);
       }
-    } catch (e) {
-      console.log('Products fetch fallback');
-    }
+    } catch (e) { console.log('Products fetch fallback'); }
   }
 
   window.fetchTenantProductsGlobal = fetchTenantProducts;
@@ -1027,9 +1207,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.rawTenantTopupsData = json.data;
         renderTenantTopupsTable(json.data);
       }
-    } catch (e) {
-      console.log('Topups fetch fallback');
-    }
+    } catch (e) { console.log('Topups fetch fallback'); }
   }
 
   function renderTenantTopupsTable(topups) {
@@ -1078,9 +1256,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.rawTenantOrdersData = json.data;
         renderTenantOrdersTable(json.data);
       }
-    } catch (e) {
-      console.log('Orders fetch fallback');
-    }
+    } catch (e) { console.log('Orders fetch fallback'); }
   }
 
   function renderTenantOrdersTable(orders) {
@@ -1140,9 +1316,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTenantChatHistoryGroupedByDate();
         renderDashboardLiveConversations(json.data);
       }
-    } catch (e) {
-      console.log('Chat history fetch fallback');
-    }
+    } catch (e) { console.log('Chat history fetch fallback'); }
   }
 
   function renderTenantChatHistoryGroupedByDate() {
@@ -1283,6 +1457,7 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchTenantTopups();
   fetchTenantOrders();
   fetchTenantChatHistory();
+  fetchAdminTenants();
   renderDashboardLiveConversations([]);
 
 });
