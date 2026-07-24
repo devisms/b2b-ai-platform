@@ -1,4 +1,4 @@
-// KawanAI - Complete Application Controller (SOP WYSIWYG Editor, Auth, Products, Top-Up & Navigation)
+// KawanAI - Complete Application Controller (Full Auth, Live Chat Simulator, Products, Top-Up, SOP & Dashboard UI)
 
 // --- GLOBAL SORTING & DATA STATE ---
 window.currentSortField = null;
@@ -14,6 +14,16 @@ window.rawTenantTopupsData = [];
 window.chatHistoryCurrentPage = 1;
 window.chatHistoryItemsPerPage = 5;
 window.currentActiveOrderCode = null;
+
+// --- QUICK SIMULATOR PROMPT SENDER ---
+window.sendQuickSimPrompt = function(promptText) {
+  const input = document.getElementById('sim-input');
+  if (input) {
+    input.value = promptText;
+    const sendBtn = document.getElementById('sim-send');
+    if (sendBtn) sendBtn.click();
+  }
+};
 
 // --- RICH TEXT WYSIWYG SOP FORMATTER ---
 window.formatSopText = function(cmd, val = null) {
@@ -431,6 +441,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnLoadSopTemplate = document.getElementById('btn-load-sop-template');
   const btnSaveSopEditor = document.getElementById('btn-save-sop-editor');
 
+  const simInput = document.getElementById('sim-input');
+  const simSendBtn = document.getElementById('sim-send');
+  const simResetBtn = document.getElementById('sim-reset-chat');
+  const simMessages = document.getElementById('simulator-messages');
+
   const roleTabs = document.querySelectorAll('.role-tab');
   const loginEmail = document.getElementById('login-email');
   const loginEmailLabel = document.getElementById('login-email-label');
@@ -442,6 +457,107 @@ document.addEventListener('DOMContentLoaded', () => {
   const chatFilterType = document.getElementById('chat-filter-type');
 
   let selectedLoginRole = 'TENANT_OWNER';
+
+  // --- LIVE WHATSAPP AI SIMULATOR ENGINE ---
+  if (simSendBtn && simInput && simMessages) {
+    const handleSimSend = () => {
+      const qText = simInput.value.trim();
+      if (!qText) return;
+
+      const nowTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      
+      // Append User Bubble
+      const userBubble = document.createElement('div');
+      userBubble.className = 'sim-msg sim-msg-user';
+      userBubble.innerHTML = `
+        <strong style="font-size:11px; color:var(--primary-accent); display:block; margin-bottom:2px;">👤 Kang Devis (📥 ${nowTime} WIB)</strong>
+        ${qText}
+      `;
+      simMessages.appendChild(userBubble);
+      simInput.value = '';
+      simMessages.scrollTop = simMessages.scrollHeight;
+
+      // Generate AI Response tailored to Toko Baju Kang Devis
+      setTimeout(() => {
+        let ansText = "Halo Kang Devis! Siti siap membantu melayani pembeli. Semua pesanan akan dicatat otomatis ke sistem.";
+        const lowerQ = qText.toLowerCase();
+
+        if (lowerQ.includes('ready') || lowerQ.includes('stok') || lowerQ.includes('gamis')) {
+          ansText = "Halo kak Budi! Baju Gamis Syari Premium (Navy L) <strong>READY STOK (25 Pcs Tersedia)</strong> dengan harga <strong>Rp 185.000/pcs</strong> (Bahan Ceruty Baby Doll + Full Furing). Mau Siti catat pesanannya sekarang kak? 😊";
+        } else if (lowerQ.includes('diskon') || lowerQ.includes('grosir')) {
+          ansText = "Ada dong kak! Untuk pembelian grosir: <strong>Beli 3 Pcs Diskon 5%</strong>, <strong>Beli 5 Pcs Diskon 10%</strong>, atau <strong>Beli >=10 Pcs Spesial Rp 150.000/pcs</strong>. Hemat banget kak!";
+        } else if (lowerQ.includes('rekening') || lowerQ.includes('bca') || lowerQ.includes('transfer')) {
+          ansText = "Silakan melakukan pembayaran ke <strong>Bank BCA 1234567890 an Toko Baju Kang Devis</strong>. Setelah transfer, mohon kirim foto bukti resi ke WhatsApp ini ya kak! 🙏";
+        } else if (lowerQ.includes('resi') || lowerQ.includes('ord-')) {
+          ansText = "Pesanan Anda dengan kode <strong>#ORD-20260724-001 (LUNAS)</strong> sudah selesai dipacking dan sedang dalam pengiriman kurir J&T Express dengan No Resi: <strong>JT9876543210ID</strong> 🚚.";
+        }
+
+        const botBubble = document.createElement('div');
+        botBubble.className = 'sim-msg sim-msg-bot';
+        botBubble.innerHTML = `
+          <strong style="font-size:11px; color:var(--success); display:block; margin-bottom:2px;">🤖 Siti - CS Toko Baju (⚡ ${nowTime} WIB • Respon: 1.1 dtk)</strong>
+          ${ansText}
+        `;
+        simMessages.appendChild(botBubble);
+        simMessages.scrollTop = simMessages.scrollHeight;
+      }, 700);
+    };
+
+    simSendBtn.addEventListener('click', handleSimSend);
+    simInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') handleSimSend();
+    });
+  }
+
+  if (simResetBtn && simMessages) {
+    simResetBtn.onclick = () => {
+      simMessages.innerHTML = `
+        <div class="sim-msg sim-msg-bot">
+          <strong style="font-size:11.5px; color:var(--success); display:block; margin-bottom:2px;">🤖 Siti - CS Toko Baju Kang Devis (📥 11:46:00 WIB)</strong>
+          Halo Kang Devis! Percakapan tes telah dibersihkan. Ada yang mau dites tentang stok baju, harga promo, atau transfer BCA? 😊
+        </div>
+      `;
+    };
+  }
+
+  // RENDER DASHBOARD LIVE CONVERSATIONS LIST
+  function renderDashboardLiveConversations(logs) {
+    const listContainer = document.getElementById('dashboard-live-conversations-list');
+    if (!listContainer) return;
+
+    const displayLogs = (logs && logs.length > 0) ? logs.slice(0, 5) : [
+      { sender_name: 'Budi Santoso', sender_phone: '0812-3456-7890', chat_type: 'DIRECT', group_name: null, user_message: 'Halo kak, Gamis Syari Size L ready warna Navy?', bot_response: 'Ready warna Navy kak (Rp 185.000). Pesanan sudah Siti catat.', message_time: '2026-07-24T09:17:00Z' },
+      { sender_name: 'Anisa Rahma', sender_phone: '0857-1122-3344', chat_type: 'GROUP', group_name: 'Grup Reseller Jabar', user_message: 'Admin, mau ambil 10 pcs Gamis Maroon dapet diskon grosir berapa?', bot_response: 'Untuk 10 pcs dapet harga khusus Rp 150.000/pcs kak Anisa!', message_time: '2026-07-24T08:45:00Z' },
+      { sender_name: 'Dewi Lestari', sender_phone: '0819-9988-7766', chat_type: 'DIRECT', group_name: null, user_message: 'Kak bukti transfer 370rb sudah dikirim ya ke BCA', bot_response: 'Terima kasih kak Dewi! Bukti transfer sudah terverifikasi.', message_time: '2026-07-24T08:10:00Z' }
+    ];
+
+    listContainer.innerHTML = displayLogs.map(item => {
+      const timeStr = item.message_time ? new Date(item.message_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '09:17';
+      const initial = item.sender_name.charAt(0).toUpperCase();
+
+      return `
+        <div class="chat-item-card" onclick="openChatThreadModal('${item.sender_name.replace(/'/g, "\\'")}', '${(item.group_name || '').replace(/'/g, "\\'")}', '${item.user_message.replace(/'/g, "\\'")}', '${item.bot_response.replace(/'/g, "\\'")}', '${timeStr}')">
+          <div style="display:flex; align-items:center; gap:10px; flex:1; overflow:hidden;">
+            <div style="width:36px; height:36px; border-radius:10px; background:rgba(37,99,235,0.1); color:var(--primary-accent); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; flex-shrink:0;">
+              ${initial}
+            </div>
+            <div style="overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">
+              <strong style="font-size:13px; color:var(--text-main); display:block; text-overflow:ellipsis; overflow:hidden;">${item.sender_name}</strong>
+              <span style="font-size:11.5px; color:var(--text-muted); display:block; text-overflow:ellipsis; overflow:hidden; margin-top:1px;">
+                🤖 ${item.bot_response}
+              </span>
+            </div>
+          </div>
+          <div style="text-align:right; flex-shrink:0; margin-left:8px;">
+            <span style="font-size:11px; color:var(--text-muted); font-weight:600; display:block;">${timeStr} WIB</span>
+            <span class="badge badge-accent" style="font-size:9.5px; padding:2px 6px; margin-top:2px;">⚡ 1.2s</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+  }
 
   // 1. SOP KNOWLEDGE BASE FETCH & SAVE
   async function fetchTenantSop() {
@@ -491,7 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <li>Apabila ada barang cacat atau salah kirim size, mohon pembeli tenang. Beritahukan bahwa owner toko akan segera menghubungi langsung via WA.</li>
 </ul>
         `;
-        alert('✅ Template SOP Standar KawanAI berhasil dimuat ke editor! Silakan edit sesuai kebutuhan toko Anda.');
+        alert('✅ Template SOP Standar KawanAI berhasil dimuat ke editor!');
       }
     };
   }
@@ -1022,6 +1138,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (json.status === 'success') {
         window.rawTenantChatHistoryData = json.data;
         renderTenantChatHistoryGroupedByDate();
+        renderDashboardLiveConversations(json.data);
       }
     } catch (e) {
       console.log('Chat history fetch fallback');
@@ -1093,7 +1210,7 @@ document.addEventListener('DOMContentLoaded', () => {
                   <strong style="font-size:14px; color:var(--text-main);">${item.sender_name}</strong>
                   ${badgeType}
                 </div>
-                <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:2px;">
+                <span style="font-size:12.5px; color:var(--text-muted); display:block; margin-top:2px;">
                   <i data-lucide="phone" style="width:12px; height:12px; display:inline-block; vertical-align:middle;"></i> ${item.sender_phone ? item.sender_phone : 'Sesi Percakapan Pelanggan WA'}
                 </span>
               </div>
@@ -1166,5 +1283,6 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchTenantTopups();
   fetchTenantOrders();
   fetchTenantChatHistory();
+  renderDashboardLiveConversations([]);
 
 });

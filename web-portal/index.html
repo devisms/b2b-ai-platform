@@ -282,42 +282,62 @@
           </div>
 
 
+          <!-- SPLIT VIEW: LIVE CONVERSATIONS FEED & WHATSAPP AI SIMULATOR -->
           <div class="dashboard-split">
             <div class="card conversations-panel">
-              <div class="card-header">
-                <h3><i data-lucide="history"></i> Percakapan Terakhir (WhatsApp Toko Anda)</h3>
-                <span class="badge">Real-Time</span>
-              </div>
-              <div class="chat-list">
-                <div class="chat-item">
-                  <div class="chat-avatar">B</div>
-                  <div class="chat-info">
-                    <div class="chat-top">
-                      <span class="chat-name">+62 812-3456-7890 (Budi)</span>
-                      <span class="chat-time">22:45</span>
-                    </div>
-                    <p class="chat-preview">Bot: Baju Gamis Size L ready warna Navy kak. Mau dicatat pesanannya?</p>
-                  </div>
+              <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-card); padding-bottom:12px;">
+                <div>
+                  <h3 style="font-size:16px; font-weight:800; color:var(--text-main);"><i data-lucide="message-square"></i> Feed Percakapan Terakhir WhatsApp</h3>
+                  <p class="card-subtitle" style="font-size:11.5px;">Sesi chat pembeli masuk yang ditangani KawanAI</p>
                 </div>
+                <span class="badge badge-success"><span class="pulse-dot" style="width:6px; height:6px; background:var(--success); border-radius:50%; display:inline-block; margin-right:4px;"></span> Live Connected</span>
+              </div>
+              
+              <div class="chat-list" id="dashboard-live-conversations-list">
+                <!-- Rendered dynamically via app.js -->
               </div>
             </div>
 
+            <!-- LIVE WHATSAPP AI SIMULATOR TESTER -->
             <div class="card simulator-panel">
-              <div class="card-header">
-                <h3><i data-lucide="message-square"></i> Test Chat KawanAI (Live Demo)</h3>
+              <div class="simulator-header">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <div style="width:36px; height:36px; border-radius:10px; background:var(--primary-accent); color:white; display:flex; align-items:center; justify-content:center; font-weight:800;">
+                    🤖
+                  </div>
+                  <div>
+                    <strong style="font-size:14px; color:var(--text-main); display:block;">Siti - CS Toko Baju (KawanAI Engine)</strong>
+                    <span style="font-size:11px; color:var(--success); font-weight:600;">🟢 Online • Respon 1.2 Detik</span>
+                  </div>
+                </div>
+                <button type="button" class="btn btn-outline btn-sm" id="sim-reset-chat" title="Bersihkan Percakapan Tes" style="font-size:11px; padding:4px 8px;">
+                  <i data-lucide="refresh-cw" style="width:12px; height:12px;"></i> Reset
+                </button>
               </div>
+
               <div class="simulator-body" id="simulator-messages">
-                <div class="msg msg-bot">
-                  Halo Kang Devis! Saya **KawanAI**, karyawan digital bisnis Anda. Ada yang bisa saya bantu jawab tentang produk toko Anda?
+                <div class="sim-msg sim-msg-bot">
+                  <strong style="font-size:11.5px; color:var(--success); display:block; margin-bottom:2px;">🤖 Siti - CS Toko Baju Kang Devis (📥 11:46:00 WIB)</strong>
+                  Halo Kang Devis! Saya <strong>Siti (KawanAI)</strong>, karyawan digital toko Anda. Ada yang mau dites tentang stok baju, harga promo, atau transfer BCA? 😊
                 </div>
               </div>
-              <div class="simulator-input">
-                <input type="text" id="sim-input" placeholder="Tulis pertanyaan tes (misal: Baju ini ready size L?)...">
-                <button class="btn btn-icon" id="sim-send"><i data-lucide="send"></i></button>
+
+              <!-- QUICK TEST CHIPS BAR -->
+              <div class="sim-quick-chips">
+                <button type="button" class="chip-btn" onclick="sendQuickSimPrompt('Halo kak, Gamis Syari Size L ready warna Navy?')">👗 Gamis Ready Size L?</button>
+                <button type="button" class="chip-btn" onclick="sendQuickSimPrompt('Kalau saya beli 5 pcs ada diskon grosir gak kak?')">🎯 Beli 5 Ada Diskon Grosir?</button>
+                <button type="button" class="chip-btn" onclick="sendQuickSimPrompt('Bisa minta nomor rekening BCA untuk transfer?')">💳 Rekening Transfer BCA</button>
+                <button type="button" class="chip-btn" onclick="sendQuickSimPrompt('Kak pesanan saya nomor ORD-20260724-001 udah dikirim belum?')">📦 Cek Status Resi</button>
+              </div>
+
+              <div class="simulator-input-bar">
+                <input type="text" id="sim-input" placeholder="Tulis pertanyaan tes (misal: Gamis Navy L ready?)...">
+                <button type="button" class="btn btn-primary btn-sm" id="sim-send" style="font-weight:700;"><i data-lucide="send"></i> Kirim</button>
               </div>
             </div>
           </div>
         </section>
+
 
         <!-- TAB NEW: PESANAN OTOMATIS (ORDERS TABLE) -->
         <section class="tab-content" id="tab-orders" style="display:none;">
