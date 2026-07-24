@@ -30,7 +30,12 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.get_features_api()
         elif self.path == '/api/admin/tenants':
             self.get_admin_tenants_api()
+        elif self.path.startswith('/api/tenant/orders'):
+            self.get_tenant_orders_api()
+        elif self.path.startswith('/api/tenant/chat-history'):
+            self.get_tenant_chat_history_api()
         else:
+
             # Disable Cache for development static files & enforce UTF-8
             clean_path = self.path.split('?')[0]
             self.send_response(200)
@@ -157,6 +162,60 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.send_json_response({"status": "success", "data": rows})
         except Exception as e:
             self.send_json_response({"status": "error", "message": str(e)}, 500)
+
+    def get_tenant_orders_api(self):
+        try:
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor.execute("""
+                SELECT o.*, t.business_name 
+                FROM tenant_service.tenant_orders o
+                JOIN tenant_service.tenants t ON o.tenant_id = t.id
+                ORDER BY o.order_date DESC;
+            """)
+            rows = cursor.fetchall()
+            conn.close()
+
+            # Format datetime objects
+            processed = []
+            for r in rows:
+                r_dict = dict(r)
+                if r_dict.get('order_date'):
+                    r_dict['order_date'] = r_dict['order_date'].isoformat()
+                if r_dict.get('total_price'):
+                    r_dict['total_price'] = float(r_dict['total_price'])
+                processed.append(r_dict)
+
+            self.send_json_response({"status": "success", "data": processed})
+        except Exception as e:
+            self.send_json_response({"status": "error", "message": str(e)}, 500)
+
+    def get_tenant_chat_history_api(self):
+        try:
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor.execute("""
+                SELECT c.*, t.business_name 
+                FROM tenant_service.tenant_chat_history c
+                JOIN tenant_service.tenants t ON c.tenant_id = t.id
+                ORDER BY c.log_date DESC, c.message_time DESC;
+            """)
+            rows = cursor.fetchall()
+            conn.close()
+
+            processed = []
+            for r in rows:
+                r_dict = dict(r)
+                if r_dict.get('log_date'):
+                    r_dict['log_date'] = r_dict['log_date'].isoformat()
+                if r_dict.get('message_time'):
+                    r_dict['message_time'] = r_dict['message_time'].isoformat()
+                processed.append(r_dict)
+
+            self.send_json_response({"status": "success", "data": processed})
+        except Exception as e:
+            self.send_json_response({"status": "error", "message": str(e)}, 500)
+
 
     # --- TENANT VERIFICATION & AUTHENTICATION ENDPOINTS ---
     def handle_register_api(self):

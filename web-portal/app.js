@@ -1,12 +1,14 @@
-// KawanAI - Complete Application Controller (Luxury Reset Password Modal & Super Admin Password Management)
+// KawanAI - Complete Application Controller (Tenant Daily Chat History & WhatsApp Orders System)
 
-// --- GLOBAL SORTING STATE & FUNCTIONS (DECLARED OUTSIDE DOMCONTENTLOADED) ---
+// --- GLOBAL SORTING & DATA STATE (DECLARED OUTSIDE DOMCONTENTLOADED) ---
 window.currentSortField = null;
 window.currentSortDir = 'asc';
 window.rawPortfolioData = [];
 window.rawFeaturesData = [];
 window.rawPricingData = [];
 window.rawTenantsData = [];
+window.rawTenantOrdersData = [];
+window.rawTenantChatHistoryData = [];
 
 window.sortTableByColumn = function(field) {
   if (window.currentSortField === field) {
@@ -16,7 +18,6 @@ window.sortTableByColumn = function(field) {
     window.currentSortDir = 'asc';
   }
 
-  // Update icons and active styles on table headers
   ['tenant_code', 'business_name', 'owner_email', 'payment_status'].forEach(f => {
     const iconElem = document.getElementById(`sort-icon-${f}`);
     const thElem = document.getElementById(`th-col-${f}`);
@@ -48,7 +49,6 @@ window.sortTableByColumn = function(field) {
   }
 };
 
-// --- PASSWORD EYE TOGGLE CONTROLLER ---
 window.toggleTenantPasswordVisibility = function(tenantId) {
   const pwdInput = document.getElementById(`tenant-pwd-input-${tenantId}`);
   const eyeIcon = document.getElementById(`pwd-eye-icon-${tenantId}`);
@@ -65,7 +65,6 @@ window.toggleTenantPasswordVisibility = function(tenantId) {
   }
 };
 
-// --- LUXURY MODAL RESET PASSWORD CONTROLLER ---
 window.openResetPasswordModal = function(type, id, name) {
   const modal = document.getElementById('modal-reset-password');
   const title = document.getElementById('reset-pwd-modal-title');
@@ -95,6 +94,34 @@ window.openResetPasswordModal = function(type, id, name) {
 
 window.promptResetTenantPassword = function(tenantId, businessName) {
   window.openResetPasswordModal('TENANT', tenantId, businessName);
+};
+
+// --- CHAT THREAD MODAL DISPLAY CONTROLLER ---
+window.openChatThreadModal = function(senderName, groupOrWa, userMsg, botMsg, timeStr) {
+  const modal = document.getElementById('modal-view-chat-thread');
+  const title = document.getElementById('chat-thread-title');
+  const subtitle = document.getElementById('chat-thread-subtitle');
+  const body = document.getElementById('chat-thread-messages-body');
+
+  if (title) title.textContent = `Percakapan dengan ${senderName}`;
+  if (subtitle) subtitle.textContent = groupOrWa ? `Grup: ${groupOrWa}` : `Direct WhatsApp • Waktu: ${timeStr}`;
+
+  if (body) {
+    body.innerHTML = `
+      <div style="align-self:flex-start; max-width:85%; background:rgba(37,99,235,0.08); padding:12px 16px; border-radius:12px; border:1px solid rgba(37,99,235,0.2);">
+        <strong style="font-size:12px; color:var(--primary-accent); display:block; margin-bottom:4px;">👤 ${senderName} (${timeStr})</strong>
+        <p style="margin:0; font-size:13.5px; color:var(--text-main); line-height:1.4;">${userMsg}</p>
+      </div>
+
+      <div style="align-self:flex-end; max-width:85%; background:rgba(16,185,129,0.08); padding:12px 16px; border-radius:12px; border:1px solid rgba(16,185,129,0.2);">
+        <strong style="font-size:12px; color:var(--success); display:block; margin-bottom:4px;">🤖 KawanAI (Sales Specialist)</strong>
+        <p style="margin:0; font-size:13.5px; color:var(--text-main); line-height:1.4;">${botMsg}</p>
+      </div>
+    `;
+  }
+
+  if (modal) modal.style.display = 'flex';
+  setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
 };
 
 let globalFetchTenantsRef = null;
@@ -130,6 +157,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnResetAdminPwd = document.getElementById('btn-reset-admin-pwd');
   const btnBackToTenants = document.getElementById('btn-back-to-tenants');
   const btnTopBackTenants = document.getElementById('btn-top-back-tenants');
+  const btnCloseChatThreadModal = document.getElementById('btn-close-chat-thread-modal');
+  const modalViewChatThread = document.getElementById('modal-view-chat-thread');
+
+  if (btnCloseChatThreadModal) btnCloseChatThreadModal.onclick = () => { if (modalViewChatThread) modalViewChatThread.style.display = 'none'; };
 
   const roleTabs = document.querySelectorAll('.role-tab');
   const loginEmail = document.getElementById('login-email');
@@ -140,8 +171,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const tenantSearchInput = document.getElementById('tenant-search-input');
   const unverifiedCountBadge = document.getElementById('unverified-count-badge');
+  const chatFilterDate = document.getElementById('chat-filter-date');
+  const chatFilterType = document.getElementById('chat-filter-type');
 
   let selectedLoginRole = 'TENANT_OWNER';
+
+  // SIDEBAR TAB ROUTER IN TENANT DASHBOARD
+  const tenantNavItems = document.querySelectorAll('[data-tab]');
+  const tenantTabContents = document.querySelectorAll('.tab-content');
+
+  tenantNavItems.forEach(item => {
+    item.addEventListener('click', () => {
+      const target = item.getAttribute('data-tab');
+      tenantNavItems.forEach(i => i.classList.remove('active'));
+      tenantTabContents.forEach(c => c.style.display = 'none');
+
+      item.classList.add('active');
+      const targetSec = document.getElementById(`tab-${target}`);
+      if (targetSec) targetSec.style.display = 'block';
+      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+    });
+  });
 
   // RESET ADMIN PASSWORD SIDEBAR TRIGGER
   if (btnResetAdminPwd) {
@@ -407,7 +457,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // DEDICATED TENANT DETAIL PAGE BACK ROUTER
   function backToTenantsList() {
     if (viewTenantDetail) viewTenantDetail.style.display = 'none';
     if (viewSuperAdmin) viewSuperAdmin.style.display = 'block';
@@ -474,7 +523,155 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  async function fetchTenantOrders() {
+    try {
+      const res = await fetch('/api/tenant/orders');
+      const json = await res.json();
+      if (json.status === 'success') {
+        window.rawTenantOrdersData = json.data;
+        renderTenantOrdersTable(json.data);
+      }
+    } catch (e) {
+      console.log('Orders fetch fallback');
+    }
+  }
+
+  async function fetchTenantChatHistory() {
+    try {
+      const res = await fetch('/api/tenant/chat-history');
+      const json = await res.json();
+      if (json.status === 'success') {
+        window.rawTenantChatHistoryData = json.data;
+        renderTenantChatHistoryGroupedByDate();
+      }
+    } catch (e) {
+      console.log('Chat history fetch fallback');
+    }
+  }
+
   globalFetchTenantsRef = fetchDynamicTenants;
+
+  // RENDER TENANT ORDERS TABLE (AUTOMATED WHATSAPP ORDERS)
+  function renderTenantOrdersTable(orders) {
+    const tbody = document.getElementById('tenant-orders-table-body');
+    if (!tbody) return;
+
+    if (!orders || orders.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);">Belum ada pesanan otomatis yang dicatat.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = orders.map(o => {
+      const dateStr = o.order_date ? new Date(o.order_date).toLocaleString('id-ID') : '24/07/2026';
+      const priceStr = 'Rp ' + parseInt(o.total_price || 0).toLocaleString('id-ID');
+      const proofUrl = o.payment_proof_url || 'https://dummyimage.com/600x800/0f172a/10b981.png&text=Bukti+Transfer+Order';
+
+      let statusBadge = '<span class="badge badge-success"><i data-lucide="check-circle-2"></i> LUNAS (PAID)</span>';
+      if (o.order_status === 'PENDING_PROOF') {
+        statusBadge = '<span class="badge badge-warning"><i data-lucide="clock"></i> CEK RESI</span>';
+      }
+
+      let chatTypeBadge = '<span class="badge badge-accent">💬 Direct WA</span>';
+      if (o.chat_type === 'GROUP') {
+        chatTypeBadge = `<span class="badge badge-accent" style="background:rgba(147,51,234,0.1); color:#9333ea;">👥 ${o.group_name || 'Grup WA'}</span>`;
+      }
+
+      return `
+        <tr>
+          <td><code style="font-weight:700; color:var(--primary-accent);">${o.order_code}</code></td>
+          <td><strong>${o.customer_name}</strong><br><span class="wa-phone-link"><i data-lucide="phone"></i> ${o.customer_phone}</span></td>
+          <td><span style="font-size:13px; font-weight:600; color:var(--text-main);">${o.item_summary}</span><br><span style="font-size:11.5px; color:var(--text-muted);">${dateStr}</span></td>
+          <td><strong style="color:var(--success); font-size:14px;">${priceStr}</strong></td>
+          <td>${chatTypeBadge}</td>
+          <td>
+            ${statusBadge}<br>
+            <button class="btn btn-outline btn-sm" style="margin-top:6px; font-size:11px; padding:3px 8px;" onclick="openImagePreviewModal('${proofUrl}', 'Order ${o.order_code} • ${o.customer_name.replace(/'/g, "\\'")}')">
+              <i data-lucide="image"></i> Lihat Resi (Popup)
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+  }
+
+  // RENDER TENANT CHAT HISTORY GROUPED BY DATE & WA GROUP FILTER
+  function renderTenantChatHistoryGroupedByDate() {
+    const container = document.getElementById('tenant-chat-history-container');
+    if (!container) return;
+
+    let logs = [...(window.rawTenantChatHistoryData || [])];
+    const selectedDate = chatFilterDate ? chatFilterDate.value : '';
+    const selectedType = chatFilterType ? chatFilterType.value : 'ALL';
+
+    if (selectedDate) {
+      logs = logs.filter(l => (l.log_date || '').startsWith(selectedDate));
+    }
+
+    if (selectedType !== 'ALL') {
+      logs = logs.filter(l => l.chat_type === selectedType);
+    }
+
+    if (logs.length === 0) {
+      container.innerHTML = `<div class="card" style="text-align:center; padding:30px; color:var(--text-muted);">Tidak ada riwayat chat pada kriteria filter ini.</div>`;
+      return;
+    }
+
+    // Grouping by Date
+    const grouped = {};
+    logs.forEach(l => {
+      const dKey = l.log_date ? new Date(l.log_date).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '24 Juli 2026';
+      if (!grouped[dKey]) grouped[dKey] = [];
+      grouped[dKey].push(l);
+    });
+
+    container.innerHTML = Object.keys(grouped).map(dateTitle => {
+      const dayLogs = grouped[dateTitle];
+      const rowsHtml = dayLogs.map(item => {
+        const timeStr = item.message_time ? new Date(item.message_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '14:20';
+        let badgeType = '<span class="badge badge-accent">💬 Direct WA</span>';
+        if (item.chat_type === 'GROUP') {
+          badgeType = `<span class="badge badge-accent" style="background:rgba(147,51,234,0.1); color:#9333ea;">👥 Grup: ${item.group_name || 'Grup WA'}</span>`;
+        }
+
+        return `
+          <div style="display:flex; align-items:flex-start; justify-content:space-between; padding:12px 14px; background:var(--bg-body); border-radius:10px; border:1px solid var(--border-card); gap:12px;">
+            <div style="flex:1;">
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                <strong>${item.sender_name}</strong>
+                ${badgeType}
+                <span style="font-size:11.5px; color:var(--text-muted); margin-left:auto;">🕒 ${timeStr}</span>
+              </div>
+              <p style="font-size:13px; color:var(--text-main); margin-bottom:4px;"><strong>Pembeli:</strong> "${item.user_message}"</p>
+              <p style="font-size:13px; color:var(--success); margin:0;"><strong>AI Siti:</strong> "${item.bot_response}"</p>
+            </div>
+            <button class="btn btn-outline btn-sm" style="font-size:11px; white-space:nowrap;" 
+                    onclick="openChatThreadModal('${item.sender_name.replace(/'/g, "\\'")}', '${(item.group_name || '').replace(/'/g, "\\'")}', '${item.user_message.replace(/'/g, "\\'")}', '${item.bot_response.replace(/'/g, "\\'")}', '${timeStr}')">
+              <i data-lucide="message-square"></i> Lihat Percakapan
+            </button>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="card" style="padding:18px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; border-bottom:1px solid var(--border-card); padding-bottom:10px;">
+            <h4 style="font-size:16px; font-weight:800; color:var(--primary-accent); margin:0;"><i data-lucide="calendar"></i> ${dateTitle}</h4>
+            <span class="badge badge-accent">${dayLogs.length} Percakapan Hari Ini</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            ${rowsHtml}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+  }
+
+  if (chatFilterDate) chatFilterDate.addEventListener('change', renderTenantChatHistoryGroupedByDate);
+  if (chatFilterType) chatFilterType.addEventListener('change', renderTenantChatHistoryGroupedByDate);
 
   // UNVERIFIED NOTIFICATION COUNTER BADGE IN SUPER ADMIN SIDEBAR
   function updateUnverifiedNotificationBadge(tenants) {
@@ -506,7 +703,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (window.currentSortField) {
-      // Strict column sorting when user explicitly clicks a column header
       tenants.sort((a, b) => {
         let valA = (a[window.currentSortField] || '').toString().toLowerCase();
         let valB = (b[window.currentSortField] || '').toString().toLowerCase();
@@ -516,7 +712,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return 0;
       });
     } else {
-      // Default view sorting: Pin UNVERIFIED at the top, then newest created
       tenants.sort((a, b) => {
         const isAUnverified = a.payment_status === 'UNVERIFIED';
         const isBUnverified = b.payment_status === 'UNVERIFIED';
@@ -674,7 +869,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- PARA KAWANAI TENANT TABLE (STANDARDIZED SEQUENTIAL #KWN CODES) ---
+  // --- PARA KAWANAI TENANT TABLE ---
   function renderAdminTenantsTable(tenants) {
     const tbody = document.getElementById('admin-tenants-table-body');
     if (!tbody) return;
@@ -716,7 +911,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
   }
 
-  // --- LIGHTWEIGHT IMAGE PREVIEW MODAL ---
+  // LIGHTWEIGHT IMAGE PREVIEW MODAL
   const modalImagePreview = document.getElementById('modal-image-preview');
   const btnCloseImageModal = document.getElementById('btn-close-image-modal');
   const previewModalImg = document.getElementById('preview-modal-img');
@@ -731,7 +926,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
   };
 
-  // --- SUPER ADMIN MANUAL VERIFICATION STATUS UPDATER ---
+  // SUPER ADMIN MANUAL VERIFICATION STATUS UPDATER
   window.updateTenantStatus = async function(tenantId, newStatus) {
     try {
       const res = await fetch('/api/admin/tenants/update-status', {
@@ -750,7 +945,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // --- DEDICATED TENANT DETAIL PAGE ROUTER (WITH LUXURY MODAL RESET PASSWORD TRIGGER) ---
+  // DEDICATED TENANT DETAIL PAGE ROUTER
   window.openTenantDetailPage = function(tenantId) {
     const t = (window.rawTenantsData && window.rawTenantsData.find(x => x.id === tenantId)) || {
       id: tenantId,
@@ -817,9 +1012,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     pageContent.innerHTML = `
-      <!-- 2-COLUMN GRID SPLIT -->
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
-        <!-- CARD 1: INFORMASI TOKO & KONTAK BISNIS -->
         <div class="card">
           <div class="card-header">
             <h3><i data-lucide="store"></i> Informasi Toko & Perusahaan</h3>
@@ -837,7 +1030,6 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
 
-        <!-- CARD 2: INFORMASI PEMILIK (OWNER PROFILE & PASSWORD WITH EYE TOGGLE) -->
         <div class="card">
           <div class="card-header">
             <h3><i data-lucide="user-check"></i> Informasi Pemilik (Owner)</h3>
@@ -853,7 +1045,6 @@ document.addEventListener('DOMContentLoaded', () => {
               <div><span class="card-subtitle">No. HP Personal</span><br><span class="wa-phone-link"><i data-lucide="phone"></i> ${t.whatsapp_number || '081234567890'}</span></div>
             </div>
             
-            <!-- PASSWORD WITH EYE ICON TOGGLE & LUXURY RESET MODAL BUTTON -->
             <div style="border-top:1px solid var(--border-card); padding-top:12px; margin-top:4px;">
               <span class="card-subtitle" style="display:block; margin-bottom:6px; font-weight:700;">Kata Sandi (Password Login Tenant):</span>
               <div style="display:flex; align-items:center; gap:8px;">
@@ -874,9 +1065,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
 
-      <!-- 2-COLUMN GRID SPLIT METRICS & PEMBAYARAN -->
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-top:4px;">
-        <!-- CARD 3: METRIK OPERASIONAL CHAT & ASISTEN AI -->
         <div class="card">
           <div class="card-header">
             <h3><i data-lucide="bot"></i> Metrik Pemakaian Chat & Asisten AI</h3>
@@ -898,7 +1087,6 @@ document.addEventListener('DOMContentLoaded', () => {
               <div><span class="card-subtitle">Tone Persona</span><br><strong>${t.ai_persona_tone || 'Ramah & Casual'}</strong></div>
             </div>
             
-            <!-- REFINED KATALOG & SOP KNOWLEDGE BASE RAG PDF BOX (RED ACCENT THEME) -->
             <div style="border-top:1px solid var(--border-card); padding-top:14px; margin-top:4px;">
               <span class="card-subtitle" style="display:block; margin-bottom:8px; font-weight:700;">File Katalog & SOP Knowledge Base (RAG PDF):</span>
               <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(225,29,72,0.04); padding:12px 16px; border-radius:12px; border:1px solid rgba(225,29,72,0.18);">
@@ -919,7 +1107,6 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
 
-        <!-- CARD 4: VERIFIKASI BANK & MASA AKTIF LANGGANAN -->
         <div class="card" style="display:flex; flex-direction:column; justify-content:space-between;">
           <div>
             <div class="card-header">
@@ -944,7 +1131,6 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </div>
 
-          <!-- HARMONIZED ACTION BUTTONS -->
           <div style="border-top:1px solid var(--border-card); padding-top:14px; margin-top:16px; display:flex; flex-direction:column; gap:8px;">
             <span class="card-subtitle" style="font-weight:700;">Aksi Verifikasi Manual Super Admin:</span>
             <div style="display:flex; gap:8px;">
@@ -966,40 +1152,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
   };
 
-  // 5. SUPER ADMIN & CMS TABS
-  const adminNavItems = document.querySelectorAll('[data-admin-tab]');
-  const adminTabContents = document.querySelectorAll('.admin-tab-content');
-
-  adminNavItems.forEach(item => {
-    item.addEventListener('click', () => {
-      const target = item.getAttribute('data-admin-tab');
-      adminNavItems.forEach(i => i.classList.remove('active'));
-      adminTabContents.forEach(c => c.style.display = 'none');
-
-      item.classList.add('active');
-      const targetSec = document.getElementById(`admin-tab-${target}`);
-      if (targetSec) targetSec.style.display = 'flex';
-      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-    });
-  });
-
-  const cmsSubtabs = document.querySelectorAll('[data-cms]');
-  const cmsSections = document.querySelectorAll('.cms-sec');
-
-  cmsSubtabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      const target = tab.getAttribute('data-cms');
-      cmsSubtabs.forEach(t => t.classList.remove('active'));
-      cmsSections.forEach(s => s.style.display = 'none');
-
-      tab.classList.add('active');
-      const targetSec = document.getElementById(`cms-sec-${target}`);
-      if (targetSec) targetSec.style.display = 'block';
-      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-    });
-  });
-
-  // --- CMS CONTENT EDITOR TABLES ---
+  // CMS CONTENT EDITOR TABLES
   function renderCMSPortfolioTable(items) {
     const tbody = document.getElementById('cms-portfolio-table-body');
     if (!tbody) return;
@@ -1069,191 +1222,12 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
   }
 
-  // 6. NEAT FORM CMS EDITOR & VISUAL ICON PICKER DROPDOWN CONTROLLER
-  const modalCMSEditor = document.getElementById('modal-cms-editor');
-  const btnCloseCMSModal = document.getElementById('btn-close-cms-modal');
-  const btnCancelCMSEditor = document.getElementById('btn-cancel-cms-editor');
-  const formCMSEditor = document.getElementById('form-cms-editor');
-  const cmsFieldsContainer = document.getElementById('cms-fields-container');
-
-  if (btnCloseCMSModal) btnCloseCMSModal.onclick = () => { if (modalCMSEditor) modalCMSEditor.style.display = 'none'; };
-  if (btnCancelCMSEditor) btnCancelCMSEditor.onclick = () => { if (modalCMSEditor) modalCMSEditor.style.display = 'none'; };
-
-  const ICON_OPTIONS = [
-    { name: 'message-square', label: '💬 Live Chat WhatsApp Automation' },
-    { name: 'bot', label: '🤖 Karyawan Digital AI Specialist' },
-    { name: 'file-text', label: '📄 Katalog & SOP PDF (RAG Knowledge)' },
-    { name: 'shopping-bag', label: '🛍️ Pencatatan Pesanan Otomatis' },
-    { name: 'sparkles', label: '✨ Otomatisasi AI Super Pintar' },
-    { name: 'zap', label: '⚡ Respon Kilat 1.2 Detik 24/7' },
-    { name: 'shield-check', label: '🛡️ Keamanan Data Enterprise' },
-    { name: 'bar-chart-3', label: '📊 Laporan Analitik & Penjualan' },
-    { name: 'phone', label: '📱 WhatsApp Business API Official' },
-    { name: 'database', label: '🗄️ Database & CRM Synchronization' },
-    { name: 'clock', label: '⏰ Layanan Customer Service 24 Jam' },
-    { name: 'users', label: '👥 Multi-Admin Team Management' }
-  ];
-
-  window.openCMSEditorModal = function(type, id = null) {
-    document.getElementById('cms-item-type').value = type;
-    document.getElementById('cms-item-id').value = id || '';
-    if (modalCMSEditor) modalCMSEditor.style.display = 'flex';
-
-    if (type === 'portfolio') {
-      const item = id ? window.rawPortfolioData.find(x => x.id === id) : {};
-      document.getElementById('cms-modal-title').textContent = id ? 'Edit Portofolio & Studi Kasus' : 'Tambah Portofolio Baru';
-      cmsFieldsContainer.innerHTML = `
-        <div class="form-group"><label>Judul Portofolio</label><input type="text" id="p-title" required value="${item?.title || ''}" placeholder="misal: Toko Baju Kang Devis"></div>
-        <div class="form-group"><label>Kategori Bisnis</label><input type="text" id="p-category" required value="${item?.category || 'Online Shop'}" placeholder="Online Shop / Klinik / Legal"></div>
-        <div class="form-group"><label>Deskripsi Hasil Studi Kasus</label><textarea id="p-desc" rows="3" required placeholder="Jelaskan hasil efisiensi setelah pakai KawanAI...">${item?.description || ''}</textarea></div>
-        <div class="form-row-2col">
-          <div class="form-group"><label>Metrik 1 Label</label><input type="text" id="p-m1-label" value="${item?.metric_1_label || 'Waktu Respon'}" placeholder="misal: Waktu Respon"></div>
-          <div class="form-group"><label>Metrik 1 Value</label><input type="text" id="p-m1-val" value="${item?.metric_1_value || '1.2 Detik'}" placeholder="misal: 1.2 Detik"></div>
-        </div>
-        <div class="form-row-2col">
-          <div class="form-group"><label>Metrik 2 Label</label><input type="text" id="p-m2-label" value="${item?.metric_2_label || 'Order Otomatis'}" placeholder="misal: Order Otomatis"></div>
-          <div class="form-group"><label>Metrik 2 Value</label><input type="text" id="p-m2-val" value="${item?.metric_2_value || '120+ / Bulan'}" placeholder="misal: 120+ / Bulan"></div>
-        </div>
-      `;
-    } else if (type === 'features') {
-      const item = id ? window.rawFeaturesData.find(x => x.id === id) : {};
-      document.getElementById('cms-modal-title').textContent = id ? 'Edit Fitur Utama Platform' : 'Tambah Fitur Utama Baru';
-      
-      const currentIcon = item?.icon_name || 'message-square';
-      const optionsHtml = ICON_OPTIONS.map(opt => `
-        <option value="${opt.name}" ${opt.name === currentIcon ? 'selected' : ''}>
-          ${opt.label} (${opt.name})
-        </option>
-      `).join('');
-
-      cmsFieldsContainer.innerHTML = `
-        <div class="form-group">
-          <label>Pilih Ikon Fitur (Tinggal Pilih Dropdown):</label>
-          <select id="f-icon-select" class="icon-picker-select">
-            ${optionsHtml}
-          </select>
-        </div>
-        <div class="form-group"><label>Judul Fitur Utama</label><input type="text" id="f-title" required value="${item?.title || ''}" placeholder="misal: WhatsApp Live Automation"></div>
-        <div class="form-group"><label>Deskripsi Fitur</label><textarea id="f-desc" rows="4" required placeholder="Jelaskan keunggulan fitur ini...">${item?.description || ''}</textarea></div>
-      `;
-    } else if (type === 'pricing') {
-      const item = id ? window.rawPricingData.find(x => x.id === id) : {};
-      document.getElementById('cms-modal-title').textContent = id ? 'Edit Paket Harga Promo' : 'Tambah Paket Harga Baru';
-      cmsFieldsContainer.innerHTML = `
-        <div class="form-row-2col">
-          <div class="form-group"><label>Kode Paket</label><input type="text" id="pr-code" required value="${item?.plan_code || 'PRO'}" placeholder="LITE / PRO / ENTERPRISE"></div>
-          <div class="form-group"><label>Nama Paket</label><input type="text" id="pr-name" required value="${item?.plan_name || ''}" placeholder="Paket Pro (Bisnis)"></div>
-        </div>
-        <div class="form-row-2col">
-          <div class="form-group"><label>Harga Normal Asli (Lebih Mahal)</label><input type="number" id="pr-orig" value="${item?.original_monthly_price || 1490000}" placeholder="misal: 1490000"></div>
-          <div class="form-group"><label>Harga Promo Bulanan (Rp)</label><input type="number" id="pr-monthly" required value="${item?.monthly_price || 990000}" placeholder="misal: 990000"></div>
-        </div>
-        <div class="form-group"><label>Teks Label Promo</label><input type="text" id="pr-badge" value="${item?.promo_badge || 'Promo Terbatas'}" placeholder="misal: Promo Terbatas"></div>
-        <div class="form-row-2col">
-          <div class="form-group"><label>Batas Tanggal Expiry Promo</label><input type="date" id="pr-ends" value="${item?.promo_ends_at ? item.promo_ends_at.substring(0,10) : '2026-08-31'}"></div>
-          <div class="form-group"><label>Harga Setaun Tahunan (Bulanan Rp)</label><input type="number" id="pr-annual" required value="${item?.annual_monthly_price || 790000}"></div>
-        </div>
-      `;
-    }
-    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-  };
-
-  const btnAddPortfolio = document.getElementById('btn-add-portfolio');
-  const btnAddFeature = document.getElementById('btn-add-feature');
-  const btnAddPricing = document.getElementById('btn-add-pricing');
-
-  if (btnAddPortfolio) btnAddPortfolio.onclick = () => window.openCMSEditorModal('portfolio');
-  if (btnAddFeature) btnAddFeature.onclick = () => window.openCMSEditorModal('features');
-  if (btnAddPricing) btnAddPricing.onclick = () => window.openCMSEditorModal('pricing');
-
-  if (formCMSEditor) {
-    formCMSEditor.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const type = document.getElementById('cms-item-type').value;
-      const id = document.getElementById('cms-item-id').value;
-      let endpoint = `/api/admin/${type}/save`;
-      let payload = { id };
-
-      if (type === 'portfolio') {
-        payload.title = document.getElementById('p-title').value;
-        payload.category = document.getElementById('p-category').value;
-        payload.description = document.getElementById('p-desc').value;
-        payload.metric_1_label = document.getElementById('p-m1-label').value;
-        payload.metric_1_value = document.getElementById('p-m1-val').value;
-        payload.metric_2_label = document.getElementById('p-m2-label').value;
-        payload.metric_2_value = document.getElementById('p-m2-val').value;
-      } else if (type === 'features') {
-        const iconSelect = document.getElementById('f-icon-select');
-        payload.icon_name = iconSelect ? iconSelect.value : 'message-square';
-        payload.title = document.getElementById('f-title').value;
-        payload.description = document.getElementById('f-desc').value;
-      } else if (type === 'pricing') {
-        payload.plan_code = document.getElementById('pr-code').value;
-        payload.plan_name = document.getElementById('pr-name').value;
-        payload.original_monthly_price = document.getElementById('pr-orig').value;
-        payload.monthly_price = document.getElementById('pr-monthly').value;
-        payload.promo_badge = document.getElementById('pr-badge').value;
-        payload.promo_ends_at = document.getElementById('pr-ends').value ? document.getElementById('pr-ends').value + 'T23:59:59+07:00' : null;
-        payload.annual_monthly_price = document.getElementById('pr-annual').value;
-      }
-
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const json = await res.json();
-      if (json.status === 'success') {
-        if (modalCMSEditor) modalCMSEditor.style.display = 'none';
-        if (type === 'portfolio') fetchDynamicPortfolio();
-        if (type === 'features') fetchDynamicFeatures();
-        if (type === 'pricing') fetchDynamicPricing();
-      }
-    });
-  }
-
-  // 7. SOFT DELETE CONFIRMATION MODAL LOGIC
-  const modalConfirmDelete = document.getElementById('modal-confirm-delete');
-  const deleteConfirmText = document.getElementById('delete-confirm-text');
-  const deleteTargetType = document.getElementById('delete-target-type');
-  const deleteTargetId = document.getElementById('delete-target-id');
-  const btnCancelDelete = document.getElementById('btn-cancel-delete');
-  const btnConfirmDeleteAction = document.getElementById('btn-confirm-delete-action');
-
-  if (btnCancelDelete) btnCancelDelete.onclick = () => { if (modalConfirmDelete) modalConfirmDelete.style.display = 'none'; };
-
-  window.promptSoftDelete = function(type, id, title) {
-    deleteTargetType.value = type;
-    deleteTargetId.value = id;
-    deleteConfirmText.innerHTML = `Apakah Anda yakin ingin menghapus <strong>"${title}"</strong>?<br><span style="color:var(--text-dim); font-size:12.5px;">Data ini akan dipindahkan ke tempat sampah & tidak hilang permanen.</span>`;
-    if (modalConfirmDelete) modalConfirmDelete.style.display = 'flex';
-    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-  };
-
-  if (btnConfirmDeleteAction) {
-    btnConfirmDeleteAction.onclick = async () => {
-      const type = deleteTargetType.value;
-      const id = deleteTargetId.value;
-
-      const res = await fetch(`/api/admin/${type}/delete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id })
-      });
-      const json = await res.json();
-      if (json.status === 'success') {
-        if (modalConfirmDelete) modalConfirmDelete.style.display = 'none';
-        if (type === 'portfolio') fetchDynamicPortfolio();
-        if (type === 'features') fetchDynamicFeatures();
-        if (type === 'pricing') fetchDynamicPricing();
-      }
-    };
-  }
-
   // INITIAL FETCHERS RUN
   fetchDynamicPortfolio();
   fetchDynamicFeatures();
   fetchDynamicPricing();
   fetchDynamicTenants();
+  fetchTenantOrders();
+  fetchTenantChatHistory();
 
 });
