@@ -32,12 +32,13 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.get_admin_tenants_api()
         else:
             # Disable Cache for development static files & enforce UTF-8
+            clean_path = self.path.split('?')[0]
             self.send_response(200)
-            if self.path.endswith('.css'):
+            if clean_path.endswith('.css'):
                 self.send_header('Content-Type', 'text/css; charset=utf-8')
-            elif self.path.endswith('.js'):
+            elif clean_path.endswith('.js'):
                 self.send_header('Content-Type', 'application/javascript; charset=utf-8')
-            elif self.path.endswith('.html') or self.path == '/':
+            elif clean_path.endswith('.html') or clean_path == '/':
                 self.send_header('Content-Type', 'text/html; charset=utf-8')
             
             self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
@@ -45,13 +46,14 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header('Expires', '0')
             self.end_headers()
 
-
-            filepath = os.path.join(DIRECTORY, 'index.html' if self.path == '/' else self.path.lstrip('/'))
+            rel_path = 'index.html' if (clean_path == '/' or not clean_path) else clean_path.lstrip('/')
+            filepath = os.path.join(DIRECTORY, rel_path)
             if os.path.exists(filepath) and os.path.isfile(filepath):
                 with open(filepath, 'rb') as f:
                     self.wfile.write(f.read())
             else:
                 super().do_GET()
+
 
 
     def do_POST(self):
