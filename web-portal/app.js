@@ -1,4 +1,4 @@
-// KawanAI - Complete Application Controller (Order Detail & Payment Verification Modal)
+// KawanAI - Complete Application Controller (WhatsApp Chat Proof in Order Detail Modal)
 
 // --- GLOBAL SORTING & DATA STATE (DECLARED OUTSIDE DOMCONTENTLOADED) ---
 window.currentSortField = null;
@@ -124,7 +124,7 @@ window.openChatThreadModal = function(senderName, groupOrWa, userMsg, botMsg, ti
   setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
 };
 
-// --- ORDER DETAIL & PAYMENT VERIFICATION MODAL CONTROLLER ---
+// --- ORDER DETAIL & PAYMENT VERIFICATION MODAL CONTROLLER (WITH CHAT PROOF LOGS) ---
 window.openOrderDetailModal = function(orderCode) {
   const modal = document.getElementById('modal-order-detail');
   const codeElem = document.getElementById('order-detail-modal-code');
@@ -134,6 +134,7 @@ window.openOrderDetailModal = function(orderCode) {
   const totalPriceElem = document.getElementById('order-modal-total-price');
   const proofImgElem = document.getElementById('order-modal-proof-img');
   const statusBadgeElem = document.getElementById('order-detail-status-badge');
+  const chatContainer = document.getElementById('order-modal-chat-proof-container');
   const btnContactWa = document.getElementById('btn-contact-customer-wa');
 
   const order = (window.rawTenantOrdersData && window.rawTenantOrdersData.find(o => o.order_code === orderCode)) || {
@@ -143,7 +144,8 @@ window.openOrderDetailModal = function(orderCode) {
     item_summary: '2x Gamis Syari Premium (Navy L)',
     total_price: 370000.00,
     payment_proof_url: 'https://dummyimage.com/600x800/0f172a/10b981.png&text=Bukti+Transfer+Budi+Rp+370.000',
-    order_status: 'PAID'
+    order_status: 'PAID',
+    chat_transcript_json: '[{"sender": "user", "name": "Budi Santoso", "time": "14:15", "text": "Halo kak, Gamis Syari Size L ready warna Navy? Saya mau order 2 pcs kak."}, {"sender": "bot", "name": "Siti - CS Toko Baju Kang Devis", "time": "14:15", "text": "Halo kak Budi! Ready warna Navy kak (Rp 185.000 x 2 = Rp 370.000). Pesanan sudah Siti catat otomatis dengan Kode #ORD-20260724-001. Silakan transfer ke BCA 1234567890 an Toko Baju Kang Devis ya kak! 😊"}, {"sender": "user", "name": "Budi Santoso", "time": "14:22", "text": "Sudah sy transfer kak Rp 370.000 via BCA. Ini foto bukti transfernya ya min."}]'
   };
 
   if (codeElem) codeElem.textContent = `Detail Pesanan ${order.order_code}`;
@@ -158,6 +160,48 @@ window.openOrderDetailModal = function(orderCode) {
       statusBadgeElem.innerHTML = '<span class="badge badge-success"><i data-lucide="check-circle-2"></i> LUNAS (PAID)</span>';
     } else {
       statusBadgeElem.innerHTML = '<span class="badge badge-warning"><i data-lucide="clock"></i> MENUNGGU VERIFIKASI</span>';
+    }
+  }
+
+  // RENDER WHATSAPP CHAT PROOF BUBBLES
+  if (chatContainer) {
+    let chatProof = [];
+    if (order.chat_transcript_json) {
+      try {
+        chatProof = typeof order.chat_transcript_json === 'string' ? JSON.parse(order.chat_transcript_json) : order.chat_transcript_json;
+      } catch(e) { chatProof = []; }
+    }
+
+    if (chatProof && chatProof.length > 0) {
+      chatContainer.innerHTML = chatProof.map(msg => {
+        const isBot = msg.sender === 'bot';
+        const bgStyle = isBot 
+          ? 'background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2); align-self:flex-end;' 
+          : 'background:rgba(37,99,235,0.08); border:1px solid rgba(37,99,235,0.2); align-self:flex-start;';
+        const titleColor = isBot ? 'color:var(--success);' : 'color:var(--primary-accent);';
+        const iconStr = isBot ? '🤖' : '👤';
+
+        return `
+          <div style="${bgStyle} max-width:90%; padding:10px 14px; border-radius:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; gap:8px;">
+              <strong style="font-size:11.5px; ${titleColor}">${iconStr} ${msg.name}</strong>
+              <span style="font-size:10.5px; color:var(--text-muted);">🕒 ${msg.time}</span>
+            </div>
+            <p style="margin:0; font-size:12.5px; color:var(--text-main); line-height:1.4;">${msg.text}</p>
+          </div>
+        `;
+      }).join('');
+    } else {
+      chatContainer.innerHTML = `
+        <div style="background:rgba(37,99,235,0.08); padding:10px 14px; border-radius:10px; border:1px solid rgba(37,99,235,0.2); align-self:flex-start; max-width:90%;">
+          <strong style="font-size:11.5px; color:var(--primary-accent)">👤 ${order.customer_name} (14:15)</strong>
+          <p style="margin:4px 0 0 0; font-size:12.5px; color:var(--text-main);">"Halo kak, ${order.item_summary} ready? Saya mau pesan sekarang."</p>
+        </div>
+        <div style="background:rgba(16,185,129,0.08); padding:10px 14px; border-radius:10px; border:1px solid rgba(16,185,129,0.2); align-self:flex-end; max-width:90%;">
+          <strong style="font-size:11.5px; color:var(--success)">🤖 Siti - CS AI (14:15)</strong>
+          <p style="margin:4px 0 0 0; font-size:12.5px; color:var(--text-main);">"Ready kak! Pesanan dicatat dengan Kode ${order.order_code} (Total Rp ${parseInt(order.total_price||0).toLocaleString('id-ID')}). Silakan transfer ke BCA 1234567890 ya!"</p>
+        </div>
+      `;
     }
   }
 
