@@ -75,8 +75,11 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.save_pricing_api()
         elif self.path == '/api/admin/pricing/delete':
             self.delete_pricing_api()
+        elif self.path == '/api/admin/tenants/reset-password':
+            self.reset_tenant_password_api()
         else:
-            self.send_error(404, "Endpoint Not Found")
+            self.send_json_response({"status": "error", "message": "Not Found"}, 404)
+
 
     # --- GET ENDPOINTS ---
     def get_portfolio_api(self):
@@ -232,6 +235,27 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.send_json_response({"status": "success", "message": f"Status tenant berhasil diperbarui menjadi {new_payment_status}!"})
         except Exception as e:
             self.send_json_response({"status": "error", "message": str(e)}, 500)
+
+    def reset_tenant_password_api(self):
+        try:
+            payload = self.read_json_payload()
+            tenant_id = payload.get('id')
+            new_password = payload.get('new_password', '123456')
+
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor.execute("""
+                UPDATE tenant_service.tenants
+                SET tenant_password = %s, updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s;
+            """, (new_password, tenant_id))
+            conn.commit()
+            conn.close()
+
+            self.send_json_response({"status": "success", "message": f"Kata sandi tenant berhasil diperbarui menjadi '{new_password}'!"})
+        except Exception as e:
+            self.send_json_response({"status": "error", "message": str(e)}, 500)
+
 
     def handle_login_api(self):
         try:

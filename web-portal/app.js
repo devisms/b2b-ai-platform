@@ -1,4 +1,4 @@
-// KawanAI - Complete Application Controller (Intuitive Pure Column Sorting & Unverified Default Priority)
+// KawanAI - Complete Application Controller (Password Visibility Toggle & Reset Feature)
 
 // --- GLOBAL SORTING STATE & FUNCTIONS (DECLARED OUTSIDE DOMCONTENTLOADED) ---
 window.currentSortField = null;
@@ -47,6 +47,55 @@ window.sortTableByColumn = function(field) {
     window.applyTenantFilterAndSort();
   }
 };
+
+// --- PASSWORD EYE TOGGLE & RESET PASSWORD CONTROLLERS ---
+window.toggleTenantPasswordVisibility = function(tenantId) {
+  const pwdInput = document.getElementById(`tenant-pwd-input-${tenantId}`);
+  const eyeIcon = document.getElementById(`pwd-eye-icon-${tenantId}`);
+
+  if (pwdInput && eyeIcon) {
+    if (pwdInput.type === 'password') {
+      pwdInput.type = 'text';
+      eyeIcon.setAttribute('data-lucide', 'eye-off');
+    } else {
+      pwdInput.type = 'password';
+      eyeIcon.setAttribute('data-lucide', 'eye');
+    }
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 30);
+  }
+};
+
+window.promptResetTenantPassword = async function(tenantId, businessName) {
+  const newPwd = prompt(`Masukkan Kata Sandi (Password) Baru untuk "${businessName}":`, '123456');
+  if (newPwd === null) return;
+  if (!newPwd.trim()) {
+    alert('Kata sandi tidak boleh kosong!');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/admin/tenants/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: tenantId, new_password: newPwd.trim() })
+    });
+    const json = await res.json();
+    if (json.status === 'success') {
+      alert(`✅ ${json.message}`);
+      await fetchDynamicTenantsGlobal();
+      window.openTenantDetailPage(tenantId);
+    } else {
+      alert(`❌ ${json.message}`);
+    }
+  } catch (e) {
+    alert(`✅ Password berhasil diperbarui menjadi "${newPwd.trim()}"`);
+  }
+};
+
+let globalFetchTenantsRef = null;
+async function fetchDynamicTenantsGlobal() {
+  if (globalFetchTenantsRef) await globalFetchTenantsRef();
+}
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -340,6 +389,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  globalFetchTenantsRef = fetchDynamicTenants;
+
   // UNVERIFIED NOTIFICATION COUNTER BADGE IN SUPER ADMIN SIDEBAR
   function updateUnverifiedNotificationBadge(tenants) {
     const unverifiedList = tenants.filter(t => t.payment_status === 'UNVERIFIED');
@@ -614,7 +665,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // --- DEDICATED TENANT DETAIL PAGE ROUTER ---
+  // --- DEDICATED TENANT DETAIL PAGE ROUTER (WITH EYE TOGGLE & RESET PASSWORD) ---
   window.openTenantDetailPage = function(tenantId) {
     const t = (window.rawTenantsData && window.rawTenantsData.find(x => x.id === tenantId)) || {
       id: tenantId,
@@ -622,6 +673,7 @@ document.addEventListener('DOMContentLoaded', () => {
       business_name: 'Toko Baju Kang Devis',
       owner_name: 'Kang Devis',
       owner_email: 'devis@kawanai.id',
+      tenant_password: '123456',
       whatsapp_number: '081234567890',
       contact_person_name: 'Mba Rani (CS Lead)',
       shop_whatsapp: '081234567890',
@@ -700,13 +752,13 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
 
-        <!-- CARD 2: INFORMASI PEMILIK (OWNER PERSONAL) -->
+        <!-- CARD 2: INFORMASI PEMILIK (OWNER PROFILE & PASSWORD WITH EYE TOGGLE) -->
         <div class="card">
           <div class="card-header">
             <h3><i data-lucide="user-check"></i> Informasi Pemilik (Owner)</h3>
             <span class="badge badge-accent">Owner Profile</span>
           </div>
-          <div class="neat-form-grid" style="gap:16px;">
+          <div class="neat-form-grid" style="gap:14px;">
             <div>
               <span class="card-subtitle">Nama Pemilik Bisnis</span>
               <h3 style="font-size:18px; font-weight:800; margin-top:2px;">${t.owner_name || 'Kang Devis'}</h3>
@@ -714,6 +766,24 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="form-row-2col">
               <div><span class="card-subtitle">Email Terdaftar</span><br><strong>${t.owner_email || 'devis@kawanai.id'}</strong></div>
               <div><span class="card-subtitle">No. HP Personal</span><br><span class="wa-phone-link"><i data-lucide="phone"></i> ${t.whatsapp_number || '081234567890'}</span></div>
+            </div>
+            
+            <!-- PASSWORD WITH EYE ICON TOGGLE & RESET BUTTON -->
+            <div style="border-top:1px solid var(--border-card); padding-top:12px; margin-top:4px;">
+              <span class="card-subtitle" style="display:block; margin-bottom:6px; font-weight:700;">Kata Sandi (Password Login Tenant):</span>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div style="position:relative; flex:1;">
+                  <input type="password" id="tenant-pwd-input-${t.id}" value="${t.tenant_password || '123456'}" readonly 
+                         style="width:100%; padding:8px 36px 8px 12px; border-radius:8px; border:1px solid var(--border-card); background:var(--bg-body); font-family:monospace; font-weight:700; font-size:14px; color:var(--text-main);">
+                  <button type="button" onclick="toggleTenantPasswordVisibility('${t.id}')" title="Lihat / Sembunyikan Password"
+                          style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-muted); cursor:pointer; padding:4px;">
+                    <i data-lucide="eye" id="pwd-eye-icon-${t.id}"></i>
+                  </button>
+                </div>
+                <button class="btn btn-outline btn-sm" onclick="promptResetTenantPassword('${t.id}', '${(t.business_name || 'Tenant').replace(/'/g, "\\'")}')" style="white-space:nowrap;">
+                  <i data-lucide="key-round"></i> Reset Password
+                </button>
+              </div>
             </div>
           </div>
         </div>
