@@ -246,40 +246,82 @@
 
         <!-- TAB 1: OVERVIEW & DASHBOARD -->
         <section class="tab-content active" id="tab-overview">
-          <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
-            <div class="metric-card card" style="cursor:pointer; transition:transform 0.2s;" onclick="document.querySelector('[data-tab=\'chat-history\']').click();" title="Klik untuk lihat Riwayat Chat Harian & Grup WA">
-              <div class="metric-icon blue"><i data-lucide="message-circle"></i></div>
-              <div class="metric-data">
+          <!-- METRICS OVERVIEW GRID (CLEAN HIERARCHY WITH TOKEN PROGRESS BAR) -->
+          <div class="metrics-grid">
+            
+            <!-- CARD 1: CHAT DIJAWAB HARI INI -->
+            <div class="card-interactive" onclick="document.querySelector('[data-tab=\'chat-history\']').click();" title="Klik untuk lihat Riwayat Chat WA">
+              <div class="card-top-row">
+                <div class="metric-icon blue"><i data-lucide="message-circle"></i></div>
+                <span class="badge badge-success" style="font-size:11px; font-weight:700;"><i data-lucide="trending-up"></i> +12% vs Kemarin</span>
+              </div>
+              <div class="card-main-val">
                 <span class="label">Chat Dijawab Hari Ini</span>
-                <h3 class="value">148 Chat</h3>
-                <span class="trend positive"><i data-lucide="trending-up"></i> +12% dari kemarin • Lihat Riwayat &rarr;</span>
+                <h3 class="value">148 <small style="font-size:13px; font-weight:600; color:var(--text-muted);">Chat</small></h3>
+              </div>
+              <div class="card-bottom-action">
+                <span>Lihat Riwayat Chat WA</span>
+                <i data-lucide="arrow-right"></i>
               </div>
             </div>
-            <div class="metric-card card" style="cursor:pointer; transition:transform 0.2s;" onclick="document.querySelector('[data-tab=\'orders\']').click();" title="Klik untuk lihat Daftar Pesanan Otomatis">
-              <div class="metric-icon green"><i data-lucide="shopping-bag"></i></div>
-              <div class="metric-data">
+
+            <!-- CARD 2: PESANAN OTOMATIS -->
+            <div class="card-interactive" onclick="document.querySelector('[data-tab=\'orders\']').click();" title="Klik untuk lihat Daftar Pesanan Otomatis">
+              <div class="card-top-row">
+                <div class="metric-icon green"><i data-lucide="shopping-bag"></i></div>
+                <span class="badge badge-accent" style="font-size:11px; font-weight:700;">Omset: Rp 4.8M</span>
+              </div>
+              <div class="card-main-val">
                 <span class="label">Pesanan Otomatis Dicatat</span>
-                <h3 class="value">24 Order</h3>
-                <span class="trend positive"><i data-lucide="trending-up"></i> Rp 4.800.000 Omset • Lihat Pesanan &rarr;</span>
+                <h3 class="value" style="color:var(--success);">24 <small style="font-size:13px; font-weight:600; color:var(--text-muted);">Order</small></h3>
+              </div>
+              <div class="card-bottom-action">
+                <span>Lihat Detail Pesanan</span>
+                <i data-lucide="arrow-right"></i>
               </div>
             </div>
-            <div class="metric-card card" style="cursor:pointer; transition:transform 0.2s;" onclick="document.querySelector('[data-tab=\'topup\']').click();" title="Klik untuk Top-Up Kuota Token Chat">
-              <div class="metric-icon yellow" style="background:rgba(245,158,11,0.1); color:#d97706;"><i data-lucide="zap"></i></div>
-              <div class="metric-data">
-                <span class="label">Sisa Kuota Token Chat</span>
-                <h3 class="value" style="color:#d97706;">3.760 Chat</h3>
-                <span class="trend positive" style="color:var(--primary-accent); font-weight:700;">+ Top-Up Extra Token &rarr;</span>
+
+            <!-- CARD 3: SISA KUOTA TOKEN CHAT (INTERACTIVE PERCENTAGE & PROGRESS BAR) -->
+            <div class="card-interactive" onclick="document.querySelector('[data-tab=\'topup\']').click();" title="Klik untuk Top-Up Kuota Token Chat">
+              <div class="card-top-row">
+                <div class="metric-icon yellow" style="background:rgba(245,158,11,0.12); color:#d97706;"><i data-lucide="zap"></i></div>
+                <span class="badge" style="background:rgba(245,158,11,0.15); color:#d97706; border:1px solid rgba(245,158,11,0.3); font-size:11px; font-weight:800;">⚡ 75,2% Sisa Kuota</span>
+              </div>
+              <div class="card-main-val">
+                <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                  <span class="label">Sisa Kuota Token Chat</span>
+                  <span style="font-size:11px; font-weight:700; color:var(--text-muted);">3.760 / 5.000</span>
+                </div>
+                <h3 class="value" style="color:#d97706; margin-bottom:6px;">3.760 <small style="font-size:13px; font-weight:600; color:var(--text-muted);">Token</small></h3>
+                <!-- INTERACTIVE PROGRESS BAR -->
+                <div style="width:100%; height:6px; background:var(--bg-body); border-radius:10px; overflow:hidden; border:1px solid var(--border-card);">
+                  <div style="width:75.2%; height:100%; background:linear-gradient(90deg, #f59e0b, #10b981); border-radius:10px;"></div>
+                </div>
+              </div>
+              <div class="card-bottom-action" style="color:#d97706;">
+                <span>+ Top-Up Extra Token</span>
+                <i data-lucide="plus-circle"></i>
               </div>
             </div>
-            <div class="metric-card card">
-              <div class="metric-icon purple"><i data-lucide="clock"></i></div>
-              <div class="metric-data">
+
+            <!-- CARD 4: WAKTU RESPON RATA-RATA -->
+            <div class="card-interactive">
+              <div class="card-top-row">
+                <div class="metric-icon purple"><i data-lucide="clock"></i></div>
+                <span class="badge badge-success" style="font-size:11px; font-weight:700;">🟢 Online 24/7</span>
+              </div>
+              <div class="card-main-val">
                 <span class="label">Waktu Respon Rata-Rata</span>
-                <h3 class="value">1,2 Detik</h3>
-                <span class="trend positive">24 Jam Nonstop Online</span>
+                <h3 class="value">1,2 <small style="font-size:13px; font-weight:600; color:var(--text-muted);">Detik</small></h3>
+              </div>
+              <div class="card-bottom-action">
+                <span>Performa Server Super Cepat</span>
+                <i data-lucide="shield-check"></i>
               </div>
             </div>
+
           </div>
+
 
 
           <!-- SPLIT VIEW: LIVE CONVERSATIONS FEED & WHATSAPP AI SIMULATOR -->
