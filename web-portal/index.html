@@ -789,7 +789,12 @@
             <span>Verifikasi Top-Up Token</span>
             <span class="unverified-count-badge" id="pending-topups-count-badge" style="display:none; background:#f59e0b; color:black;">0 Baru</span>
           </button>
+          <button class="nav-item" data-admin-tab="agents">
+            <i data-lucide="bot"></i>
+            <span>Super Admin AI Agents</span>
+          </button>
         </nav>
+
 
 
         <div class="sidebar-footer">
@@ -998,8 +1003,262 @@
                 </tbody>
               </table>
             </div>
-          </div>
         </section>
+
+        <!-- ADMIN TAB 5: SUPER ADMIN MULTI-AGENT SUITE -->
+        <section class="admin-tab-content" id="admin-tab-agents" style="display:none;">
+          <div class="cms-subtabs">
+            <button type="button" class="cms-tab active" data-agent-subtab="cs_support"><i data-lucide="headphones"></i> 1. CS & Support Tenant Agent</button>
+            <button type="button" class="cms-tab" data-agent-subtab="feedback"><i data-lucide="message-square"></i> 2. Kritik & Saran Agent</button>
+            <button type="button" class="cms-tab" data-agent-subtab="platform_updates"><i data-lucide="rocket"></i> 3. Platform Release Manager AI</button>
+          </div>
+
+          <!-- AGENT SUBTAB 1: CS & SUPPORT AGENT -->
+          <div class="agent-sec active" id="agent-sec-cs_support">
+            <div class="dashboard-split" style="grid-template-columns: 1fr 1fr; gap:20px; margin-top:0;">
+              <!-- Left: Agent Configuration Card -->
+              <div class="card">
+                <div class="card-header" style="border-bottom:1px solid var(--border-card); padding-bottom:10px; margin-bottom:14px;">
+                  <h3 style="font-size:16px; font-weight:800; color:var(--text-main);"><i data-lucide="sliders"></i> Setup Agent CS & Support Tenant B2B</h3>
+                  <p class="card-subtitle">Atur persona, nama CS, & instruksi penanganan keluhan tenant B2B</p>
+                </div>
+                <form id="form-agent-cs_support" class="config-form">
+                  <input type="hidden" id="cs-agent-key" value="cs_support">
+                  <div class="form-group">
+                    <label>Nama Karyawan CS</label>
+                    <input type="text" id="cs-agent-name" value="Devis - Chief CS Officer" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Gaya Bicara / Tone Persona</label>
+                    <select id="cs-agent-tone">
+                      <option value="friendly">Ramah & Empatik (Sapa 'Kak / Kang')</option>
+                      <option value="formal">Formal & Profesional (Sapa 'Bapak / Ibu')</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Instruksi Khusus CS (System Prompt)</label>
+                    <textarea id="cs-agent-prompt" rows="5" required>Anda adalah Devis, Chief CS Officer KawanAI B2B Platform. Tugas Anda adalah membantu tenant B2B menyelesaikan masalah teknis, koneksi WhatsApp, dan pertanyaan seputar paket langganan secara profesional, ramah, dan cepat.</textarea>
+                  </div>
+                  <button type="submit" class="btn btn-primary" style="font-weight:700;"><i data-lucide="save"></i> Simpan Konfigurasi Agent CS</button>
+                </form>
+              </div>
+
+              <!-- Right: Interactive Live Tester & Audit Log -->
+              <div class="card simulator-panel">
+                <div class="simulator-header">
+                  <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:36px; height:36px; border-radius:10px; background:var(--primary-accent); color:white; display:flex; align-items:center; justify-content:center; font-weight:800;">
+                      🎧
+                    </div>
+                    <div>
+                      <strong style="font-size:14px; color:var(--text-main); display:block;" id="label-cs-agent-name">Devis - Chief CS Officer</strong>
+                      <span style="font-size:11px; color:var(--success); font-weight:600;">🟢 Online • Handling Support B2B</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="simulator-body" id="cs-chat-body">
+                  <div class="sim-msg sim-msg-bot">
+                    <strong style="font-size:11.5px; color:var(--success); display:block; margin-bottom:2px;">🎧 CS Devis (KawanAI B2B Support)</strong>
+                    Halo Kang Devis! CS Devis siap mendampingi tenant B2B. Ada kendala teknis atau pertanyaan koneksi WA yang perlu dibantu? 😊
+                  </div>
+                </div>
+
+                <div class="simulator-input-bar">
+                  <input type="text" id="cs-sim-input" placeholder="Tes pesan tenant (misal: Kenapa WA saya terputus?)...">
+                  <button type="button" class="btn btn-primary btn-sm" id="cs-sim-send" style="font-weight:700;"><i data-lucide="send"></i> Kirim</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Audit History Logs Table -->
+            <div class="card" style="margin-top:20px;">
+              <h4 style="font-size:16px; font-weight:800; color:var(--text-main); margin-bottom:12px;"><i data-lucide="history"></i> History Audit Percakapan CS & Support Tenant</h4>
+              <div class="admin-table-wrapper">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Waktu Masuk</th>
+                      <th>Nama Tenant / Toko</th>
+                      <th>Pertanyaan Tenant</th>
+                      <th>Jawaban CS Agent</th>
+                      <th>Respon Speed</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cs-audit-logs-tbody">
+                    <!-- Rendered dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- AGENT SUBTAB 2: KRITIK & SARAN AGENT -->
+          <div class="agent-sec" id="agent-sec-feedback" style="display:none;">
+            <div class="dashboard-split" style="grid-template-columns: 1fr 1fr; gap:20px; margin-top:0;">
+              <!-- Left: Agent Configuration Card -->
+              <div class="card">
+                <div class="card-header" style="border-bottom:1px solid var(--border-card); padding-bottom:10px; margin-bottom:14px;">
+                  <h3 style="font-size:16px; font-weight:800; color:var(--text-main);"><i data-lucide="sliders"></i> Setup Agent Kritik & Saran (Product Analyst)</h3>
+                  <p class="card-subtitle">Atur persona & instruksi penampung masukan/fitur baru dari tenant</p>
+                </div>
+                <form id="form-agent-feedback" class="config-form">
+                  <input type="hidden" id="fb-agent-key" value="feedback">
+                  <div class="form-group">
+                    <label>Nama Agent Analyst</label>
+                    <input type="text" id="fb-agent-name" value="Aura - Product Analyst" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Gaya Bicara / Tone Persona</label>
+                    <select id="fb-agent-tone">
+                      <option value="formal">Formal, Apresiatif & Terstruktur</option>
+                      <option value="friendly">Ramah & Santai</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Instruksi Khusus (System Prompt)</label>
+                    <textarea id="fb-agent-prompt" rows="5" required>Anda adalah Aura, Product Feedback Analyst KawanAI. Tugas Anda adalah mencatat kritik, saran, dan komplain dari tenant B2B dengan ramah, serta merangkumnya menjadi poin masukan pengembangan produk.</textarea>
+                  </div>
+                  <button type="submit" class="btn btn-primary" style="font-weight:700;"><i data-lucide="save"></i> Simpan Konfigurasi Agent Feedback</button>
+                </form>
+              </div>
+
+              <!-- Right: Interactive Live Tester -->
+              <div class="card simulator-panel">
+                <div class="simulator-header">
+                  <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:36px; height:36px; border-radius:10px; background:#9333ea; color:white; display:flex; align-items:center; justify-content:center; font-weight:800;">
+                      💡
+                    </div>
+                    <div>
+                      <strong style="font-size:14px; color:var(--text-main); display:block;" id="label-fb-agent-name">Aura - Product Analyst</strong>
+                      <span style="font-size:11px; color:#9333ea; font-weight:600;">🟢 Online • Collecting Feedback</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="simulator-body" id="fb-chat-body">
+                  <div class="sim-msg sim-msg-bot">
+                    <strong style="font-size:11.5px; color:#9333ea; display:block; margin-bottom:2px;">💡 Aura (Product Analyst KawanAI)</strong>
+                    Halo Kang Devis! Aura siap mencatat kritik, saran fitur baru, atau komplain dari para tenant KawanAI.
+                  </div>
+                </div>
+
+                <div class="simulator-input-bar">
+                  <input type="text" id="fb-sim-input" placeholder="Tes kirim saran (misal: Tambahkan fitur export Excel)...">
+                  <button type="button" class="btn btn-primary btn-sm" id="fb-sim-send" style="font-weight:700; background:#9333ea; border-color:#9333ea;"><i data-lucide="send"></i> Kirim</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Audit History Logs Table -->
+            <div class="card" style="margin-top:20px;">
+              <h4 style="font-size:16px; font-weight:800; color:var(--text-main); margin-bottom:12px;"><i data-lucide="message-square"></i> History Kritik & Saran Terkumpul dari Tenant</h4>
+              <div class="admin-table-wrapper">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Waktu Masuk</th>
+                      <th>Nama Tenant / Toko</th>
+                      <th>Kritik & Masukan Tenant</th>
+                      <th>Respon Rangkuman Agent Aura</th>
+                      <th>Status Masukan</th>
+                    </tr>
+                  </thead>
+                  <tbody id="fb-audit-logs-tbody">
+                    <!-- Rendered dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- AGENT SUBTAB 3: PLATFORM RELEASE MANAGER AI -->
+          <div class="agent-sec" id="agent-sec-platform_updates" style="display:none;">
+            <div class="dashboard-split" style="grid-template-columns: 1fr 1fr; gap:20px; margin-top:0;">
+              <!-- Left: Agent Configuration Card -->
+              <div class="card">
+                <div class="card-header" style="border-bottom:1px solid var(--border-card); padding-bottom:10px; margin-bottom:14px;">
+                  <h3 style="font-size:16px; font-weight:800; color:var(--text-main);"><i data-lucide="sliders"></i> Setup Agent Release Manager (Jarvis Platform AI)</h3>
+                  <p class="card-subtitle">Atur persona & instruksi pembuat Release Notes & pengumuman update</p>
+                </div>
+                <form id="form-agent-platform_updates" class="config-form">
+                  <input type="hidden" id="pu-agent-key" value="platform_updates">
+                  <div class="form-group">
+                    <label>Nama Release Manager AI</label>
+                    <input type="text" id="pu-agent-name" value="Jarvis - Release & Core AI" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Gaya Bicara / Tone Persona</label>
+                    <select id="pu-agent-tone">
+                      <option value="friendly">Cepat, Presisi, Visioner & Ringkas (Jarvis Sparring Partner)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Instruksi Khusus (System Prompt)</label>
+                    <textarea id="pu-agent-prompt" rows="5" required>Anda adalah Jarvis, AI Release Manager Platform KawanAI. Tugas Anda adalah membantu Kang Devis merencanakan fitur baru, menyusun Release Notes, menulis dokumentasi aplikasi, dan membuat pesan pengumuman update untuk seluruh tenant B2B.</textarea>
+                  </div>
+                  <button type="submit" class="btn btn-primary" style="font-weight:700;"><i data-lucide="save"></i> Simpan Konfigurasi Agent Release</button>
+                </form>
+              </div>
+
+              <!-- Right: Interactive Release Command Center -->
+              <div class="card simulator-panel">
+                <div class="simulator-header">
+                  <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:36px; height:36px; border-radius:10px; background:var(--primary-accent); color:white; display:flex; align-items:center; justify-content:center; font-weight:800;">
+                      🚀
+                    </div>
+                    <div>
+                      <strong style="font-size:14px; color:var(--text-main); display:block;" id="label-pu-agent-name">Jarvis - Release & Core AI</strong>
+                      <span style="font-size:11px; color:var(--success); font-weight:600;">🟢 Online • Platform Release Command Center</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="simulator-body" id="pu-chat-body">
+                  <div class="sim-msg sim-msg-bot">
+                    <strong style="font-size:11.5px; color:var(--success); display:block; margin-bottom:2px;">🚀 Jarvis (Platform Release AI)</strong>
+                    Siap Kang Devis! Jarvis siap menyusun Release Notes, draf pengumuman broadcast WA klien, atau memperbarui dokumentasi fitur aplikasi. Ada rilis fitur baru apa hari ini? ⚡
+                  </div>
+                </div>
+
+                <div class="sim-quick-chips">
+                  <button type="button" class="chip-btn" onclick="sendQuickReleasePrompt('Jarvis, buatkan Release Notes v1.7 Multi-Agent Suite')">📝 Release Notes v1.7</button>
+                  <button type="button" class="chip-btn" onclick="sendQuickReleasePrompt('Jarvis, buatkan teks pengumuman WA Broadcast ke Klien B2B')">📢 Draf Broadcast WA Update</button>
+                </div>
+
+                <div class="simulator-input-bar">
+                  <input type="text" id="pu-sim-input" placeholder="Instruksi rilis fitur (misal: Rilis v1.7 Super Admin Agents)...">
+                  <button type="button" class="btn btn-primary btn-sm" id="pu-sim-send" style="font-weight:700;"><i data-lucide="send"></i> Kirim</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Release Notes & Platform Update Log Table -->
+            <div class="card" style="margin-top:20px;">
+              <h4 style="font-size:16px; font-weight:800; color:var(--text-main); margin-bottom:12px;"><i data-lucide="rocket"></i> History Pengumuman Rilis & Update Aplikasi KawanAI</h4>
+              <div class="admin-table-wrapper">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Waktu Rilis</th>
+                      <th>Super Admin Operator</th>
+                      <th>Fitur Dibarui / Diperbaiki</th>
+                      <th>Draf Pengumuman Jarvis</th>
+                      <th>Status Rilis</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pu-audit-logs-tbody">
+                    <!-- Rendered dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
 
 
       </main>

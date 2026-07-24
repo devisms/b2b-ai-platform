@@ -40,7 +40,12 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.get_tenant_topups_api()
         elif self.path.startswith('/api/tenant/sop'):
             self.get_tenant_sop_api()
+        elif self.path == '/api/admin/agents':
+            self.get_admin_agents_api()
+        elif self.path.startswith('/api/admin/agents/chats'):
+            self.get_admin_agent_chats_api()
         else:
+
 
 
 
@@ -105,7 +110,12 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.save_tenant_sop_api()
         elif self.path == '/api/admin/topups/update-status':
             self.update_admin_topup_status_api()
+        elif self.path == '/api/admin/agents/save':
+            self.save_admin_agent_api()
+        elif self.path == '/api/admin/agents/chat':
+            self.post_admin_agent_chat_api()
         else:
+
 
 
 
@@ -497,11 +507,121 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             conn.commit()
             conn.close()
 
-            status_label = "BERHASIL DIVERIFIKASI" if new_status == "VERIFIED" else "DITOLAK"
-            msg = f"Transaksi Top-Up {topup_row['topup_code'] if topup_row else ''} ({new_status}) {status_label}! Kuota token sebesar +{topup_row['token_amount'] if topup_row else ''} Chat otomatis aktif."
             self.send_json_response({"status": "success", "message": msg})
         except Exception as e:
             self.send_json_response({"status": "error", "message": str(e)}, 500)
+
+    # --- SUPER ADMIN MULTI-AGENT SUITE ENDPOINTS ---
+    def get_admin_agents_api(self):
+        try:
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor.execute("SELECT * FROM admin_service.admin_agents ORDER BY created_at ASC;")
+            rows = cursor.fetchall()
+            conn.close()
+
+            processed = []
+            for r in rows:
+                r_dict = dict(r)
+                if r_dict.get('created_at'): r_dict['created_at'] = r_dict['created_at'].isoformat()
+                if r_dict.get('updated_at'): r_dict['updated_at'] = r_dict['updated_at'].isoformat()
+                processed.append(r_dict)
+
+            self.send_json_response({"status": "success", "data": processed})
+        except Exception as e:
+            self.send_json_response({"status": "error", "message": str(e)}, 500)
+
+    def save_admin_agent_api(self):
+        try:
+            payload = self.read_json_payload()
+            agent_key = payload.get('agent_key')
+            agent_name = payload.get('agent_name')
+            persona_tone = payload.get('persona_tone', 'friendly')
+            system_prompt = payload.get('system_prompt', '')
+
+            if not agent_key or not agent_name:
+                self.send_json_response({"status": "error", "message": "Agent Key & Nama Agent wajib diisi"}, 400)
+                return
+
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE admin_service.admin_agents 
+                SET agent_name = %s, persona_tone = %s, system_prompt = %s, updated_at = CURRENT_TIMESTAMP
+                WHERE agent_key = %s;
+            """, (agent_name, persona_tone, system_prompt, agent_key))
+            conn.commit()
+            conn.close()
+
+            self.send_json_response({"status": "success", "message": f"Konfigurasi Agent '{agent_name}' berhasil diperbarui!"})
+        except Exception as e:
+            self.send_json_response({"status": "error", "message": str(e)}, 500)
+
+    def get_admin_agent_chats_api(self):
+        try:
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor.execute("SELECT * FROM admin_service.admin_agent_chats ORDER BY created_at DESC;")
+            rows = cursor.fetchall()
+            conn.close()
+
+            processed = []
+            for r in rows:
+                r_dict = dict(r)
+                if r_dict.get('created_at'): r_dict['created_at'] = r_dict['created_at'].isoformat()
+                processed.append(r_dict)
+
+            self.send_json_response({"status": "success", "data": processed})
+        except Exception as e:
+            self.send_json_response({"status": "error", "message": str(e)}, 500)
+
+    def post_admin_agent_chat_api(self):
+        try:
+            payload = self.read_json_payload()
+            agent_key = payload.get('agent_key', 'cs_support')
+            user_message = payload.get('user_message', '').strip()
+            tenant_name = payload.get('tenant_name', 'Toko Baju Kang Devis')
+
+            if not user_message:
+                self.send_json_response({"status": "error", "message": "Pesan wajib diisi"}, 400)
+                return
+
+            # Simulate Agent Response tailored to agent_key
+            bot_response = "Halo! Saya Agent Super Admin KawanAI. Siap membantu."
+            lower = user_message.toLowerCase() if hasattr(user_message, 'toLowerCase') else user_message.lower()
+
+            if agent_key == 'cs_support':
+                if 'wa' in lower or 'koneksi' in lower or 'qr' in lower:
+                    bot_response = f"Halo Kak! Untuk masalah koneksi WhatsApp bisnis {tenant_name}, silakan pastikan sesi WA Web aktif lalu coba refresh QR code di menu Koneksi WhatsApp. CS Devis siap mendampingi!"
+                elif 'paket' in lower or 'bayar' in lower or 'token' in lower:
+                    bot_response = "Untuk pertanyaan langganan atau top-up token chat, Kakak bisa langsung cek menu Top-Up Token atau hubungi tim billing KawanAI. Transaksi otomatis aktif setelah diverifikasi Super Admin!"
+                else:
+                    bot_response = f"Halo {tenant_name}! Terima kasih sudah menghubungi CS B2B KawanAI. Ada yang bisa Devis bantu terkait operasional bot toko Anda?"
+
+            elif agent_key == 'feedback':
+                bot_response = f"Terima kasih atas kritik & masukan berharga dari {tenant_name}! Aura telah mencatat masukan ini ('{user_message}') untuk dimasukkan ke roadmap pengembangan KawanAI v2.0."
+
+            elif agent_key == 'platform_updates':
+                bot_response = f"Siap Kang Devis! Jarvis telah memproses permintaan update ('{user_message}'). Berikut rincian draf pengumuman Rilis Fitur Baru v1.7: 1. Penambahan Multi-Agent Suite Super Admin (CS, Feedback, & Release Manager AI). 2. Integrasi Riwayat Chat Tenant 24/7. Draf siap dipublish!"
+
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor.execute("""
+                INSERT INTO admin_service.admin_agent_chats (agent_key, tenant_name, user_message, bot_response, response_time_ms)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING *;
+            """, (agent_key, tenant_name, user_message, bot_response, random.randint(950, 1250)))
+            chat_row = cursor.fetchone()
+            conn.commit()
+            conn.close()
+
+            chat_dict = dict(chat_row)
+            if chat_dict.get('created_at'): chat_dict['created_at'] = chat_dict['created_at'].isoformat()
+
+            self.send_json_response({"status": "success", "data": chat_dict})
+        except Exception as e:
+            self.send_json_response({"status": "error", "message": str(e)}, 500)
+
 
 
 

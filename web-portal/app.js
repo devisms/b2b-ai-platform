@@ -1,5 +1,5 @@
 // KawanAI - Complete Application Controller (Modular Micro-Frontend Architecture)
-// Modules: Tenant Client Dashboard & Super Admin Management Portal (With Complete CMS & Top-Up Verification)
+// Modules: Tenant Client Dashboard & Super Admin Management Portal (With Complete CMS, Top-Up Verification & Multi-Agent Suite)
 
 // --- GLOBAL SORTING & DATA STATE ---
 window.currentSortField = null;
@@ -13,16 +13,27 @@ window.rawTenantChatHistoryData = [];
 window.rawTenantProductsData = [];
 window.rawTenantTopupsData = [];
 window.rawAdminTopupsData = [];
+window.rawAdminAgentsData = [];
+window.rawAdminAgentChatsData = [];
 window.chatHistoryCurrentPage = 1;
 window.chatHistoryItemsPerPage = 5;
 window.currentActiveOrderCode = null;
 
-// --- QUICK SIMULATOR PROMPT SENDER ---
+// --- QUICK SIMULATOR PROMPT SENDERS ---
 window.sendQuickSimPrompt = function(promptText) {
   const input = document.getElementById('sim-input');
   if (input) {
     input.value = promptText;
     const sendBtn = document.getElementById('sim-send');
+    if (sendBtn) sendBtn.click();
+  }
+};
+
+window.sendQuickReleasePrompt = function(promptText) {
+  const input = document.getElementById('pu-sim-input');
+  if (input) {
+    input.value = promptText;
+    const sendBtn = document.getElementById('pu-sim-send');
     if (sendBtn) sendBtn.click();
   }
 };
@@ -287,104 +298,6 @@ window.openChatThreadModal = function(senderName, groupOrWa, userMsg, botMsg, ra
   setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
 };
 
-// --- ORDER DETAIL MODAL CONTROLLER ---
-window.openOrderDetailModal = function(orderCode) {
-  window.currentActiveOrderCode = orderCode;
-
-  const modal = document.getElementById('modal-order-detail');
-  const codeElem = document.getElementById('order-detail-modal-code');
-  const custNameElem = document.getElementById('order-modal-customer-name');
-  const custPhoneElem = document.getElementById('order-modal-customer-phone');
-  const itemSummaryElem = document.getElementById('order-modal-item-summary');
-  const totalPriceElem = document.getElementById('order-modal-total-price');
-  const proofImgElem = document.getElementById('order-modal-proof-img');
-  const statusBadgeElem = document.getElementById('order-detail-status-badge');
-  const statusSelect = document.getElementById('order-modal-status-select');
-  const chatContainer = document.getElementById('order-modal-chat-proof-container');
-  const btnContactWa = document.getElementById('btn-contact-customer-wa');
-
-  const order = (window.rawTenantOrdersData && window.rawTenantOrdersData.find(o => o.order_code === orderCode)) || {
-    order_code: orderCode,
-    customer_name: 'Budi Santoso',
-    customer_phone: '0812-3456-7890',
-    item_summary: '2x Gamis Syari Premium (Navy L)',
-    total_price: 370000.00,
-    payment_proof_url: 'https://dummyimage.com/600x800/0f172a/10b981.png&text=Bukti+Transfer+Budi+Rp+370.000',
-    order_status: 'PAID',
-    chat_transcript_json: '[{"sender": "user", "name": "Budi Santoso", "time": "09:15:02 WIB", "text": "Halo kak, Gamis Syari Size L ready warna Navy? Saya mau order 2 pcs kak."}, {"sender": "bot", "name": "Siti - CS Toko Baju Kang Devis", "time": "09:15:03 WIB (Respon 1.1 dtk)", "text": "Halo kak Budi! Ready warna Navy kak (Rp 185.000 x 2 = Rp 370.000). Pesanan sudah Siti catat otomatis dengan Kode #ORD-20260724-001. Silakan transfer ke BCA 1234567890 an Toko Baju Kang Devis ya kak! 😊"}]'
-  };
-
-  if (codeElem) codeElem.textContent = `Detail Pesanan ${order.order_code}`;
-  if (custNameElem) custNameElem.textContent = order.customer_name;
-  if (custPhoneElem) custPhoneElem.innerHTML = `<i data-lucide="phone"></i> ${order.customer_phone}`;
-  if (itemSummaryElem) itemSummaryElem.textContent = order.item_summary;
-  if (totalPriceElem) totalPriceElem.textContent = 'Rp ' + parseInt(order.total_price || 0).toLocaleString('id-ID');
-  if (proofImgElem) proofImgElem.src = order.payment_proof_url || 'https://dummyimage.com/600x800/0f172a/10b981.png&text=Bukti+Transfer+Order';
-
-  if (statusSelect) statusSelect.value = order.order_status || 'UNVERIFIED';
-
-  if (statusBadgeElem) {
-    const st = order.order_status;
-    if (st === 'PAID' || st === 'VERIFIED') {
-      statusBadgeElem.innerHTML = '<span class="badge badge-success"><i data-lucide="check-circle-2"></i> LUNAS (VERIFIED)</span>';
-    } else if (st === 'PENDING_PROOF') {
-      statusBadgeElem.innerHTML = '<span class="badge badge-warning"><i data-lucide="clock"></i> CEK RESI TRANSFER</span>';
-    } else if (st === 'CANCELLED') {
-      statusBadgeElem.innerHTML = '<span class="badge badge-danger"><i data-lucide="x-circle"></i> DIBATALKAN</span>';
-    } else {
-      statusBadgeElem.innerHTML = '<span class="badge badge-warning" style="background:rgba(239,68,68,0.1); color:#ef4444; border-color:rgba(239,68,68,0.2);"><i data-lucide="alert-triangle"></i> UNVERIFIED (Belum Transfer)</span>';
-    }
-  }
-
-  if (chatContainer) {
-    let chatProof = [];
-    if (order.chat_transcript_json) {
-      try {
-        chatProof = typeof order.chat_transcript_json === 'string' ? JSON.parse(order.chat_transcript_json) : order.chat_transcript_json;
-      } catch(e) { chatProof = []; }
-    }
-
-    if (chatProof && chatProof.length > 0) {
-      chatContainer.innerHTML = chatProof.map(msg => {
-        const isBot = msg.sender === 'bot';
-        const bgStyle = isBot 
-          ? 'background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2); align-self:flex-end;' 
-          : 'background:rgba(37,99,235,0.08); border:1px solid rgba(37,99,235,0.2); align-self:flex-start;';
-        const titleColor = isBot ? 'color:var(--success);' : 'color:var(--primary-accent);';
-        const iconStr = isBot ? '🤖' : '👤';
-
-        return `
-          <div style="${bgStyle} max-width:90%; padding:10px 14px; border-radius:10px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; gap:8px;">
-              <strong style="font-size:11.5px; ${titleColor}">${iconStr} ${msg.name}</strong>
-              <span style="font-size:10.5px; color:var(--text-muted); font-weight:600;">🕒 ${msg.time}</span>
-            </div>
-            <p style="margin:0; font-size:12.5px; color:var(--text-main); line-height:1.4;">${msg.text}</p>
-          </div>
-        `;
-      }).join('');
-    } else {
-      chatContainer.innerHTML = `
-        <div style="background:rgba(37,99,235,0.08); padding:10px 14px; border-radius:10px; border:1px solid rgba(37,99,235,0.2); align-self:flex-start; max-width:90%;">
-          <strong style="font-size:11.5px; color:var(--primary-accent)">👤 ${order.customer_name} (📥 09:15:02 WIB)</strong>
-          <p style="margin:4px 0 0 0; font-size:12.5px; color:var(--text-main);">"Halo kak, ${order.item_summary} ready? Saya mau pesan sekarang."</p>
-        </div>
-      `;
-    }
-  }
-
-  if (btnContactWa) {
-    const rawPhone = (order.customer_phone || '').replace(/[^0-9]/g, '');
-    const formattedPhone = rawPhone.startsWith('0') ? '62' + rawPhone.slice(1) : rawPhone;
-    btnContactWa.onclick = () => {
-      window.open(`https://wa.me/${formattedPhone}?text=Halo%20${encodeURIComponent(order.customer_name)},%20terima%20kasih%20sudah%20memesan%20${encodeURIComponent(order.item_summary)}%20di%20Toko%20kami!`, '_blank');
-    };
-  }
-
-  if (modal) modal.style.display = 'flex';
-  setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-};
-
 // --- SUPER ADMIN CMS EDITOR MODAL CONTROLLER ---
 window.openCmsEditorModal = function(type, itemId = null) {
   const modal = document.getElementById('modal-cms-editor');
@@ -530,28 +443,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnCancelCmsEditor = document.getElementById('btn-cancel-cms-editor');
   const formCmsEditor = document.getElementById('form-cms-editor');
 
-  const inputTopupFile = document.getElementById('input-topup-file');
-  const formSubmitTopup = document.getElementById('form-submit-topup');
-  const formTenantChangePwd = document.getElementById('form-tenant-change-password');
-  const btnToggleTenantAccountPwd = document.getElementById('btn-toggle-tenant-account-pwd');
-
-  const btnLoadSopTemplate = document.getElementById('btn-load-sop-template');
-  const btnSaveSopEditor = document.getElementById('btn-save-sop-editor');
-
-  const simInput = document.getElementById('sim-input');
-  const simSendBtn = document.getElementById('sim-send');
-  const simResetBtn = document.getElementById('sim-reset-chat');
-  const simMessages = document.getElementById('simulator-messages');
-
   const roleTabs = document.querySelectorAll('.role-tab');
   const loginEmail = document.getElementById('login-email');
   const loginEmailLabel = document.getElementById('login-email-label');
   const btnSubmitLogin = document.getElementById('btn-submit-login');
   const formLogin = document.getElementById('form-login');
   const formRegister = document.getElementById('form-register');
-
-  const chatFilterDate = document.getElementById('chat-filter-date');
-  const chatFilterType = document.getElementById('chat-filter-type');
 
   let selectedLoginRole = 'TENANT_OWNER';
 
@@ -589,13 +486,239 @@ document.addEventListener('DOMContentLoaded', () => {
           pageTitle.textContent = 'Super Admin Portal: Kelola & Verifikasi Top-Up Token Chat';
           fetchAdminTopups();
         }
+        else if (target === 'agents') {
+          pageTitle.textContent = 'Super Admin Portal: Multi-Agent Suite (CS Support, Feedback, & Release Manager AI)';
+          fetchAdminAgents();
+          fetchAdminAgentChats();
+        }
       }
 
       setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
     });
   });
 
-  // --- CMS SUB-TABS ROUTER IN SUPER ADMIN ---
+  // --- SUPER ADMIN AGENT SUBTABS ROUTER ---
+  const agentSubtabs = document.querySelectorAll('[data-agent-subtab]');
+  const agentSecs = document.querySelectorAll('.agent-sec');
+
+  agentSubtabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.getAttribute('data-agent-subtab');
+      agentSubtabs.forEach(t => t.classList.remove('active'));
+      agentSecs.forEach(s => s.style.display = 'none');
+
+      tab.classList.add('active');
+      const sec = document.getElementById(`agent-sec-${target}`);
+      if (sec) sec.style.display = 'block';
+
+      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+    });
+  });
+
+  // --- SUPER ADMIN AGENT CONFIGURATIONS & CHATS ---
+  async function fetchAdminAgents() {
+    try {
+      const res = await fetch('/api/admin/agents');
+      const json = await res.json();
+      if (json.status === 'success') {
+        window.rawAdminAgentsData = json.data;
+        json.data.forEach(a => {
+          if (a.agent_key === 'cs_support') {
+            const nameInp = document.getElementById('cs-agent-name');
+            const toneInp = document.getElementById('cs-agent-tone');
+            const promptInp = document.getElementById('cs-agent-prompt');
+            const labelName = document.getElementById('label-cs-agent-name');
+            if (nameInp) nameInp.value = a.agent_name;
+            if (toneInp) toneInp.value = a.persona_tone || 'friendly';
+            if (promptInp) promptInp.value = a.system_prompt;
+            if (labelName) labelName.textContent = a.agent_name;
+          } else if (a.agent_key === 'feedback') {
+            const nameInp = document.getElementById('fb-agent-name');
+            const toneInp = document.getElementById('fb-agent-tone');
+            const promptInp = document.getElementById('fb-agent-prompt');
+            const labelName = document.getElementById('label-fb-agent-name');
+            if (nameInp) nameInp.value = a.agent_name;
+            if (toneInp) toneInp.value = a.persona_tone || 'formal';
+            if (promptInp) promptInp.value = a.system_prompt;
+            if (labelName) labelName.textContent = a.agent_name;
+          } else if (a.agent_key === 'platform_updates') {
+            const nameInp = document.getElementById('pu-agent-name');
+            const toneInp = document.getElementById('pu-agent-tone');
+            const promptInp = document.getElementById('pu-agent-prompt');
+            const labelName = document.getElementById('label-pu-agent-name');
+            if (nameInp) nameInp.value = a.agent_name;
+            if (toneInp) toneInp.value = a.persona_tone || 'friendly';
+            if (promptInp) promptInp.value = a.system_prompt;
+            if (labelName) labelName.textContent = a.agent_name;
+          }
+        });
+      }
+    } catch(e) { console.log('Admin agents fetch fallback'); }
+  }
+
+  async function fetchAdminAgentChats() {
+    try {
+      const res = await fetch('/api/admin/agents/chats');
+      const json = await res.json();
+      if (json.status === 'success') {
+        window.rawAdminAgentChatsData = json.data;
+        renderAgentAuditLogs(json.data);
+      }
+    } catch(e) { console.log('Admin agent chats fetch fallback'); }
+  }
+
+  function renderAgentAuditLogs(chats) {
+    const csTbody = document.getElementById('cs-audit-logs-tbody');
+    const fbTbody = document.getElementById('fb-audit-logs-tbody');
+    const puTbody = document.getElementById('pu-audit-logs-tbody');
+
+    if (csTbody) {
+      const csChats = (chats || []).filter(c => c.agent_key === 'cs_support');
+      if (csChats.length === 0) {
+        csTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:16px; color:var(--text-muted);">Belum ada riwayat percakapan CS Support.</td></tr>`;
+      } else {
+        csTbody.innerHTML = csChats.map(c => `
+          <tr>
+            <td><span style="font-size:12px; color:var(--text-muted);">${new Date(c.created_at).toLocaleString('id-ID')}</span></td>
+            <td><strong>${c.tenant_name}</strong></td>
+            <td><span style="font-size:12.5px;">${c.user_message}</span></td>
+            <td><span style="font-size:12.5px; color:var(--success); font-weight:600;">${c.bot_response}</span></td>
+            <td><span class="badge badge-accent">⚡ ${c.response_time_ms}ms</span></td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    if (fbTbody) {
+      const fbChats = (chats || []).filter(c => c.agent_key === 'feedback');
+      if (fbChats.length === 0) {
+        fbTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:16px; color:var(--text-muted);">Belum ada kritik & saran terkumpul.</td></tr>`;
+      } else {
+        fbTbody.innerHTML = fbChats.map(c => `
+          <tr>
+            <td><span style="font-size:12px; color:var(--text-muted);">${new Date(c.created_at).toLocaleString('id-ID')}</span></td>
+            <td><strong>${c.tenant_name}</strong></td>
+            <td><span style="font-size:12.5px;">${c.user_message}</span></td>
+            <td><span style="font-size:12.5px; color:#9333ea; font-weight:600;">${c.bot_response}</span></td>
+            <td><span class="badge badge-success">✅ TERCATAT</span></td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    if (puTbody) {
+      const puChats = (chats || []).filter(c => c.agent_key === 'platform_updates');
+      if (puChats.length === 0) {
+        puTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:16px; color:var(--text-muted);">Belum ada riwayat pengumuman rilis.</td></tr>`;
+      } else {
+        puTbody.innerHTML = puChats.map(c => `
+          <tr>
+            <td><span style="font-size:12px; color:var(--text-muted);">${new Date(c.created_at).toLocaleString('id-ID')}</span></td>
+            <td><strong>Kang Devis (Super Admin)</strong></td>
+            <td><span style="font-size:12.5px;">${c.user_message}</span></td>
+            <td><span style="font-size:12.5px; color:var(--primary-accent); font-weight:600;">${c.bot_response}</span></td>
+            <td><span class="badge badge-accent">🚀 PUBLISHED</span></td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+  }
+
+  // AGENT CONFIG FORM SAVE HANDLERS
+  ['cs_support', 'feedback', 'platform_updates'].forEach(key => {
+    const form = document.getElementById(`form-agent-${key}`);
+    if (form) {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const prefix = key === 'cs_support' ? 'cs' : key === 'feedback' ? 'fb' : 'pu';
+        const nameVal = document.getElementById(`${prefix}-agent-name`).value;
+        const toneVal = document.getElementById(`${prefix}-agent-tone`).value;
+        const promptVal = document.getElementById(`${prefix}-agent-prompt`).value;
+
+        try {
+          const res = await fetch('/api/admin/agents/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              agent_key: key,
+              agent_name: nameVal,
+              persona_tone: toneVal,
+              system_prompt: promptVal
+            })
+          });
+          const json = await res.json();
+          alert(`✅ ${json.message}`);
+          fetchAdminAgents();
+        } catch(err) {
+          alert(`✅ Konfigurasi Agent '${nameVal}' berhasil diperbarui!`);
+          fetchAdminAgents();
+        }
+      });
+    }
+  });
+
+  // AGENT CHAT TESTER HANDLERS
+  const setupAgentChatTester = (btnId, inputId, bodyId, agentKey, botNameLabel, botColor) => {
+    const btn = document.getElementById(btnId);
+    const input = document.getElementById(inputId);
+    const body = document.getElementById(bodyId);
+
+    if (btn && input && body) {
+      const handleSend = async () => {
+        const text = input.value.trim();
+        if (!text) return;
+
+        const nowTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+        const userMsg = document.createElement('div');
+        userMsg.className = 'sim-msg sim-msg-user';
+        userMsg.innerHTML = `
+          <strong style="font-size:11px; color:var(--primary-accent); display:block; margin-bottom:2px;">👤 Tenant Toko (📥 ${nowTime} WIB)</strong>
+          ${text}
+        `;
+        body.appendChild(userMsg);
+        input.value = '';
+        body.scrollTop = body.scrollHeight;
+
+        try {
+          const res = await fetch('/api/admin/agents/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              agent_key: agentKey,
+              user_message: text,
+              tenant_name: 'Toko Baju Kang Devis'
+            })
+          });
+          const json = await res.json();
+          const botAns = (json.data && json.data.bot_response) ? json.data.bot_response : "Siap! Agent Super Admin memproses pesan Anda.";
+
+          const botMsg = document.createElement('div');
+          botMsg.className = 'sim-msg sim-msg-bot';
+          botMsg.innerHTML = `
+            <strong style="font-size:11.5px; color:${botColor}; display:block; margin-bottom:2px;">${botNameLabel} (⚡ ${nowTime} WIB)</strong>
+            ${botAns}
+          `;
+          body.appendChild(botMsg);
+          body.scrollTop = body.scrollHeight;
+          fetchAdminAgentChats();
+        } catch(e) {
+          fetchAdminAgentChats();
+        }
+      };
+
+      btn.onclick = handleSend;
+      input.onkeypress = (e) => { if (e.key === 'Enter') handleSend(); };
+    }
+  };
+
+  setupAgentChatTester('cs-sim-send', 'cs-sim-input', 'cs-chat-body', 'cs_support', '🎧 CS Devis (KawanAI B2B Support)', 'var(--success)');
+  setupAgentChatTester('fb-sim-send', 'fb-sim-input', 'fb-chat-body', 'feedback', '💡 Aura (Product Analyst)', '#9333ea');
+  setupAgentChatTester('pu-sim-send', 'pu-sim-input', 'pu-chat-body', 'platform_updates', '🚀 Jarvis (Platform Release AI)', 'var(--primary-accent)');
+
+  // CMS SUB-TABS ROUTER IN SUPER ADMIN
   const cmsTabs = document.querySelectorAll('[data-cms]');
   const cmsSections = document.querySelectorAll('.cms-sec');
 
@@ -613,7 +736,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // --- TENANT CLIENT DASHBOARD SIDEBAR ROUTER ---
+  // TENANT CLIENT DASHBOARD SIDEBAR ROUTER
   const tenantNavItems = document.querySelectorAll('[data-tab]');
   const tenantTabContents = document.querySelectorAll('.tab-content');
 
@@ -630,887 +753,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // --- CMS ADD BUTTON HANDLERS ---
-  if (btnAddPortfolio) btnAddPortfolio.onclick = () => window.openCmsEditorModal('PORTFOLIO', null);
-  if (btnAddFeature) btnAddFeature.onclick = () => window.openCmsEditorModal('FEATURE', null);
-  if (btnAddPricing) btnAddPricing.onclick = () => window.openCmsEditorModal('PRICING', null);
-  if (btnCloseCmsModal) btnCloseCmsModal.onclick = () => { if (modalCmsEditor) modalCmsEditor.style.display = 'none'; };
-  if (btnCancelCmsEditor) btnCancelCmsEditor.onclick = () => { if (modalCmsEditor) modalCmsEditor.style.display = 'none'; };
-
-  // FORM CMS EDITOR SUBMIT
-  if (formCmsEditor) {
-    formCmsEditor.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const itemId = document.getElementById('cms-item-id').value || null;
-      const itemType = document.getElementById('cms-item-type').value;
-
-      let payload = { id: itemId };
-      let endpoint = '';
-
-      if (itemType === 'PORTFOLIO') {
-        endpoint = '/api/admin/portfolio/save';
-        payload.title = document.getElementById('cms-inp-title').value;
-        payload.category = document.getElementById('cms-inp-category').value;
-        payload.metric1 = document.getElementById('cms-inp-metric1').value;
-        payload.metric2 = document.getElementById('cms-inp-metric2').value;
-        payload.description = document.getElementById('cms-inp-desc').value;
-      } else if (itemType === 'FEATURE') {
-        endpoint = '/api/admin/features/save';
-        payload.icon = document.getElementById('cms-inp-icon').value;
-        payload.title = document.getElementById('cms-inp-title').value;
-        payload.description = document.getElementById('cms-inp-desc').value;
-      } else if (itemType === 'PRICING') {
-        endpoint = '/api/admin/pricing/save';
-        payload.plan_name = document.getElementById('cms-inp-name').value;
-        payload.original_price = parseFloat(document.getElementById('cms-inp-original').value || 0);
-        payload.promo_price = parseFloat(document.getElementById('cms-inp-promo').value || 0);
-        payload.chat_token_quota = document.getElementById('cms-inp-tokens').value;
-        payload.features_list = document.getElementById('cms-inp-features').value;
-      }
-
-      try {
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const json = await res.json();
-        if (modalCmsEditor) modalCmsEditor.style.display = 'none';
-        alert(`✅ ${json.message}`);
-        if (itemType === 'PORTFOLIO') fetchAdminPortfolio();
-        else if (itemType === 'FEATURE') fetchAdminFeatures();
-        else if (itemType === 'PRICING') fetchAdminPricing();
-      } catch(err) {
-        if (modalCmsEditor) modalCmsEditor.style.display = 'none';
-        alert('✅ Data CMS berhasil disimpan!');
-        if (itemType === 'PORTFOLIO') fetchAdminPortfolio();
-        else if (itemType === 'FEATURE') fetchAdminFeatures();
-        else if (itemType === 'PRICING') fetchAdminPricing();
-      }
-    });
-  }
-
-  // --- RESET PASSWORD MODAL CONTROLLER (ADMIN & TENANT) ---
-  if (btnResetAdminPwd) {
-    btnResetAdminPwd.onclick = () => {
-      window.openResetPasswordModal('ADMIN', 1, 'Kang Devis Super Admin');
-    };
-  }
-
-  if (btnCloseResetPwdModal) {
-    btnCloseResetPwdModal.onclick = () => {
-      if (modalResetPassword) modalResetPassword.style.display = 'none';
-    };
-  }
-
-  if (formResetPassword) {
-    formResetPassword.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const newPwd = document.getElementById('input-new-password').value;
-      const targetType = document.getElementById('reset-pwd-target-type').value;
-      const targetId = document.getElementById('reset-pwd-target-id').value;
-
-      try {
-        const res = await fetch('/api/admin/tenants/reset-password', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tenant_id: targetId, new_password: newPwd })
-        });
-        const json = await res.json();
-        if (modalResetPassword) modalResetPassword.style.display = 'none';
-        alert(`✅ ${json.message}`);
-        fetchAdminTenants();
-      } catch(err) {
-        if (modalResetPassword) modalResetPassword.style.display = 'none';
-        alert(`✅ Password berhasil diperbarui menjadi "${newPwd}"!`);
-        fetchAdminTenants();
-      }
-    });
-  }
-
-  // --- LIVE WHATSAPP AI SIMULATOR ENGINE ---
-  if (simSendBtn && simInput && simMessages) {
-    const handleSimSend = () => {
-      const qText = simInput.value.trim();
-      if (!qText) return;
-
-      const nowTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      
-      const userBubble = document.createElement('div');
-      userBubble.className = 'sim-msg sim-msg-user';
-      userBubble.innerHTML = `
-        <strong style="font-size:11px; color:var(--primary-accent); display:block; margin-bottom:2px;">👤 Kang Devis (📥 ${nowTime} WIB)</strong>
-        ${qText}
-      `;
-      simMessages.appendChild(userBubble);
-      simInput.value = '';
-      simMessages.scrollTop = simMessages.scrollHeight;
-
-      setTimeout(() => {
-        let ansText = "Halo Kang Devis! Siti siap membantu melayani pembeli. Semua pesanan akan dicatat otomatis ke sistem.";
-        const lowerQ = qText.toLowerCase();
-
-        if (lowerQ.includes('ready') || lowerQ.includes('stok') || lowerQ.includes('gamis')) {
-          ansText = "Halo kak Budi! Baju Gamis Syari Premium (Navy L) <strong>READY STOK (25 Pcs Tersedia)</strong> dengan harga <strong>Rp 185.000/pcs</strong> (Bahan Ceruty Baby Doll + Full Furing). Mau Siti catat pesanannya sekarang kak? 😊";
-        } else if (lowerQ.includes('diskon') || lowerQ.includes('grosir')) {
-          ansText = "Ada dong kak! Untuk pembelian grosir: <strong>Beli 3 Pcs Diskon 5%</strong>, <strong>Beli 5 Pcs Diskon 10%</strong>, atau <strong>Beli >=10 Pcs Spesial Rp 150.000/pcs</strong>. Hemat banget kak!";
-        } else if (lowerQ.includes('rekening') || lowerQ.includes('bca') || lowerQ.includes('transfer')) {
-          ansText = "Silakan melakukan pembayaran ke <strong>Bank BCA 1234567890 an Toko Baju Kang Devis</strong>. Setelah transfer, mohon kirim foto bukti resi ke WhatsApp ini ya kak! 🙏";
-        } else if (lowerQ.includes('resi') || lowerQ.includes('ord-')) {
-          ansText = "Pesanan Anda dengan kode <strong>#ORD-20260724-001 (LUNAS)</strong> sudah selesai dipacking dan sedang dalam pengiriman kurir J&T Express dengan No Resi: <strong>JT9876543210ID</strong> 🚚.";
-        }
-
-        const botBubble = document.createElement('div');
-        botBubble.className = 'sim-msg sim-msg-bot';
-        botBubble.innerHTML = `
-          <strong style="font-size:11px; color:var(--success); display:block; margin-bottom:2px;">🤖 Siti - CS Toko Baju (⚡ ${nowTime} WIB • Respon: 1.1 dtk)</strong>
-          ${ansText}
-        `;
-        simMessages.appendChild(botBubble);
-        simMessages.scrollTop = simMessages.scrollHeight;
-      }, 700);
-    };
-
-    simSendBtn.addEventListener('click', handleSimSend);
-    simInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') handleSimSend();
-    });
-  }
-
-  if (simResetBtn && simMessages) {
-    simResetBtn.onclick = () => {
-      simMessages.innerHTML = `
-        <div class="sim-msg sim-msg-bot">
-          <strong style="font-size:11.5px; color:var(--success); display:block; margin-bottom:2px;">🤖 Siti - CS Toko Baju Kang Devis (📥 11:46:00 WIB)</strong>
-          Halo Kang Devis! Percakapan tes telah dibersihkan. Ada yang mau dites tentang stok baju, harga promo, atau transfer BCA? 😊
-        </div>
-      `;
-    };
-  }
-
-  // RENDER DASHBOARD LIVE CONVERSATIONS LIST
-  function renderDashboardLiveConversations(logs) {
-    const listContainer = document.getElementById('dashboard-live-conversations-list');
-    if (!listContainer) return;
-
-    const displayLogs = (logs && logs.length > 0) ? logs.slice(0, 5) : [
-      { sender_name: 'Budi Santoso', sender_phone: '0812-3456-7890', chat_type: 'DIRECT', group_name: null, user_message: 'Halo kak, Gamis Syari Size L ready warna Navy?', bot_response: 'Ready warna Navy kak (Rp 185.000). Pesanan sudah Siti catat.', message_time: '2026-07-24T09:17:00Z' },
-      { sender_name: 'Anisa Rahma', sender_phone: '0857-1122-3344', chat_type: 'GROUP', group_name: 'Grup Reseller Jabar', user_message: 'Admin, mau ambil 10 pcs Gamis Maroon dapet diskon grosir berapa?', bot_response: 'Untuk 10 pcs dapet harga khusus Rp 150.000/pcs kak Anisa!', message_time: '2026-07-24T08:45:00Z' },
-      { sender_name: 'Dewi Lestari', sender_phone: '0819-9988-7766', chat_type: 'DIRECT', group_name: null, user_message: 'Kak bukti transfer 370rb sudah dikirim ya ke BCA', bot_response: 'Terima kasih kak Dewi! Bukti transfer sudah terverifikasi.', message_time: '2026-07-24T08:10:00Z' }
-    ];
-
-    listContainer.innerHTML = displayLogs.map(item => {
-      const timeStr = item.message_time ? new Date(item.message_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '09:17';
-      const initial = item.sender_name.charAt(0).toUpperCase();
-
-      return `
-        <div class="chat-item-card" onclick="openChatThreadModal('${item.sender_name.replace(/'/g, "\\'")}', '${(item.group_name || '').replace(/'/g, "\\'")}', '${item.user_message.replace(/'/g, "\\'")}', '${item.bot_response.replace(/'/g, "\\'")}', '${timeStr}')">
-          <div style="display:flex; align-items:center; gap:10px; flex:1; overflow:hidden;">
-            <div style="width:36px; height:36px; border-radius:10px; background:rgba(37,99,235,0.1); color:var(--primary-accent); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; flex-shrink:0;">
-              ${initial}
-            </div>
-            <div style="overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">
-              <strong style="font-size:13px; color:var(--text-main); display:block; text-overflow:ellipsis; overflow:hidden;">${item.sender_name}</strong>
-              <span style="font-size:11.5px; color:var(--text-muted); display:block; text-overflow:ellipsis; overflow:hidden; margin-top:1px;">
-                🤖 ${item.bot_response}
-              </span>
-            </div>
-          </div>
-          <div style="text-align:right; flex-shrink:0; margin-left:8px;">
-            <span style="font-size:11px; color:var(--text-muted); font-weight:600; display:block;">${timeStr} WIB</span>
-            <span class="badge badge-accent" style="font-size:9.5px; padding:2px 6px; margin-top:2px;">⚡ 1.2s</span>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-  }
-
-  // --- SUPER ADMIN TOPUP VERIFICATION FETCH & RENDER ---
-  async function fetchAdminTopups() {
-    try {
-      const res = await fetch('/api/tenant/topups');
-      const json = await res.json();
-      if (json.status === 'success') {
-        window.rawAdminTopupsData = json.data;
-        renderAdminTopupsTable(json.data);
-      }
-    } catch(e) { console.log('Admin topups fetch fallback'); }
-  }
-
-  function renderAdminTopupsTable(topups) {
-    const tbody = document.getElementById('admin-topups-table-body');
-    const badgeCount = document.getElementById('pending-topups-count-badge');
-    if (!tbody) return;
-
-    if (!topups || topups.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">Belum ada transaksi top-up token yang perlu diverifikasi.</td></tr>`;
-      return;
-    }
-
-    let pendingCount = 0;
-    tbody.innerHTML = topups.map(t => {
-      const dateStr = t.created_at ? new Date(t.created_at).toLocaleString('id-ID') : '24/07/2026';
-      const priceStr = 'Rp ' + parseInt(t.price || 0).toLocaleString('id-ID');
-      const st = t.status || 'UNVERIFIED';
-      const isVerified = st === 'VERIFIED';
-      const isPending = st === 'PENDING_PROOF' || st === 'UNVERIFIED';
-
-      if (isPending) pendingCount++;
-
-      let statusBadge = '<span class="badge badge-success"><i data-lucide="check-circle-2"></i> VERIFIED (Token Aktif)</span>';
-      if (isPending) {
-        statusBadge = '<span class="badge badge-warning" style="background:rgba(245,158,11,0.15); color:#d97706; border-color:rgba(245,158,11,0.3);"><i data-lucide="clock"></i> MENUNGGU VERIFIKASI ADMIN</span>';
-      } else if (st === 'REJECTED') {
-        statusBadge = '<span class="badge badge-danger"><i data-lucide="x-circle"></i> DITOLAK</span>';
-      }
-
-      return `
-        <tr>
-          <td><code style="font-weight:700; color:var(--primary-accent);">${t.topup_code}</code></td>
-          <td><strong>${t.business_name || 'Toko Baju Kang Devis'}</strong></td>
-          <td><strong>${t.package_name}</strong><br><span class="badge badge-accent" style="font-size:10.5px; font-weight:700; margin-top:2px;">+${t.token_amount} Token Chat</span></td>
-          <td><strong style="color:var(--success); font-size:14px;">${priceStr}</strong></td>
-          <td><span style="font-size:12px; color:var(--text-muted);">${dateStr}</span></td>
-          <td>
-            ${t.payment_proof_url ? `<a href="${t.payment_proof_url}" target="_blank" style="font-size:12px; color:var(--primary-accent); font-weight:700; text-decoration:underline;">🖼️ Lihat Resi Transfer</a>` : '<span style="color:var(--text-muted); font-size:12px;">Tanpa Resi</span>'}
-          </td>
-          <td>
-            <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-start;">
-              ${statusBadge}
-              ${isPending ? `
-                <div style="display:flex; gap:6px; margin-top:4px;">
-                  <button class="btn btn-primary btn-sm" style="font-size:11px; padding:4px 8px; font-weight:700;" onclick="toggleAdminTopupStatus('${t.id}', 'VERIFIED')">
-                    <i data-lucide="check-circle"></i> Verifikasi Top-Up
-                  </button>
-                  <button class="btn btn-outline btn-sm" style="font-size:11px; padding:4px 8px; color:#ef4444; border-color:rgba(239,68,68,0.3);" onclick="toggleAdminTopupStatus('${t.id}', 'REJECTED')">
-                    <i data-lucide="x-circle"></i> Tolak
-                  </button>
-                </div>
-              ` : ''}
-            </div>
-          </td>
-        </tr>
-      `;
-    }).join('');
-
-    if (badgeCount) {
-      if (pendingCount > 0) {
-        badgeCount.textContent = `${pendingCount} Baru`;
-        badgeCount.style.display = 'inline-block';
-      } else {
-        badgeCount.style.display = 'none';
-      }
-    }
-
-    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-  }
-
-  window.toggleAdminTopupStatus = async function(topupId, newStatus) {
-    try {
-      const res = await fetch('/api/admin/topups/update-status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: topupId, status: newStatus })
-      });
-      const json = await res.json();
-      if (json.status === 'success') {
-        alert(`✅ ${json.message}`);
-        fetchAdminTopups();
-        fetchTenantTopups();
-      } else {
-        alert(`❌ ${json.message}`);
-      }
-    } catch(e) {
-      alert(`✅ Status transaksi Top-Up token (${newStatus}) berhasil diperbarui! Kuota token otomatis ditambahkan ke tenant.`);
-      fetchAdminTopups();
-      fetchTenantTopups();
-    }
-  };
-
-  // --- SUPER ADMIN CMS FETCHERS & RENDERERS ---
-  async function fetchAdminPortfolio() {
-    try {
-      const res = await fetch('/api/portfolio');
-      const json = await res.json();
-      if (json.status === 'success') {
-        window.rawPortfolioData = json.data;
-        renderAdminPortfolioTable(json.data);
-      }
-    } catch(e) { console.log('Portfolio fetch fallback'); }
-  }
-
-  function renderAdminPortfolioTable(items) {
-    const tbody = document.getElementById('cms-portfolio-table-body');
-    if (!tbody) return;
-
-    if (!items || items.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:24px; color:var(--text-muted);">Belum ada portofolio terdaftar.</td></tr>`;
-      return;
-    }
-
-    tbody.innerHTML = items.map(p => `
-      <tr>
-        <td><strong style="font-size:14px; color:var(--text-main);">${p.title}</strong><br><span style="font-size:11.5px; color:var(--text-muted);">${p.description || ''}</span></td>
-        <td><span class="badge badge-accent">${p.category || 'Umum'}</span></td>
-        <td><span style="font-weight:700; color:var(--success);">${p.metric1 || '-'}</span></td>
-        <td><span style="font-weight:700; color:var(--primary-accent);">${p.metric2 || '-'}</span></td>
-        <td>
-          <div style="display:flex; gap:6px;">
-            <button class="btn-action-edit" onclick="openCmsEditorModal('PORTFOLIO', '${p.id}')"><i data-lucide="edit"></i> Edit</button>
-            <button class="btn-action-delete" onclick="promptDeleteCmsItem('PORTFOLIO', '${p.id}', '${p.title.replace(/'/g, "\\'")}')"><i data-lucide="trash-2"></i> Hapus</button>
-          </div>
-        </td>
-      </tr>
-    `).join('');
-
-    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-  }
-
-  async function fetchAdminFeatures() {
-    try {
-      const res = await fetch('/api/features');
-      const json = await res.json();
-      if (json.status === 'success') {
-        window.rawFeaturesData = json.data;
-        renderAdminFeaturesTable(json.data);
-      }
-    } catch(e) { console.log('Features fetch fallback'); }
-  }
-
-  function renderAdminFeaturesTable(items) {
-    const tbody = document.getElementById('cms-features-table-body');
-    if (!tbody) return;
-
-    if (!items || items.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:24px; color:var(--text-muted);">Belum ada fitur terdaftar.</td></tr>`;
-      return;
-    }
-
-    tbody.innerHTML = items.map(f => `
-      <tr>
-        <td><code style="font-weight:700; color:var(--primary-accent);"><i data-lucide="${f.icon || 'sparkles'}"></i> ${f.icon}</code></td>
-        <td><strong style="font-size:14px; color:var(--text-main);">${f.title}</strong></td>
-        <td><span style="font-size:12.5px; color:var(--text-muted);">${f.description}</span></td>
-        <td>
-          <div style="display:flex; gap:6px;">
-            <button class="btn-action-edit" onclick="openCmsEditorModal('FEATURE', '${f.id}')"><i data-lucide="edit"></i> Edit</button>
-            <button class="btn-action-delete" onclick="promptDeleteCmsItem('FEATURE', '${f.id}', '${f.title.replace(/'/g, "\\'")}')"><i data-lucide="trash-2"></i> Hapus</button>
-          </div>
-        </td>
-      </tr>
-    `).join('');
-
-    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-  }
-
-  async function fetchAdminPricing() {
-    try {
-      const res = await fetch('/api/pricing');
-      const json = await res.json();
-      if (json.status === 'success') {
-        window.rawPricingData = json.data;
-        renderAdminPricingTable(json.data);
-      }
-    } catch(e) { console.log('Pricing fetch fallback'); }
-  }
-
-  function renderAdminPricingTable(items) {
-    const tbody = document.getElementById('cms-pricing-table-body');
-    if (!tbody) return;
-
-    if (!items || items.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:24px; color:var(--text-muted);">Belum ada paket harga terdaftar.</td></tr>`;
-      return;
-    }
-
-    tbody.innerHTML = items.map(pr => `
-      <tr>
-        <td><strong style="font-size:14px; color:var(--text-main);">${pr.plan_name}</strong></td>
-        <td><strong style="color:var(--success); font-size:14px;">Rp ${parseInt(pr.promo_price || 0).toLocaleString('id-ID')}</strong><br><span style="font-size:11px; text-decoration:line-through; color:var(--text-muted);">Rp ${parseInt(pr.original_price || 0).toLocaleString('id-ID')}</span></td>
-        <td><span class="badge badge-accent" style="font-weight:700;">${pr.chat_token_quota || '5.000 Chat'}</span></td>
-        <td><span style="font-size:12px; color:var(--text-muted);">${pr.features_list || '-'}</span></td>
-        <td>
-          <div style="display:flex; gap:6px;">
-            <button class="btn-action-edit" onclick="openCmsEditorModal('PRICING', '${pr.id}')"><i data-lucide="edit"></i> Edit</button>
-            <button class="btn-action-delete" onclick="promptDeleteCmsItem('PRICING', '${pr.id}', '${pr.plan_name.replace(/'/g, "\\'")}')"><i data-lucide="trash-2"></i> Hapus</button>
-          </div>
-        </td>
-      </tr>
-    `).join('');
-
-    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-  }
-
-  // --- SUPER ADMIN TABLE RENDERER: TENANTS B2B ---
-  async function fetchAdminTenants() {
-    try {
-      const res = await fetch('/api/admin/tenants');
-      const json = await res.json();
-      if (json.status === 'success') {
-        window.rawTenantsData = json.data;
-        renderAdminTenantsTable(json.data);
-      }
-    } catch (e) { console.log('Admin tenants fetch fallback'); }
-  }
-
-  function renderAdminTenantsTable(tenants) {
-    const tbody = document.getElementById('admin-tenants-table-body');
-    const badgeCount = document.getElementById('unverified-count-badge');
-    if (!tbody) return;
-
-    if (!tenants || tenants.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">Belum ada tenant terdaftar.</td></tr>`;
-      return;
-    }
-
-    let unverifiedCount = 0;
-    tbody.innerHTML = tenants.map(t => {
-      const isVerified = t.payment_status === 'ACTIVE' || t.payment_status === 'VERIFIED';
-      if (!isVerified) unverifiedCount++;
-
-      const stBadge = isVerified 
-        ? '<span class="badge badge-success"><i data-lucide="check-circle-2"></i> ACTIVE</span>'
-        : '<span class="badge badge-warning" style="background:rgba(239,68,68,0.1); color:#ef4444; border-color:rgba(239,68,68,0.2);"><i data-lucide="alert-triangle"></i> UNVERIFIED</span>';
-
-      return `
-        <tr>
-          <td><code style="font-weight:700; color:var(--primary-accent);">${t.tenant_code}</code></td>
-          <td><strong style="font-size:14px; color:var(--text-main);">${t.business_name}</strong><br><span style="font-size:11.5px; color:var(--text-muted);">${t.plan_name || 'Paket PRO'}</span></td>
-          <td><span style="font-size:13px; font-weight:600;">${t.owner_email}</span><br><span class="wa-phone-link"><i data-lucide="phone"></i> ${t.whatsapp_number}</span></td>
-          <td>${stBadge}</td>
-          <td>
-            <div style="display:flex; align-items:center; gap:6px;">
-              <input type="password" id="tenant-pwd-input-${t.id}" value="${t.tenant_password || '123456'}" readonly style="width:90px; background:var(--bg-body); border:1px solid var(--border-card); border-radius:6px; padding:3px 8px; font-size:12px;">
-              <button class="btn btn-outline btn-sm" onclick="toggleTenantPasswordVisibility('${t.id}')" title="Intip Password" style="padding:4px 7px;">
-                <i data-lucide="eye" id="pwd-eye-icon-${t.id}" style="width:13px; height:13px;"></i>
-              </button>
-            </div>
-          </td>
-          <td>
-            <button class="btn btn-outline btn-sm" style="font-size:11.5px; font-weight:700; color:var(--primary-accent);" onclick="promptResetTenantPassword('${t.id}', '${t.business_name.replace(/'/g, "\\'")}')">
-              <i data-lucide="key-round"></i> Reset Pwd
-            </button>
-          </td>
-          <td>
-            <button class="btn btn-primary btn-sm" style="font-size:11.5px; font-weight:700;" onclick="toggleTenantStatusApi('${t.id}', '${t.payment_status}')">
-              ${isVerified ? 'Matikan' : 'Verifikasi Akun'}
-            </button>
-          </td>
-        </tr>
-      `;
-    }).join('');
-
-    if (badgeCount) {
-      if (unverifiedCount > 0) {
-        badgeCount.textContent = `${unverifiedCount} Baru`;
-        badgeCount.style.display = 'inline-block';
-      } else {
-        badgeCount.style.display = 'none';
-      }
-    }
-
-    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-  }
-
-  window.toggleTenantStatusApi = async function(id, currentStatus) {
-    const newStatus = (currentStatus === 'ACTIVE' || currentStatus === 'VERIFIED') ? 'UNVERIFIED' : 'ACTIVE';
-    try {
-      const res = await fetch('/api/admin/tenants/update-status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tenant_id: id, payment_status: newStatus })
-      });
-      const json = await res.json();
-      alert(`✅ Status tenant berhasil diubah ke ${newStatus}!`);
-      fetchAdminTenants();
-    } catch(e) {
-      alert(`✅ Status tenant berhasil diubah ke ${newStatus}!`);
-      fetchAdminTenants();
-    }
-  };
-
-  // SOP KNOWLEDGE BASE FETCH & SAVE
-  async function fetchTenantSop() {
-    try {
-      const res = await fetch('/api/tenant/sop');
-      const json = await res.json();
-      if (json.status === 'success') {
-        const editor = document.getElementById('sop-rich-editor');
-        if (editor) editor.innerHTML = json.sop_html;
-      }
-    } catch(e) { console.log('SOP fetch fallback'); }
-  }
-
-  if (btnLoadSopTemplate) {
-    btnLoadSopTemplate.onclick = () => {
-      const editor = document.getElementById('sop-rich-editor');
-      if (editor) {
-        editor.innerHTML = `
-<h3>📌 STANDAR OPERASIONAL PROSEDUR (SOP) KAWANAI - TOKO BAJU KANG DEVIS</h3>
-<p><strong>Panduan Resmi Pelayanan AI Siti (Sales & Customer Service Automatic Agent)</strong></p>
-
-<h4>1. TONE PERSONA & CARA MENYAPA PEMBELI</h4>
-<ul>
-  <li>Selalu menyapa pembeli dengan ramah, sopan, dan hangat (gunakan sapaan <em>"Halo Kak [Nama]!"</em> atau <em>"Siap Kak!"</em>).</li>
-  <li>Gunakan bahasa Indonesia yang santun, jelas, dan percaya diri. Hindari kata-kata singkat yang membingungkan.</li>
-  <li>Gunakan emoji ramah secukupnya 😊👗✨ untuk memberikan kesan hangat.</li>
-</ul>
-
-<h4>2. PENANGANAN PERTANYAAN STOK, HARGA & DETAIL KAIN</h4>
-<ul>
-  <li>BACA TABEL STOK DATABASE SECARA PRESISI: Jangan pernah berasumsi stok jika status di DB kosong.</li>
-  <li>Sebutkan nama produk, bahan kain (misal <em>Ceruty Baby Doll Premium + Full Furing</em>), variasi warna, serta harga normal & diskon grosir.</li>
-  <li>Jika pembeli menanyakan diskon grosir, jelaskan aturan bertingkat (misal: <em>Beli 3 Pcs Diskon 5%, Beli 5 Pcs Diskon 10%</em>).</li>
-</ul>
-
-<h4>3. PROSEDUR PENCATATAN PESANAN & REKENING BCA</h4>
-<ul>
-  <li>Bantu catat nama pembeli, nomor HP, detail ukuran/warna barang, dan alamat pengiriman.</li>
-  <li>Berikan total omset yang harus ditransfer serta nomor rekening resmi: <strong>Bank BCA 1234567890 an Toko Baju Kang Devis</strong>.</li>
-  <li>Minta pembeli mengunggah foto resi bukti transfer ke chat WhatsApp ini untuk diverifikasi oleh admin.</li>
-</ul>
-
-<h4>4. ESKALASI KOMPLAIN & RETUR</h4>
-<ul>
-  <li>Apabila ada barang cacat atau salah kirim size, mohon pembeli tenang. Beritahukan bahwa owner toko akan segera menghubungi langsung via WA.</li>
-</ul>
-        `;
-        alert('✅ Template SOP Standar KawanAI berhasil dimuat ke editor!');
-      }
-    };
-  }
-
-  if (btnSaveSopEditor) {
-    btnSaveSopEditor.onclick = async () => {
-      const editor = document.getElementById('sop-rich-editor');
-      const sopHtml = editor ? editor.innerHTML : '';
-
-      try {
-        const res = await fetch('/api/tenant/sop/save', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sop_html: sopHtml })
-        });
-        const json = await res.json();
-        if (json.status === 'success') {
-          alert(`✅ ${json.message}`);
-        } else {
-          alert(`❌ ${json.message}`);
-        }
-      } catch(err) {
-        alert('✅ Dokumen SOP Knowledge Base KawanAI berhasil disimpan ke AI Engine!');
-      }
-    };
-  }
-
-  // ROLE-BASED AUTH SWITCHER
-  roleTabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      roleTabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      const role = tab.getAttribute('data-role');
-
-      if (role === 'admin') {
-        selectedLoginRole = 'SUPER_ADMIN';
-        if (loginEmail) loginEmail.value = 'admin@kawanai.id';
-        if (loginEmailLabel) loginEmailLabel.textContent = 'Email Super Admin';
-        if (btnSubmitLogin) btnSubmitLogin.innerHTML = '<i data-lucide="shield-check"></i> Masuk ke Super Admin Portal';
-      } else {
-        selectedLoginRole = 'TENANT_OWNER';
-        if (loginEmail) loginEmail.value = 'devis@kawanai.id';
-        if (loginEmailLabel) loginEmailLabel.textContent = 'Email Bisnis Klien';
-        if (btnSubmitLogin) btnSubmitLogin.innerHTML = '<i data-lucide="log-in"></i> Masuk ke Dashboard Klien';
-      }
-      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-    });
-  });
-
-  // FORM REGISTER SUBMIT CONTROLLER
-  if (formRegister) {
-    formRegister.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const nameInput = formRegister.querySelector('input[type="text"]');
-      const emailInput = formRegister.querySelector('input[type="email"]');
-      const waInput = formRegister.querySelector('input[type="tel"]');
-
-      const payload = {
-        business_name: nameInput ? nameInput.value : 'Bisnis Baru KawanAI',
-        email: emailInput ? emailInput.value : 'klien@kawanai.id',
-        whatsapp: waInput ? waInput.value : '081234567890',
-        plan_name: 'Paket PRO (Bisnis)'
-      };
-
-      try {
-        const res = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const json = await res.json();
-        window.closeAuthModal();
-        alert(`✅ ${json.message}`);
-      } catch (err) {
-        alert('✅ Registrasi berhasil! Akun Anda kini berstatus UNVERIFIED.');
-        window.closeAuthModal();
-      }
-    });
-  }
-
-  // FORM LOGIN SUBMIT CONTROLLER
-  if (formLogin) {
-    formLogin.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const emailVal = loginEmail ? loginEmail.value.toLowerCase().trim() : '';
-
-      try {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: emailVal })
-        });
-        const json = await res.json();
-
-        window.closeAuthModal();
-        if (viewLanding) viewLanding.style.display = 'none';
-
-        if (json.role === 'SUPER_ADMIN' || emailVal.includes('admin') || selectedLoginRole === 'SUPER_ADMIN') {
-          if (viewSuperAdmin) viewSuperAdmin.style.display = 'block';
-          if (viewDashboard) viewDashboard.style.display = 'none';
-          fetchAdminTenants();
-          fetchAdminPortfolio();
-          fetchAdminFeatures();
-          fetchAdminPricing();
-          fetchAdminTopups();
-        } else {
-          if (viewDashboard) viewDashboard.style.display = 'block';
-          if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
-        }
-        window.scrollTo(0, 0);
-        setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-      } catch (err) {
-        window.closeAuthModal();
-        if (viewLanding) viewLanding.style.display = 'none';
-        if (emailVal.includes('admin') || selectedLoginRole === 'SUPER_ADMIN') {
-          if (viewSuperAdmin) viewSuperAdmin.style.display = 'block';
-          if (viewDashboard) viewDashboard.style.display = 'none';
-          fetchAdminTenants();
-          fetchAdminPortfolio();
-          fetchAdminFeatures();
-          fetchAdminPricing();
-          fetchAdminTopups();
-        } else {
-          if (viewDashboard) viewDashboard.style.display = 'block';
-          if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
-        }
-        window.scrollTo(0, 0);
-        setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-      }
-    });
-  }
-
-  // LOGOUT HANDLERS
-  if (btnLogoutClient) {
-    btnLogoutClient.onclick = () => {
-      if (viewDashboard) viewDashboard.style.display = 'none';
-      if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
-      if (viewLanding) viewLanding.style.display = 'block';
-      window.scrollTo(0, 0);
-    };
-  }
-
-  if (btnLogoutAdmin) {
-    btnLogoutAdmin.onclick = () => {
-      if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
-      if (viewDashboard) viewDashboard.style.display = 'none';
-      if (viewLanding) viewLanding.style.display = 'block';
-      window.scrollTo(0, 0);
-    };
-  }
-
-  // EYE TOGGLE FOR TENANT ACCOUNT CHANGE PASSWORD
-  if (btnToggleTenantAccountPwd) {
-    btnToggleTenantAccountPwd.onclick = () => {
-      const pwdInp = document.getElementById('tenant-account-new-pwd');
-      const eyeIcon = document.getElementById('eye-icon-tenant-account-pwd');
-      if (pwdInp && eyeIcon) {
-        if (pwdInp.type === 'password') {
-          pwdInp.type = 'text';
-          eyeIcon.setAttribute('data-lucide', 'eye-off');
-        } else {
-          pwdInp.type = 'password';
-          eyeIcon.setAttribute('data-lucide', 'eye');
-        }
-        setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 30);
-      }
-    };
-  }
-
-  // SUBMIT TENANT PASSWORD CHANGE
-  if (formTenantChangePwd) {
-    formTenantChangePwd.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const pwdInp = document.getElementById('tenant-account-new-pwd');
-      const newPwd = pwdInp ? pwdInp.value : '';
-
-      try {
-        const res = await fetch('/api/tenant/account/update-password', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ new_password: newPwd })
-        });
-        const json = await res.json();
-        if (json.status === 'success') {
-          alert(`✅ ${json.message}`);
-          if (pwdInp) pwdInp.value = '';
-        } else {
-          alert(`❌ ${json.message}`);
-        }
-      } catch(err) {
-        alert('✅ Password akun tenant berhasil diperbarui!');
-        if (pwdInp) pwdInp.value = '';
-      }
-    });
-  }
-
-  // TOP-UP TRANSFER PROOF FILE COMPRESSOR
-  if (inputTopupFile) {
-    inputTopupFile.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        try {
-          const compressedBase64 = await window.compressImageFile(file, 800, 0.75);
-          document.getElementById('input-topup-compressed-base64').value = compressedBase64;
-          const imgPreview = document.getElementById('topup-proof-preview-img');
-          const previewWrap = document.getElementById('topup-proof-preview-wrapper');
-          if (imgPreview) imgPreview.src = compressedBase64;
-          if (previewWrap) previewWrap.style.display = 'block';
-        } catch(err) {
-          console.log('Topup image compression error:', err);
-        }
-      }
-    });
-  }
-
-  // SUBMIT TOP-UP TRANSACTION FORM
-  if (formSubmitTopup) {
-    formSubmitTopup.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const pkgName = document.getElementById('topup-pkg-name').value;
-      const tokenAmt = document.getElementById('topup-pkg-amount').value;
-      const priceVal = document.getElementById('topup-pkg-price').value;
-      const proofUrl = document.getElementById('input-topup-compressed-base64').value || 'https://dummyimage.com/600x800/0f172a/10b981.png&text=Bukti+Transfer+Topup';
-
-      try {
-        const res = await fetch('/api/tenant/topups/buy', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            package_name: pkgName,
-            token_amount: tokenAmt,
-            price: priceVal,
-            payment_proof_url: proofUrl
-          })
-        });
-        const json = await res.json();
-        if (json.status === 'success') {
-          alert(`✅ ${json.message}`);
-          document.getElementById('form-topup-section').style.display = 'none';
-          fetchTenantTopups();
-          fetchAdminTopups();
-        } else {
-          alert(`❌ ${json.message}`);
-        }
-      } catch(err) {
-        alert(`✅ Transaksi Top-Up (${pkgName}) berhasil dibuat! Menunggu verifikasi admin.`);
-        document.getElementById('form-topup-section').style.display = 'none';
-        fetchTenantTopups();
-        fetchAdminTopups();
-      }
-    });
-  }
-
-  // PRODUCT FILE IMAGE COMPRESSOR
-  if (prodInputFile) {
-    prodInputFile.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        try {
-          const compressedBase64 = await window.compressImageFile(file, 800, 0.75);
-          document.getElementById('prod-input-img').value = compressedBase64;
-          const imgPreview = document.getElementById('prod-img-preview');
-          const previewWrap = document.getElementById('prod-img-preview-wrapper');
-          if (imgPreview) imgPreview.src = compressedBase64;
-          if (previewWrap) previewWrap.style.display = 'block';
-        } catch(err) {
-          console.log('Product image compression error:', err);
-        }
-      }
-    });
-  }
-
-  if (btnShowLogin) btnShowLogin.onclick = (e) => { e.preventDefault(); window.openAuthModal('login'); };
-  if (btnShowRegister) btnShowRegister.onclick = (e) => { e.preventDefault(); window.openAuthModal('register'); };
-  if (heroBtnStart) heroBtnStart.onclick = (e) => { e.preventDefault(); window.openAuthModal('register'); };
-  if (btnCloseModal) btnCloseModal.onclick = (e) => { e.preventDefault(); window.closeAuthModal(); };
-
-  if (switchToRegister) switchToRegister.onclick = (e) => { e.preventDefault(); window.openAuthModal('register'); };
-  if (switchToLogin) switchToLogin.onclick = (e) => { e.preventDefault(); window.openAuthModal('login'); };
-
-  if (btnAddNewProduct) btnAddNewProduct.onclick = () => window.openProductEditorModal(null);
-  if (btnCloseProdModal) btnCloseProdModal.onclick = () => { if (modalProductEditor) modalProductEditor.style.display = 'none'; };
-  if (btnCancelProdModal) btnCancelProdModal.onclick = () => { if (modalProductEditor) modalProductEditor.style.display = 'none'; };
-
-  // SAVE PRODUCT FORM CONTROLLER
-  if (formProductEditor) {
-    formProductEditor.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const payload = {
-        id: document.getElementById('prod-edit-id').value || null,
-        sku: document.getElementById('prod-input-sku').value,
-        product_name: document.getElementById('prod-input-name').value,
-        category: document.getElementById('prod-input-category').value,
-        price: parseFloat(document.getElementById('prod-input-price').value || 0),
-        discount_price: parseFloat(document.getElementById('prod-input-discount-price').value || 0),
-        tier_discount_json: document.getElementById('prod-input-tier-discount').value,
-        stock_quantity: parseInt(document.getElementById('prod-input-stock').value || 0),
-        material_detail: document.getElementById('prod-input-material').value,
-        variants_json: document.getElementById('prod-input-variants').value,
-        image_url: document.getElementById('prod-input-img').value,
-        description: document.getElementById('prod-input-desc').value
-      };
-
-      try {
-        const res = await fetch('/api/tenant/products/save', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const json = await res.json();
-        if (json.status === 'success') {
-          alert(`✅ ${json.message}`);
-          if (modalProductEditor) modalProductEditor.style.display = 'none';
-          fetchTenantProducts();
-        } else {
-          alert(`❌ ${json.message}`);
-        }
-      } catch(err) {
-        alert(`✅ Produk '${payload.product_name}' berhasil disimpan ke katalog stok DB!`);
-        if (modalProductEditor) modalProductEditor.style.display = 'none';
-        fetchTenantProducts();
-      }
-    });
-  }
-
-  if (btnCloseChatThreadModal) btnCloseChatThreadModal.onclick = () => { if (modalViewChatThread) modalViewChatThread.style.display = 'none'; };
-  if (btnCloseOrderDetailModal) btnCloseOrderDetailModal.onclick = () => { if (modalOrderDetail) modalOrderDetail.style.display = 'none'; };
-  if (btnCloseOrderModalAction) btnCloseOrderModalAction.onclick = () => { if (modalOrderDetail) modalOrderDetail.style.display = 'none'; };
-
-  if (chatFilterDate) chatFilterDate.addEventListener('change', () => { window.chatHistoryCurrentPage = 1; renderTenantChatHistoryGroupedByDate(); });
-  if (chatFilterType) chatFilterType.addEventListener('change', () => { window.chatHistoryCurrentPage = 1; renderTenantChatHistoryGroupedByDate(); });
-
-  // INITIAL FETCHERS RUN FOR ALL MODULES
+  // INITIAL FETCHERS FOR ALL MODULES
   fetchTenantSop();
   fetchTenantProducts();
   fetchTenantTopups();
@@ -1521,6 +764,7 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchAdminFeatures();
   fetchAdminPricing();
   fetchAdminTopups();
-  renderDashboardLiveConversations([]);
+  fetchAdminAgents();
+  fetchAdminAgentChats();
 
 });
