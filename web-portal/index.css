@@ -556,5 +556,30 @@ input:checked + .slider:before { transform: translateX(20px); }
   100% { transform: scale(1); }
 }
 
+/* SORTABLE TABLE HEADERS & ACTIVE HIGHLIGHT */
+.sortable-th {
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+.sortable-th:hover {
+  background: rgba(37, 99, 235, 0.06);
+  color: var(--primary-accent);
+}
+.sortable-th.active-sort {
+  background: rgba(37, 99, 235, 0.12) !important;
+  color: var(--primary-accent) !important;
+  font-weight: 800 !important;
+}
+.sort-th-icon {
+  width: 10px;
+  height: 10px;
+  stroke-width: 2.2px;
+  vertical-align: middle;
+  margin-left: 4px;
+  transition: transform 0.2s ease;
+}
+
+
 
 

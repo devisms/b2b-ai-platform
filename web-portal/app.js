@@ -1,4 +1,4 @@
-// KawanAI - Complete Application Controller (Bulletproof Global Sorting & Refined RAG PDF Component)
+// KawanAI - Complete Application Controller (Intuitive Pure Column Sorting & Unverified Default Priority)
 
 // --- GLOBAL SORTING STATE & FUNCTIONS (DECLARED OUTSIDE DOMCONTENTLOADED) ---
 window.currentSortField = null;
@@ -16,9 +16,19 @@ window.sortTableByColumn = function(field) {
     window.currentSortDir = 'asc';
   }
 
-  // Update icons on table headers
+  // Update icons and active styles on table headers
   ['tenant_code', 'business_name', 'owner_email', 'payment_status'].forEach(f => {
     const iconElem = document.getElementById(`sort-icon-${f}`);
+    const thElem = document.getElementById(`th-col-${f}`);
+    
+    if (thElem) {
+      if (f === window.currentSortField) {
+        thElem.classList.add('active-sort');
+      } else {
+        thElem.classList.remove('active-sort');
+      }
+    }
+
     if (iconElem) {
       if (f === window.currentSortField) {
         iconElem.setAttribute('data-lucide', window.currentSortDir === 'asc' ? 'chevron-up' : 'chevron-down');
@@ -343,7 +353,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // SEARCH FILTER & COLUMN SORT ENGINE (UNVERIFIED PINNED AT TOP)
+  // SEARCH FILTER & PURE COLUMN SORT ENGINE
   window.applyTenantFilterAndSort = function() {
     let tenants = [...(window.rawTenantsData || [])];
     const query = tenantSearchInput ? tenantSearchInput.value.toLowerCase().trim() : '';
@@ -359,27 +369,27 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // ALWAYS PIN UNVERIFIED TENANTS AT THE TOP
-    tenants.sort((a, b) => {
-      const isAUnverified = a.payment_status === 'UNVERIFIED';
-      const isBUnverified = b.payment_status === 'UNVERIFIED';
-
-      if (isAUnverified && !isBUnverified) return -1;
-      if (!isAUnverified && isBUnverified) return 1;
-
-      // Apply chosen column sorting if active
-      if (window.currentSortField) {
+    if (window.currentSortField) {
+      // Strict column sorting when user explicitly clicks a column header
+      tenants.sort((a, b) => {
         let valA = (a[window.currentSortField] || '').toString().toLowerCase();
         let valB = (b[window.currentSortField] || '').toString().toLowerCase();
 
         if (valA < valB) return window.currentSortDir === 'asc' ? -1 : 1;
         if (valA > valB) return window.currentSortDir === 'asc' ? 1 : -1;
         return 0;
-      }
+      });
+    } else {
+      // Default view sorting: Pin UNVERIFIED at the top, then newest created
+      tenants.sort((a, b) => {
+        const isAUnverified = a.payment_status === 'UNVERIFIED';
+        const isBUnverified = b.payment_status === 'UNVERIFIED';
 
-      // Default fallback sorting: Newest created date
-      return new Date(b.created_at || 0) - new Date(a.created_at || 0);
-    });
+        if (isAUnverified && !isBUnverified) return -1;
+        if (!isAUnverified && isBUnverified) return 1;
+        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+      });
+    }
 
     renderAdminTenantsTable(tenants);
   };
@@ -604,7 +614,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // --- DEDICATED TENANT DETAIL PAGE ROUTER (REFINED RED PDF THEME RAG COMPONENT) ---
+  // --- DEDICATED TENANT DETAIL PAGE ROUTER ---
   window.openTenantDetailPage = function(tenantId) {
     const t = (window.rawTenantsData && window.rawTenantsData.find(x => x.id === tenantId)) || {
       id: tenantId,

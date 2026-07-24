@@ -433,13 +433,14 @@
               <table class="admin-table">
                 <thead>
                   <tr>
-                    <th class="sortable-th" onclick="sortTableByColumn('tenant_code')">ID Tenant <i data-lucide="chevrons-up-down" class="sort-th-icon" id="sort-icon-tenant_code"></i></th>
-                    <th class="sortable-th" onclick="sortTableByColumn('business_name')">Nama Bisnis & Pemilik <i data-lucide="chevrons-up-down" class="sort-th-icon" id="sort-icon-business_name"></i></th>
-                    <th class="sortable-th" onclick="sortTableByColumn('owner_email')">Email & WhatsApp <i data-lucide="chevrons-up-down" class="sort-th-icon" id="sort-icon-owner_email"></i></th>
+                    <th class="sortable-th" id="th-col-tenant_code" onclick="sortTableByColumn('tenant_code')">ID Tenant <i data-lucide="chevrons-up-down" class="sort-th-icon" id="sort-icon-tenant_code"></i></th>
+                    <th class="sortable-th" id="th-col-business_name" onclick="sortTableByColumn('business_name')">Nama Bisnis & Pemilik <i data-lucide="chevrons-up-down" class="sort-th-icon" id="sort-icon-business_name"></i></th>
+                    <th class="sortable-th" id="th-col-owner_email" onclick="sortTableByColumn('owner_email')">Email & WhatsApp <i data-lucide="chevrons-up-down" class="sort-th-icon" id="sort-icon-owner_email"></i></th>
                     <th>Paket Tier</th>
-                    <th class="sortable-th" onclick="sortTableByColumn('payment_status')">Status Pembayaran <i data-lucide="chevrons-up-down" class="sort-th-icon" id="sort-icon-payment_status"></i></th>
+                    <th class="sortable-th" id="th-col-payment_status" onclick="sortTableByColumn('payment_status')">Status Pembayaran <i data-lucide="chevrons-up-down" class="sort-th-icon" id="sort-icon-payment_status"></i></th>
                     <th>Aksi Detail</th>
                   </tr>
+
                 </thead>
                 <tbody id="admin-tenants-table-body">
                   <!-- Rendered dynamically via app.js -->
