@@ -40,11 +40,14 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.get_tenant_topups_api()
         elif self.path.startswith('/api/tenant/sop'):
             self.get_tenant_sop_api()
+        elif self.path.startswith('/api/tenant/broadcasts'):
+            self.get_tenant_broadcasts_api()
         elif self.path == '/api/admin/agents':
             self.get_admin_agents_api()
         elif self.path.startswith('/api/admin/agents/chats'):
             self.get_admin_agent_chats_api()
         else:
+
 
 
 
@@ -601,8 +604,23 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             elif agent_key == 'feedback':
                 bot_response = f"Terima kasih atas kritik & masukan berharga dari {tenant_name}! Aura telah mencatat masukan ini ('{user_message}') untuk dimasukkan ke roadmap pengembangan KawanAI v2.0."
 
-            elif agent_key == 'platform_updates':
-                bot_response = f"Siap Kang Devis! Jarvis telah memproses permintaan update ('{user_message}'). Berikut rincian draf pengumuman Rilis Fitur Baru v1.7: 1. Penambahan Multi-Agent Suite Super Admin (CS, Feedback, & Release Manager AI). 2. Integrasi Riwayat Chat Tenant 24/7. Draf siap dipublish!"
+            elif agent_key in ['broadcast_announcement', 'platform_updates']:
+                b_type = 'MAINTENANCE' if ('gangguan' in lower or 'maintenance' in lower or 'perbaikan' in lower) else 'UPDATE' if ('update' in lower or 'fitur' in lower) else 'INFO'
+                b_title = '📢 Pemberitahuan Maintenance / Gangguan Sistem KawanAI' if b_type == 'MAINTENANCE' else '🚀 Pengumuman Update Resmi KawanAI Pusat'
+                
+                bot_response = f"Siap Kang Devis! Pengumuman resmi ini ('{user_message}') telah BERHASIL DISIARKAN KAN LANGSUNG ke seluruh Dashboard Tenant KawanAI oleh Broadcaster Pusat!"
+
+                try:
+                    conn_b = psycopg2.connect(**DB_CONFIG)
+                    cur_b = conn_b.cursor()
+                    cur_b.execute("""
+                        INSERT INTO admin_service.tenant_broadcasts (broadcast_title, broadcast_type, message_body, sender_name)
+                        VALUES (%s, %s, %s, %s);
+                    """, (b_title, b_type, user_message, 'KawanAI Pusat'))
+                    conn_b.commit()
+                    conn_b.close()
+                except Exception as ex_b:
+                    print('Broadcast insert fallback:', ex_b)
 
             conn = psycopg2.connect(**DB_CONFIG)
             cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -621,6 +639,25 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.send_json_response({"status": "success", "data": chat_dict})
         except Exception as e:
             self.send_json_response({"status": "error", "message": str(e)}, 500)
+
+    def get_tenant_broadcasts_api(self):
+        try:
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor.execute("SELECT * FROM admin_service.tenant_broadcasts ORDER BY created_at DESC LIMIT 10;")
+            rows = cursor.fetchall()
+            conn.close()
+
+            processed = []
+            for r in rows:
+                r_dict = dict(r)
+                if r_dict.get('created_at'): r_dict['created_at'] = r_dict['created_at'].isoformat()
+                processed.append(r_dict)
+
+            self.send_json_response({"status": "success", "data": processed})
+        except Exception as e:
+            self.send_json_response({"status": "error", "message": str(e)}, 500)
+
 
 
 

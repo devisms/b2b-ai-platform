@@ -15,6 +15,7 @@ window.rawTenantTopupsData = [];
 window.rawAdminTopupsData = [];
 window.rawAdminAgentsData = [];
 window.rawAdminAgentChatsData = [];
+window.rawTenantBroadcastsData = [];
 window.chatHistoryCurrentPage = 1;
 window.chatHistoryItemsPerPage = 5;
 window.currentActiveOrderCode = null;
@@ -425,21 +426,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnCloseChatThreadModal = document.getElementById('btn-close-chat-thread-modal');
   const modalViewChatThread = document.getElementById('modal-view-chat-thread');
 
-  const btnAddNewProduct = document.getElementById('btn-add-new-product');
-  const modalProductEditor = document.getElementById('modal-product-editor');
-  const btnCloseProdModal = document.getElementById('btn-close-prod-modal');
-  const btnCancelProdModal = document.getElementById('btn-cancel-prod-modal');
-  const formProductEditor = document.getElementById('form-product-editor');
-  const prodInputFile = document.getElementById('prod-input-file');
-
-  const btnAddPortfolio = document.getElementById('btn-add-portfolio');
-  const btnAddFeature = document.getElementById('btn-add-feature');
-  const btnAddPricing = document.getElementById('btn-add-pricing');
-  const modalCmsEditor = document.getElementById('modal-cms-editor');
-  const btnCloseCmsModal = document.getElementById('btn-close-cms-modal');
-  const btnCancelCmsEditor = document.getElementById('btn-cancel-cms-editor');
-  const formCmsEditor = document.getElementById('form-cms-editor');
-
   const roleTabs = document.querySelectorAll('.role-tab');
   const loginEmail = document.getElementById('login-email');
   const loginEmailLabel = document.getElementById('login-email-label');
@@ -509,6 +495,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           if (viewDashboard) viewDashboard.style.display = 'block';
           if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
+          fetchTenantBroadcasts();
         }
         window.scrollTo(0, 0);
         setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
@@ -528,6 +515,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           if (viewDashboard) viewDashboard.style.display = 'block';
           if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
+          fetchTenantBroadcasts();
         }
         window.scrollTo(0, 0);
         setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
@@ -620,7 +608,7 @@ document.addEventListener('DOMContentLoaded', () => {
           fetchAdminTopups();
         }
         else if (target === 'agents') {
-          pageTitle.textContent = 'Super Admin Portal: Multi-Agent Suite (CS Support, Feedback, & Release Manager AI)';
+          pageTitle.textContent = 'Super Admin Portal: Multi-Agent Suite (CS Support, Feedback, & Broadcaster Pusat)';
           fetchAdminAgents();
           fetchAdminAgentChats();
         }
@@ -679,6 +667,11 @@ document.addEventListener('DOMContentLoaded', () => {
       item.classList.add('active');
       const targetSec = document.getElementById(`tab-${target}`);
       if (targetSec) targetSec.style.display = 'block';
+
+      if (target === 'overview') {
+        fetchTenantBroadcasts();
+      }
+
       setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
     });
   });
@@ -709,7 +702,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (toneInp) toneInp.value = a.persona_tone || 'formal';
             if (promptInp) promptInp.value = a.system_prompt;
             if (labelName) labelName.textContent = a.agent_name;
-          } else if (a.agent_key === 'platform_updates') {
+          } else if (a.agent_key === 'platform_updates' || a.agent_key === 'broadcast_announcement') {
             const nameInp = document.getElementById('pu-agent-name');
             const toneInp = document.getElementById('pu-agent-tone');
             const promptInp = document.getElementById('pu-agent-prompt');
@@ -775,23 +768,57 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (puTbody) {
-      const puChats = (chats || []).filter(c => c.agent_key === 'platform_updates');
+      const puChats = (chats || []).filter(c => c.agent_key === 'platform_updates' || c.agent_key === 'broadcast_announcement');
       if (puChats.length === 0) {
-        puTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:16px; color:var(--text-muted);">Belum ada riwayat pengumuman rilis.</td></tr>`;
+        puTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:16px; color:var(--text-muted);">Belum ada pengumuman yang disiarkan.</td></tr>`;
       } else {
         puTbody.innerHTML = puChats.map(c => `
           <tr>
             <td><span style="font-size:12px; color:var(--text-muted);">${new Date(c.created_at).toLocaleString('id-ID')}</span></td>
-            <td><strong>Kang Devis (Super Admin)</strong></td>
+            <td><strong>Kang Devis (KawanAI Pusat)</strong></td>
             <td><span style="font-size:12.5px;">${c.user_message}</span></td>
             <td><span style="font-size:12.5px; color:var(--primary-accent); font-weight:600;">${c.bot_response}</span></td>
-            <td><span class="badge badge-accent">🚀 PUBLISHED</span></td>
+            <td><span class="badge badge-accent">📢 BROADCASTED TO ALL TENANTS</span></td>
           </tr>
         `).join('');
       }
     }
 
     setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+  }
+
+  // TENANT BROADCAST ANNOUNCEMENT FETCHER
+  async function fetchTenantBroadcasts() {
+    try {
+      const res = await fetch('/api/tenant/broadcasts');
+      const json = await res.json();
+      if (json.status === 'success' && json.data && json.data.length > 0) {
+        window.rawTenantBroadcastsData = json.data;
+        const topB = json.data[0];
+
+        const titleElem = document.getElementById('broadcast-banner-title');
+        const badgeElem = document.getElementById('broadcast-banner-badge');
+        const timeElem = document.getElementById('broadcast-banner-time');
+        const msgElem = document.getElementById('broadcast-banner-msg');
+
+        if (titleElem) titleElem.textContent = topB.broadcast_title || 'Pengumuman Resmi KawanAI Pusat';
+        if (timeElem) timeElem.textContent = new Date(topB.created_at).toLocaleString('id-ID');
+        if (msgElem) msgElem.textContent = topB.message_body;
+
+        if (badgeElem) {
+          badgeElem.textContent = topB.broadcast_type || 'PUSAT';
+          if (topB.broadcast_type === 'MAINTENANCE') {
+            badgeElem.className = 'badge badge-danger';
+            badgeElem.style.background = 'rgba(239,68,68,0.2)';
+            badgeElem.style.color = '#ef4444';
+          } else {
+            badgeElem.className = 'badge badge-accent';
+            badgeElem.style.background = '';
+            badgeElem.style.color = '';
+          }
+        }
+      }
+    } catch(e) { console.log('Tenant broadcasts fetch fallback'); }
   }
 
   // AGENT CONFIG FORM SAVE HANDLERS
@@ -843,7 +870,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const userMsg = document.createElement('div');
         userMsg.className = 'sim-msg sim-msg-user';
         userMsg.innerHTML = `
-          <strong style="font-size:11px; color:var(--primary-accent); display:block; margin-bottom:2px;">👤 Tenant Toko (📥 ${nowTime} WIB)</strong>
+          <strong style="font-size:11px; color:var(--primary-accent); display:block; margin-bottom:2px;">👤 Kang Devis (KawanAI Pusat) (📥 ${nowTime} WIB)</strong>
           ${text}
         `;
         body.appendChild(userMsg);
@@ -861,7 +888,7 @@ document.addEventListener('DOMContentLoaded', () => {
             })
           });
           const json = await res.json();
-          const botAns = (json.data && json.data.bot_response) ? json.data.bot_response : "Siap! Agent Super Admin memproses pesan Anda.";
+          const botAns = (json.data && json.data.bot_response) ? json.data.bot_response : "Siap! Agent Super Admin memproses pengumuman.";
 
           const botMsg = document.createElement('div');
           botMsg.className = 'sim-msg sim-msg-bot';
@@ -872,8 +899,10 @@ document.addEventListener('DOMContentLoaded', () => {
           body.appendChild(botMsg);
           body.scrollTop = body.scrollHeight;
           fetchAdminAgentChats();
+          fetchTenantBroadcasts();
         } catch(e) {
           fetchAdminAgentChats();
+          fetchTenantBroadcasts();
         }
       };
 
@@ -884,7 +913,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   setupAgentChatTester('cs-sim-send', 'cs-sim-input', 'cs-chat-body', 'cs_support', '🎧 CS Devis (KawanAI B2B Support)', 'var(--success)');
   setupAgentChatTester('fb-sim-send', 'fb-sim-input', 'fb-chat-body', 'feedback', '💡 Aura (Product Analyst)', '#9333ea');
-  setupAgentChatTester('pu-sim-send', 'pu-sim-input', 'pu-chat-body', 'platform_updates', '🚀 Jarvis (Platform Release AI)', 'var(--primary-accent)');
+  setupAgentChatTester('pu-sim-send', 'pu-sim-input', 'pu-chat-body', 'platform_updates', '📢 KawanAI Pusat Broadcaster', 'var(--primary-accent)');
 
   // --- OTHER MODULE FETCHERS & AUXILIARY FUNCTIONS ---
   async function fetchTenantSop() {
@@ -971,6 +1000,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // INITIAL FETCHERS RUN FOR ALL MODULES
+  fetchTenantBroadcasts();
   fetchTenantSop();
   fetchTenantProducts();
   fetchTenantTopups();
