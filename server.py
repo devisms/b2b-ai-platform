@@ -82,7 +82,10 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.delete_pricing_api()
         elif self.path == '/api/admin/tenants/reset-password':
             self.reset_tenant_password_api()
+        elif self.path == '/api/tenant/orders/update-status':
+            self.update_tenant_order_status_api()
         else:
+
             self.send_json_response({"status": "error", "message": "Not Found"}, 404)
 
 
@@ -215,6 +218,31 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.send_json_response({"status": "success", "data": processed})
         except Exception as e:
             self.send_json_response({"status": "error", "message": str(e)}, 500)
+
+    def update_tenant_order_status_api(self):
+        try:
+            payload = self.read_json_payload()
+            order_code = payload.get('order_code')
+            new_status = payload.get('order_status')
+
+            if not order_code or not new_status:
+                self.send_json_response({"status": "error", "message": "Parameter order_code dan order_status wajib diisi!"}, 400)
+                return
+
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE tenant_service.tenant_orders
+                SET order_status = %s
+                WHERE order_code = %s;
+            """, (new_status, order_code))
+            conn.commit()
+            conn.close()
+
+            self.send_json_response({"status": "success", "message": f"Status pesanan {order_code} berhasil diubah menjadi {new_status}"})
+        except Exception as e:
+            self.send_json_response({"status": "error", "message": str(e)}, 500)
+
 
 
     # --- TENANT VERIFICATION & AUTHENTICATION ENDPOINTS ---

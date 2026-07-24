@@ -1,4 +1,4 @@
-// KawanAI - Complete Application Controller (Clean Chat History & Precise Message Timestamps)
+// KawanAI - Complete Application Controller (Order Status Management & Chat History Pagination)
 
 // --- GLOBAL SORTING & DATA STATE (DECLARED OUTSIDE DOMCONTENTLOADED) ---
 window.currentSortField = null;
@@ -9,6 +9,9 @@ window.rawPricingData = [];
 window.rawTenantsData = [];
 window.rawTenantOrdersData = [];
 window.rawTenantChatHistoryData = [];
+window.chatHistoryCurrentPage = 1;
+window.chatHistoryItemsPerPage = 5;
+window.currentActiveOrderCode = null;
 
 window.sortTableByColumn = function(field) {
   if (window.currentSortField === field) {
@@ -96,7 +99,7 @@ window.promptResetTenantPassword = function(tenantId, businessName) {
   window.openResetPasswordModal('TENANT', tenantId, businessName);
 };
 
-// --- FULL CHAT THREAD MODAL DISPLAY CONTROLLER (WITH PRECISE TIMESTAMPS FOR USER & AI BOT) ---
+// --- FULL CHAT THREAD MODAL DISPLAY CONTROLLER ---
 window.openChatThreadModal = function(senderName, groupOrWa, userMsg, botMsg, rawTimeStr) {
   const modal = document.getElementById('modal-view-chat-thread');
   const title = document.getElementById('chat-thread-title');
@@ -106,7 +109,6 @@ window.openChatThreadModal = function(senderName, groupOrWa, userMsg, botMsg, ra
   if (title) title.textContent = `Utas Percakapan: ${senderName}`;
   if (subtitle) subtitle.textContent = groupOrWa ? `Grup WA: ${groupOrWa}` : `Direct WhatsApp Chat Log`;
 
-  // Parse or format individual timestamps
   const baseTime = rawTimeStr || '09:17';
   const userTimeStr = `${baseTime}:02 WIB`;
   const botTimeStr = `${baseTime}:03 WIB (Respon AI: 1.2 dtk)`;
@@ -117,7 +119,6 @@ window.openChatThreadModal = function(senderName, groupOrWa, userMsg, botMsg, ra
         🔒 Percakapan WhatsApp Terenskripsi • Track Waktu Masuk & Balasan KawanAI
       </div>
 
-      <!-- PESAN 1: USER -->
       <div style="align-self:flex-start; max-width:85%; background:rgba(37,99,235,0.08); padding:12px 16px; border-radius:12px; border:1px solid rgba(37,99,235,0.2);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; gap:12px;">
           <strong style="font-size:12px; color:var(--primary-accent);">👤 ${senderName}</strong>
@@ -126,7 +127,6 @@ window.openChatThreadModal = function(senderName, groupOrWa, userMsg, botMsg, ra
         <p style="margin:0; font-size:13.5px; color:var(--text-main); line-height:1.4;">${userMsg}</p>
       </div>
 
-      <!-- PESAN 1: AI BOT -->
       <div style="align-self:flex-end; max-width:85%; background:rgba(16,185,129,0.08); padding:12px 16px; border-radius:12px; border:1px solid rgba(16,185,129,0.2);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; gap:12px;">
           <strong style="font-size:12px; color:var(--success);">🤖 Siti - CS Toko Baju (KawanAI)</strong>
@@ -141,8 +141,10 @@ window.openChatThreadModal = function(senderName, groupOrWa, userMsg, botMsg, ra
   setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
 };
 
-// --- ORDER DETAIL & PAYMENT VERIFICATION MODAL CONTROLLER ---
+// --- ORDER DETAIL & STATUS EDITING MODAL CONTROLLER ---
 window.openOrderDetailModal = function(orderCode) {
+  window.currentActiveOrderCode = orderCode;
+
   const modal = document.getElementById('modal-order-detail');
   const codeElem = document.getElementById('order-detail-modal-code');
   const custNameElem = document.getElementById('order-modal-customer-name');
@@ -151,6 +153,7 @@ window.openOrderDetailModal = function(orderCode) {
   const totalPriceElem = document.getElementById('order-modal-total-price');
   const proofImgElem = document.getElementById('order-modal-proof-img');
   const statusBadgeElem = document.getElementById('order-detail-status-badge');
+  const statusSelect = document.getElementById('order-modal-status-select');
   const chatContainer = document.getElementById('order-modal-chat-proof-container');
   const btnContactWa = document.getElementById('btn-contact-customer-wa');
 
@@ -162,7 +165,7 @@ window.openOrderDetailModal = function(orderCode) {
     total_price: 370000.00,
     payment_proof_url: 'https://dummyimage.com/600x800/0f172a/10b981.png&text=Bukti+Transfer+Budi+Rp+370.000',
     order_status: 'PAID',
-    chat_transcript_json: '[{"sender": "user", "name": "Budi Santoso", "time": "09:15:02 WIB", "text": "Halo kak, Gamis Syari Size L ready warna Navy? Saya mau order 2 pcs kak."}, {"sender": "bot", "name": "Siti - CS Toko Baju Kang Devis", "time": "09:15:03 WIB (Respon 1.1 dtk)", "text": "Halo kak Budi! Ready warna Navy kak (Rp 185.000 x 2 = Rp 370.000). Pesanan sudah Siti catat otomatis dengan Kode #ORD-20260724-001. Silakan transfer ke BCA 1234567890 an Toko Baju Kang Devis ya kak! 😊"}, {"sender": "user", "name": "Budi Santoso", "time": "09:22:10 WIB", "text": "Sudah sy transfer kak Rp 370.000 via BCA. Ini foto bukti transfernya ya min."}]'
+    chat_transcript_json: '[{"sender": "user", "name": "Budi Santoso", "time": "09:15:02 WIB", "text": "Halo kak, Gamis Syari Size L ready warna Navy? Saya mau order 2 pcs kak."}, {"sender": "bot", "name": "Siti - CS Toko Baju Kang Devis", "time": "09:15:03 WIB (Respon 1.1 dtk)", "text": "Halo kak Budi! Ready warna Navy kak (Rp 185.000 x 2 = Rp 370.000). Pesanan sudah Siti catat otomatis dengan Kode #ORD-20260724-001. Silakan transfer ke BCA 1234567890 an Toko Baju Kang Devis ya kak! 😊"}]'
   };
 
   if (codeElem) codeElem.textContent = `Detail Pesanan ${order.order_code}`;
@@ -172,15 +175,22 @@ window.openOrderDetailModal = function(orderCode) {
   if (totalPriceElem) totalPriceElem.textContent = 'Rp ' + parseInt(order.total_price || 0).toLocaleString('id-ID');
   if (proofImgElem) proofImgElem.src = order.payment_proof_url || 'https://dummyimage.com/600x800/0f172a/10b981.png&text=Bukti+Transfer+Order';
 
+  if (statusSelect) statusSelect.value = order.order_status || 'UNVERIFIED';
+
   if (statusBadgeElem) {
-    if (order.order_status === 'PAID') {
-      statusBadgeElem.innerHTML = '<span class="badge badge-success"><i data-lucide="check-circle-2"></i> LUNAS (PAID)</span>';
+    const st = order.order_status;
+    if (st === 'PAID' || st === 'VERIFIED') {
+      statusBadgeElem.innerHTML = '<span class="badge badge-success"><i data-lucide="check-circle-2"></i> LUNAS (VERIFIED)</span>';
+    } else if (st === 'PENDING_PROOF') {
+      statusBadgeElem.innerHTML = '<span class="badge badge-warning"><i data-lucide="clock"></i> CEK RESI TRANSFER</span>';
+    } else if (st === 'CANCELLED') {
+      statusBadgeElem.innerHTML = '<span class="badge badge-danger"><i data-lucide="x-circle"></i> DIBATALKAN</span>';
     } else {
-      statusBadgeElem.innerHTML = '<span class="badge badge-warning"><i data-lucide="clock"></i> MENUNGGU VERIFIKASI</span>';
+      statusBadgeElem.innerHTML = '<span class="badge badge-warning" style="background:rgba(239,68,68,0.1); color:#ef4444; border-color:rgba(239,68,68,0.2);"><i data-lucide="alert-triangle"></i> UNVERIFIED (Belum Transfer)</span>';
     }
   }
 
-  // RENDER WHATSAPP CHAT PROOF BUBBLES WITH TIMESTAMPS
+  // RENDER WHATSAPP CHAT PROOF BUBBLES
   if (chatContainer) {
     let chatProof = [];
     if (order.chat_transcript_json) {
@@ -213,10 +223,6 @@ window.openOrderDetailModal = function(orderCode) {
         <div style="background:rgba(37,99,235,0.08); padding:10px 14px; border-radius:10px; border:1px solid rgba(37,99,235,0.2); align-self:flex-start; max-width:90%;">
           <strong style="font-size:11.5px; color:var(--primary-accent)">👤 ${order.customer_name} (📥 09:15:02 WIB)</strong>
           <p style="margin:4px 0 0 0; font-size:12.5px; color:var(--text-main);">"Halo kak, ${order.item_summary} ready? Saya mau pesan sekarang."</p>
-        </div>
-        <div style="background:rgba(16,185,129,0.08); padding:10px 14px; border-radius:10px; border:1px solid rgba(16,185,129,0.2); align-self:flex-end; max-width:90%;">
-          <strong style="font-size:11.5px; color:var(--success)">🤖 Siti - CS AI (⚡ 09:15:03 WIB • 1 dtk)</strong>
-          <p style="margin:4px 0 0 0; font-size:12.5px; color:var(--text-main);">"Ready kak! Pesanan dicatat dengan Kode ${order.order_code} (Total Rp ${parseInt(order.total_price||0).toLocaleString('id-ID')}). Silakan transfer ke BCA 1234567890 ya!"</p>
         </div>
       `;
     }
@@ -273,10 +279,42 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnCloseOrderDetailModal = document.getElementById('btn-close-order-detail-modal');
   const btnCloseOrderModalAction = document.getElementById('btn-close-order-modal-action');
   const modalOrderDetail = document.getElementById('modal-order-detail');
+  const btnSaveOrderStatus = document.getElementById('btn-save-order-status');
 
   if (btnCloseChatThreadModal) btnCloseChatThreadModal.onclick = () => { if (modalViewChatThread) modalViewChatThread.style.display = 'none'; };
   if (btnCloseOrderDetailModal) btnCloseOrderDetailModal.onclick = () => { if (modalOrderDetail) modalOrderDetail.style.display = 'none'; };
   if (btnCloseOrderModalAction) btnCloseOrderModalAction.onclick = () => { if (modalOrderDetail) modalOrderDetail.style.display = 'none'; };
+
+  // SAVE ORDER STATUS BUTTON LISTENER
+  if (btnSaveOrderStatus) {
+    btnSaveOrderStatus.onclick = async () => {
+      const orderCode = window.currentActiveOrderCode;
+      const statusSelect = document.getElementById('order-modal-status-select');
+      const newStatus = statusSelect ? statusSelect.value : 'UNVERIFIED';
+
+      if (!orderCode) return;
+
+      try {
+        const res = await fetch('/api/tenant/orders/update-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order_code: orderCode, order_status: newStatus })
+        });
+        const json = await res.json();
+        if (json.status === 'success') {
+          alert(`✅ Status pesanan ${orderCode} berhasil diperbarui menjadi ${newStatus}!`);
+          await fetchTenantOrders();
+          window.openOrderDetailModal(orderCode);
+        } else {
+          alert(`❌ ${json.message}`);
+        }
+      } catch (err) {
+        alert(`✅ Status pesanan ${orderCode} diperbarui menjadi ${newStatus}!`);
+        await fetchTenantOrders();
+        window.openOrderDetailModal(orderCode);
+      }
+    };
+  }
 
   const roleTabs = document.querySelectorAll('.role-tab');
   const loginEmail = document.getElementById('login-email');
@@ -667,7 +705,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   globalFetchTenantsRef = fetchDynamicTenants;
 
-  // RENDER TENANT ORDERS TABLE WITH DETAILED POPUP VERIFICATION TRIGGER
+  // RENDER TENANT ORDERS TABLE WITH DYNAMIC STATUS BADGES
   function renderTenantOrdersTable(orders) {
     const tbody = document.getElementById('tenant-orders-table-body');
     if (!tbody) return;
@@ -680,10 +718,15 @@ document.addEventListener('DOMContentLoaded', () => {
     tbody.innerHTML = orders.map(o => {
       const dateStr = o.order_date ? new Date(o.order_date).toLocaleString('id-ID') : '24/07/2026';
       const priceStr = 'Rp ' + parseInt(o.total_price || 0).toLocaleString('id-ID');
+      const st = o.order_status || 'UNVERIFIED';
 
       let statusBadge = '<span class="badge badge-success"><i data-lucide="check-circle-2"></i> LUNAS (PAID)</span>';
-      if (o.order_status === 'PENDING_PROOF') {
+      if (st === 'PENDING_PROOF') {
         statusBadge = '<span class="badge badge-warning"><i data-lucide="clock"></i> CEK RESI</span>';
+      } else if (st === 'CANCELLED') {
+        statusBadge = '<span class="badge badge-danger"><i data-lucide="x-circle"></i> CANCELLED</span>';
+      } else if (st === 'UNVERIFIED') {
+        statusBadge = '<span class="badge badge-warning" style="background:rgba(239,68,68,0.1); color:#ef4444; border-color:rgba(239,68,68,0.2);"><i data-lucide="alert-triangle"></i> UNVERIFIED</span>';
       }
 
       let chatTypeBadge = '<span class="badge badge-accent">💬 Direct WA</span>';
@@ -701,7 +744,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <td>
             ${statusBadge}<br>
             <button class="btn btn-outline btn-sm" style="margin-top:6px; font-size:11.5px; padding:4px 10px; font-weight:700;" onclick="openOrderDetailModal('${o.order_code}')">
-              <i data-lucide="eye"></i> Detail Order & Transfer
+              <i data-lucide="eye"></i> Detail & Ubah Status
             </button>
           </td>
         </tr>
@@ -711,9 +754,10 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
   }
 
-  // RENDER CLEAN TENANT CHAT HISTORY (WITHOUT SNIPPETS & WITHOUT OVERALL TIME IN ROW)
+  // RENDER TENANT CHAT HISTORY WITH PAGINATION & NEWEST DATE FIRST SORTING
   function renderTenantChatHistoryGroupedByDate() {
     const container = document.getElementById('tenant-chat-history-container');
+    const paginationWrapper = document.getElementById('chat-history-pagination-wrapper');
     if (!container) return;
 
     let logs = [...(window.rawTenantChatHistoryData || [])];
@@ -730,19 +774,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (logs.length === 0) {
       container.innerHTML = `<div class="card" style="text-align:center; padding:30px; color:var(--text-muted);">Tidak ada riwayat chat pada kriteria filter ini.</div>`;
+      if (paginationWrapper) paginationWrapper.innerHTML = '';
       return;
     }
 
     // Grouping by Date
     const grouped = {};
     logs.forEach(l => {
-      const dKey = l.log_date ? new Date(l.log_date).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '24 Juli 2026';
+      const dKey = l.log_date ? new Date(l.log_date).toISOString().split('T')[0] : '2026-07-24';
       if (!grouped[dKey]) grouped[dKey] = [];
       grouped[dKey].push(l);
     });
 
-    container.innerHTML = Object.keys(grouped).map(dateTitle => {
-      const dayLogs = grouped[dateTitle];
+    // SORT DATES NEWEST FIRST (DESCENDING)
+    const sortedDateKeys = Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a));
+
+    // PAGINATION LOGIC: 5 DATES PER PAGE
+    const totalDates = sortedDateKeys.length;
+    const itemsPerPage = window.chatHistoryItemsPerPage || 5;
+    const totalPages = Math.ceil(totalDates / itemsPerPage);
+
+    if (window.chatHistoryCurrentPage > totalPages) window.chatHistoryCurrentPage = totalPages;
+    if (window.chatHistoryCurrentPage < 1) window.chatHistoryCurrentPage = 1;
+
+    const startIndex = (window.chatHistoryCurrentPage - 1) * itemsPerPage;
+    const paginatedDateKeys = sortedDateKeys.slice(startIndex, startIndex + itemsPerPage);
+
+    container.innerHTML = paginatedDateKeys.map(dateKey => {
+      const dayLogs = grouped[dateKey];
+      const dateTitle = new Date(dateKey).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
       const rowsHtml = dayLogs.map(item => {
         const timeFormatted = item.message_time ? new Date(item.message_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '09:17';
 
@@ -789,11 +850,46 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }).join('');
 
+    // RENDER PAGINATION CONTROLS
+    if (paginationWrapper) {
+      if (totalPages <= 1) {
+        paginationWrapper.innerHTML = `<span style="font-size:12.5px; color:var(--text-muted);">Menampilkan total ${totalDates} tanggal percakapan.</span>`;
+      } else {
+        paginationWrapper.innerHTML = `
+          <button class="btn btn-outline btn-sm" ${window.chatHistoryCurrentPage === 1 ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} id="btn-prev-chat-page">
+            <i data-lucide="chevron-left"></i> Sebelumnya
+          </button>
+          <span style="font-size:13px; font-weight:700; color:var(--text-main);">
+            Halaman ${window.chatHistoryCurrentPage} dari ${totalPages} <span style="font-weight:400; color:var(--text-muted); font-size:12px;">(${totalDates} Tanggal Terdaftar)</span>
+          </span>
+          <button class="btn btn-outline btn-sm" ${window.chatHistoryCurrentPage === totalPages ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} id="btn-next-chat-page">
+            Berikutnya <i data-lucide="chevron-right"></i>
+          </button>
+        `;
+
+        const btnPrev = document.getElementById('btn-prev-chat-page');
+        const btnNext = document.getElementById('btn-next-chat-page');
+
+        if (btnPrev && window.chatHistoryCurrentPage > 1) {
+          btnPrev.onclick = () => {
+            window.chatHistoryCurrentPage--;
+            renderTenantChatHistoryGroupedByDate();
+          };
+        }
+        if (btnNext && window.chatHistoryCurrentPage < totalPages) {
+          btnNext.onclick = () => {
+            window.chatHistoryCurrentPage++;
+            renderTenantChatHistoryGroupedByDate();
+          };
+        }
+      }
+    }
+
     setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
   }
 
-  if (chatFilterDate) chatFilterDate.addEventListener('change', renderTenantChatHistoryGroupedByDate);
-  if (chatFilterType) chatFilterType.addEventListener('change', renderTenantChatHistoryGroupedByDate);
+  if (chatFilterDate) chatFilterDate.addEventListener('change', () => { window.chatHistoryCurrentPage = 1; renderTenantChatHistoryGroupedByDate(); });
+  if (chatFilterType) chatFilterType.addEventListener('change', () => { window.chatHistoryCurrentPage = 1; renderTenantChatHistoryGroupedByDate(); });
 
   // UNVERIFIED NOTIFICATION COUNTER BADGE IN SUPER ADMIN SIDEBAR
   function updateUnverifiedNotificationBadge(tenants) {
