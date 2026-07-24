@@ -645,18 +645,53 @@
           </div>
         </section>
 
-        <!-- TAB 4: KATALOG & SOP (RAG DOCUMENT UPLOADER) -->
-        <section class="tab-content" id="tab-documents">
+        <!-- TAB 4: STANDAR OPERASIONAL PROSEDUR (SOP KAWANAI) -->
+        <section class="tab-content" id="tab-documents" style="display:none;">
+          <div class="card" style="margin-bottom:20px;">
+            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; border-bottom:1px solid var(--border-card); padding-bottom:14px; margin-bottom:16px;">
+              <div>
+                <h3 style="font-size:20px; font-weight:800; color:var(--text-main);"><i data-lucide="book-open"></i> Dokumen & Knowledge Base SOP AI (Live Rich Editor)</h3>
+                <p class="card-subtitle">Atur instruksi, standar jawaban ramah, panduan stok, & prosedur transfer yang wajib dipatuhi AI Siti saat melayani pembeli</p>
+              </div>
+              <div style="display:flex; gap:10px;">
+                <button type="button" class="btn btn-outline btn-sm" id="btn-load-sop-template" style="font-weight:700;">
+                  <i data-lucide="file-text"></i> Muat Template SOP Standar KawanAI
+                </button>
+                <button type="button" class="btn btn-primary btn-sm" id="btn-save-sop-editor" style="font-weight:700;">
+                  <i data-lucide="save"></i> Simpan SOP ke AI Engine
+                </button>
+              </div>
+            </div>
+
+            <!-- WYSIWYG TOOLBAR BAR -->
+            <div style="display:flex; gap:6px; flex-wrap:wrap; padding:8px 12px; background:var(--bg-body); border:1px solid var(--border-card); border-radius:10px 10px 0 0; border-bottom:none;">
+              <button type="button" class="btn btn-outline btn-sm" onclick="formatSopText('bold')" title="Tebal (Bold)"><i data-lucide="bold" style="width:14px; height:14px;"></i> Tebal</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="formatSopText('italic')" title="Miring (Italic)"><i data-lucide="italic" style="width:14px; height:14px;"></i> Miring</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="formatSopText('formatBlock', 'h3')" title="Judul Utama"><i data-lucide="heading" style="width:14px; height:14px;"></i> Judul Utama</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="formatSopText('formatBlock', 'h4')" title="Sub-Judul"><i data-lucide="heading-2" style="width:14px; height:14px;"></i> Sub-Judul</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="formatSopText('insertUnorderedList')" title="Daftar Poin"><i data-lucide="list" style="width:14px; height:14px;"></i> Poin Bullet</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="formatSopText('removeFormat')" title="Hapus Format"><i data-lucide="trash" style="width:14px; height:14px;"></i> Bersihkan</button>
+            </div>
+
+            <!-- EDITABLE LIVE WYSIWYG SOP CONTAINER -->
+            <div id="sop-rich-editor" contenteditable="true" style="min-height:360px; max-height:550px; overflow-y:auto; padding:18px; background:var(--bg-card); border:1px solid var(--border-card); border-radius:0 0 10px 10px; font-size:13.5px; line-height:1.6; color:var(--text-main); outline:none;">
+              <!-- Rendered dynamically or edited by tenant -->
+            </div>
+          </div>
+
+          <!-- ALTERNATIVE OPTION: UPLOAD PDF/TXT SOP -->
           <div class="card">
-            <h3><i data-lucide="upload-cloud"></i> Upload PDF Katalog & SOP (Knowledge Base Klien)</h3>
-            <div class="upload-dropzone" id="dropzone">
-              <i data-lucide="file-up" class="drop-icon"></i>
-              <h4>Tarik & Lepas File PDF Katalog / SOP Toko Anda</h4>
+            <h4 style="font-size:16px; font-weight:800; color:var(--text-main); margin-bottom:12px;"><i data-lucide="upload-cloud"></i> Opsional: Upload File PDF / Dokumen SOP Tambahan</h4>
+            <div class="upload-dropzone" id="dropzone" style="border:2px dashed var(--border-card); border-radius:12px; padding:24px; text-align:center;">
+              <i data-lucide="file-up" class="drop-icon" style="width:36px; height:36px; color:var(--primary-accent); margin-bottom:8px;"></i>
+              <h5 style="font-size:14px; font-weight:700; margin-bottom:4px;">Tarik & Lepas File PDF Katalog / SOP Tambahan Di Sini</h5>
+              <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">Mendukung format .pdf, .docx, atau .txt (Maksimal 10MB)</p>
               <input type="file" id="file-input" hidden accept=".pdf,.docx,.txt">
-              <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">Pilih File PDF</button>
+              <button class="btn btn-outline btn-sm" style="font-weight:700;" onclick="document.getElementById('file-input').click()"><i data-lucide="folder"></i> Pilih File dari Perangkat</button>
             </div>
           </div>
         </section>
+
       </main>
     </div>
   </div>

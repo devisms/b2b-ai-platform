@@ -38,7 +38,10 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.get_tenant_products_api()
         elif self.path.startswith('/api/tenant/topups'):
             self.get_tenant_topups_api()
+        elif self.path.startswith('/api/tenant/sop'):
+            self.get_tenant_sop_api()
         else:
+
 
 
 
@@ -98,7 +101,10 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.buy_tenant_topup_api()
         elif self.path == '/api/tenant/account/update-password':
             self.update_tenant_account_password_api()
+        elif self.path == '/api/tenant/sop/save':
+            self.save_tenant_sop_api()
         else:
+
 
 
 
@@ -411,6 +417,60 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.send_json_response({"status": "success", "message": f"Password akun tenant berhasil diperbarui!"})
         except Exception as e:
             self.send_json_response({"status": "error", "message": str(e)}, 500)
+
+    def get_tenant_sop_api(self):
+        try:
+            sop_file = os.path.join(DIRECTORY, 'tenant_sop_default.html')
+            sop_text = ""
+            if os.path.exists(sop_file):
+                with open(sop_file, 'r', encoding='utf-8') as f:
+                    sop_text = f.read()
+            else:
+                sop_text = """
+<h3>📌 STANDAR OPERASIONAL PROSEDUR (SOP) KAWANAI - TOKO BAJU KANG DEVIS</h3>
+<p><strong>Panduan Resmi Pelayanan AI Siti (Sales & Customer Service Automatic Agent)</strong></p>
+
+<h4>1. TONE PERSONA & CARA MENYAPA PEMBELI</h4>
+<ul>
+  <li>Selalu menyapa pembeli dengan ramah, sopan, dan hangat (gunakan sapaan <em>"Halo Kak [Nama]!"</em> atau <em>"Siap Kak!"</em>).</li>
+  <li>Gunakan bahasa Indonesia yang santun, jelas, dan percaya diri. Hindari kata-kata singkat yang membingungkan.</li>
+  <li>Gunakan emoji ramah secukupnya 😊👗✨ untuk memberikan kesan hangat.</li>
+</ul>
+
+<h4>2. PENANGANAN PERTANYAAN STOK, HARGA & DETAIL KAIN</h4>
+<ul>
+  <li>BACA TABEL STOK DATABASE SECARA PRESISI: Jangan pernah berasumsi stok jika status di DB kosong.</li>
+  <li>Sebutkan nama produk, bahan kain (misal <em>Ceruty Baby Doll Premium + Full Furing</em>), variasi warna, serta harga normal & diskon grosir.</li>
+  <li>Jika pembeli menanyakan diskon grosir, jelaskan aturan bertingkat (misal: <em>Beli 3 Pcs Diskon 5%, Beli 5 Pcs Diskon 10%</em>).</li>
+</ul>
+
+<h4>3. PROSEDUR PENCATATAN PESANAN & REKENING BCA</h4>
+<ul>
+  <li>Bantu catat nama pembeli, nomor HP, detail ukuran/warna barang, dan alamat pengiriman.</li>
+  <li>Berikan total omset yang harus ditransfer serta nomor rekening resmi: <strong>Bank BCA 1234567890 an Toko Baju Kang Devis</strong>.</li>
+  <li>Minta pembeli mengunggah foto resi bukti transfer ke chat WhatsApp ini untuk diverifikasi oleh admin.</li>
+</ul>
+
+<h4>4. ESKALASI KOMPLAIN & RETUR</h4>
+<ul>
+  <li>Apabila ada barang cacat atau salah kirim size, mohon pembeli tenang. Beritahukan bahwa owner toko akan segera menghubungi langsung via WA.</li>
+</ul>
+"""
+            self.send_json_response({"status": "success", "sop_html": sop_text})
+        except Exception as e:
+            self.send_json_response({"status": "error", "message": str(e)}, 500)
+
+    def save_tenant_sop_api(self):
+        try:
+            payload = self.read_json_payload()
+            sop_html = payload.get('sop_html', '')
+            sop_file = os.path.join(DIRECTORY, 'tenant_sop_default.html')
+            with open(sop_file, 'w', encoding='utf-8') as f:
+                f.write(sop_html)
+            self.send_json_response({"status": "success", "message": "Dokumen SOP Knowledge Base KawanAI berhasil diperbarui & disimpan!"})
+        except Exception as e:
+            self.send_json_response({"status": "error", "message": str(e)}, 500)
+
 
 
 
