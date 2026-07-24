@@ -411,7 +411,7 @@
           </div>
         </section>
 
-        <!-- ADMIN TAB 2: PARA KAWANAI (INTERACTIVE COLUMN CLICK SORT & UNVERIFIED PINNED) -->
+        <!-- ADMIN TAB 2: PARA KAWANAI (DIRECT ONCLICK TABLE COLUMN SORTING) -->
         <section class="admin-tab-content" id="admin-tab-tenants" style="display:none;">
           <div class="card">
             <div class="card-header">
@@ -433,11 +433,11 @@
               <table class="admin-table">
                 <thead>
                   <tr>
-                    <th class="sortable-th" data-sort-field="tenant_code">ID Tenant <i data-lucide="chevrons-up-down" class="sort-th-icon"></i></th>
-                    <th class="sortable-th" data-sort-field="business_name">Nama Bisnis & Pemilik <i data-lucide="chevrons-up-down" class="sort-th-icon"></i></th>
-                    <th class="sortable-th" data-sort-field="owner_email">Email & WhatsApp <i data-lucide="chevrons-up-down" class="sort-th-icon"></i></th>
+                    <th class="sortable-th" onclick="sortTableByColumn('tenant_code')">ID Tenant <i data-lucide="chevrons-up-down" class="sort-th-icon" id="sort-icon-tenant_code"></i></th>
+                    <th class="sortable-th" onclick="sortTableByColumn('business_name')">Nama Bisnis & Pemilik <i data-lucide="chevrons-up-down" class="sort-th-icon" id="sort-icon-business_name"></i></th>
+                    <th class="sortable-th" onclick="sortTableByColumn('owner_email')">Email & WhatsApp <i data-lucide="chevrons-up-down" class="sort-th-icon" id="sort-icon-owner_email"></i></th>
                     <th>Paket Tier</th>
-                    <th class="sortable-th" data-sort-field="payment_status">Status Pembayaran <i data-lucide="chevrons-up-down" class="sort-th-icon"></i></th>
+                    <th class="sortable-th" onclick="sortTableByColumn('payment_status')">Status Pembayaran <i data-lucide="chevrons-up-down" class="sort-th-icon" id="sort-icon-payment_status"></i></th>
                     <th>Aksi Detail</th>
                   </tr>
                 </thead>

@@ -475,11 +475,12 @@ input:checked + .slider:before { transform: translateX(20px); }
   color: var(--primary-accent);
 }
 .sort-th-icon {
-  width: 13px !important;
-  height: 13px !important;
-  margin-left: 4px;
+  width: 10px !important;
+  height: 10px !important;
+  margin-left: 3px;
   vertical-align: middle;
-  opacity: 0.5;
+  opacity: 0.4;
+  stroke-width: 2.2px;
   transition: opacity 0.2s, color 0.2s;
 }
 .sortable-th:hover .sort-th-icon {
@@ -494,6 +495,7 @@ input:checked + .slider:before { transform: translateX(20px); }
   opacity: 1;
   color: var(--primary-accent);
 }
+
 
 
 .sort-select-wrapper {

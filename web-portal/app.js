@@ -1,4 +1,4 @@
-// KawanAI - Complete Application Controller (Clickable Column Sorting & Refined RAG PDF Component)
+// KawanAI - Complete Application Controller (Interactive 10px Column Sorting & Refined RAG PDF Component)
 document.addEventListener('DOMContentLoaded', () => {
 
   // Global State Stores
@@ -7,9 +7,9 @@ document.addEventListener('DOMContentLoaded', () => {
   window.rawPricingData = [];
   window.rawTenantsData = [];
 
-  // Sorting State
-  let currentSortField = null;
-  let currentSortDir = 'asc';
+  // Sorting Global State
+  window.currentSortField = null;
+  window.currentSortDir = 'asc';
 
   // DOM Elements
   const themeToggle = document.getElementById('theme-toggle');
@@ -314,36 +314,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // CLICKABLE TABLE COLUMN SORT HEADERS ATTACHMENT
-  document.querySelectorAll('.sortable-th').forEach(th => {
-    th.addEventListener('click', () => {
-      const field = th.getAttribute('data-sort-field');
-      if (currentSortField === field) {
-        currentSortDir = currentSortDir === 'asc' ? 'desc' : 'asc';
-      } else {
-        currentSortField = field;
-        currentSortDir = 'asc';
-      }
-      
-      // Update TH Visual Indicator Arrow
-      document.querySelectorAll('.sortable-th').forEach(otherTh => {
-        otherTh.classList.remove('active-sort');
-        const icon = otherTh.querySelector('.sort-th-icon');
-        if (icon) icon.setAttribute('data-lucide', 'chevrons-up-down');
-      });
+  // GLOBAL SORT BY TABLE COLUMN HANDLER
+  window.sortTableByColumn = function(field) {
+    if (window.currentSortField === field) {
+      window.currentSortDir = window.currentSortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      window.currentSortField = field;
+      window.currentSortDir = 'asc';
+    }
 
-      th.classList.add('active-sort');
-      const thIcon = th.querySelector('.sort-th-icon');
-      if (thIcon) {
-        thIcon.setAttribute('data-lucide', currentSortDir === 'asc' ? 'chevron-up' : 'chevron-down');
+    // Update icons on table headers
+    ['tenant_code', 'business_name', 'owner_email', 'payment_status'].forEach(f => {
+      const iconElem = document.getElementById(`sort-icon-${f}`);
+      if (iconElem) {
+        if (f === window.currentSortField) {
+          iconElem.setAttribute('data-lucide', window.currentSortDir === 'asc' ? 'chevron-up' : 'chevron-down');
+          iconElem.style.opacity = '1';
+          iconElem.style.color = 'var(--primary-accent)';
+        } else {
+          iconElem.setAttribute('data-lucide', 'chevrons-up-down');
+          iconElem.style.opacity = '0.4';
+          iconElem.style.color = 'inherit';
+        }
       }
-
-      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 30);
-      applyTenantFilterAndSort();
     });
-  });
 
-  // SEARCH FILTER & COLUMN SORT ENGINE (ALWAYS PIN UNVERIFIED AT TOP)
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 30);
+    applyTenantFilterAndSort();
+  };
+
+  // SEARCH FILTER & COLUMN SORT ENGINE (UNVERIFIED PINNED AT TOP)
   function applyTenantFilterAndSort() {
     let tenants = [...(window.rawTenantsData || [])];
     const query = tenantSearchInput ? tenantSearchInput.value.toLowerCase().trim() : '';
@@ -367,17 +367,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (isAUnverified && !isBUnverified) return -1;
       if (!isAUnverified && isBUnverified) return 1;
 
-      // If both are same verification status, apply chosen column sorting
-      if (currentSortField) {
-        let valA = (a[currentSortField] || '').toString().toLowerCase();
-        let valB = (b[currentSortField] || '').toString().toLowerCase();
+      // Apply chosen column sorting if active
+      if (window.currentSortField) {
+        let valA = (a[window.currentSortField] || '').toString().toLowerCase();
+        let valB = (b[window.currentSortField] || '').toString().toLowerCase();
 
-        if (valA < valB) return currentSortDir === 'asc' ? -1 : 1;
-        if (valA > valB) return currentSortDir === 'asc' ? 1 : -1;
+        if (valA < valB) return window.currentSortDir === 'asc' ? -1 : 1;
+        if (valA > valB) return window.currentSortDir === 'asc' ? 1 : -1;
         return 0;
       }
 
-      // Default sorting: Newest created date
+      // Default fallback sorting: Newest created date
       return new Date(b.created_at || 0) - new Date(a.created_at || 0);
     });
 
@@ -604,7 +604,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // --- DEDICATED TENANT DETAIL PAGE ROUTER (REFINED RAG PDF & SEPARATED CARDS) ---
+  // --- DEDICATED TENANT DETAIL PAGE ROUTER (REFINED RED PDF THEME RAG COMPONENT) ---
   window.openTenantDetailPage = function(tenantId) {
     const t = (window.rawTenantsData && window.rawTenantsData.find(x => x.id === tenantId)) || {
       id: tenantId,
@@ -733,21 +733,21 @@ document.addEventListener('DOMContentLoaded', () => {
               <div><span class="card-subtitle">Tone Persona</span><br><strong>${t.ai_persona_tone || 'Ramah & Casual'}</strong></div>
             </div>
             
-            <!-- REFINED KATALOG & SOP KNOWLEDGE BASE RAG PDF BOX -->
+            <!-- REFINED KATALOG & SOP KNOWLEDGE BASE RAG PDF BOX (RED ACCENT THEME) -->
             <div style="border-top:1px solid var(--border-card); padding-top:14px; margin-top:4px;">
               <span class="card-subtitle" style="display:block; margin-bottom:8px; font-weight:700;">File Katalog & SOP Knowledge Base (RAG PDF):</span>
-              <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(37,99,235,0.04); padding:12px 16px; border-radius:12px; border:1px solid rgba(37,99,235,0.15);">
+              <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(225,29,72,0.04); padding:12px 16px; border-radius:12px; border:1px solid rgba(225,29,72,0.18);">
                 <div style="display:flex; align-items:center; gap:10px;">
-                  <div style="width:36px; height:36px; border-radius:8px; background:rgba(37,99,235,0.1); color:var(--primary-accent); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                  <div style="width:36px; height:36px; border-radius:8px; background:rgba(225,29,72,0.12); color:#e11d48; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
                     <i data-lucide="file-text" style="width:18px; height:18px;"></i>
                   </div>
                   <div>
-                    <strong style="font-size:13.5px; color:var(--text-main); display:block;">${t.catalog_pdf_filename || 'Katalog_Produk_Utama_2026.pdf'}</strong>
-                    <span style="font-size:11.5px; color:var(--text-muted);">Format: PDF • Terhubung ke RAG Vector DB AI</span>
+                    <strong style="font-size:13px; color:var(--text-main); display:block; font-family:monospace;">${t.catalog_pdf_filename || 'Katalog_Produk_Utama_2026.pdf'}</strong>
+                    <span style="font-size:11.5px; color:var(--text-muted);">Dokumen PDF RAG Vector DB • AI Assistant Ready</span>
                   </div>
                 </div>
-                <button class="btn btn-outline btn-sm" style="font-size:11.5px;">
-                  <i data-lucide="download"></i> Unduh PDF
+                <button class="btn btn-outline btn-sm" style="font-size:11.5px; color:#e11d48; border-color:rgba(225,29,72,0.3);" onclick="alert('Membuka file ${t.catalog_pdf_filename || 'Katalog_Produk_Utama_2026.pdf'}...')">
+                  <i data-lucide="file-text"></i> Buka PDF
                 </button>
               </div>
             </div>
