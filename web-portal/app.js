@@ -1,4 +1,4 @@
-// KawanAI - Complete Application Controller (Unverified Notification Badge, Separated Owner/Shop Cards & AI Metrics)
+// KawanAI - Complete Application Controller (Clickable Column Sorting & Refined RAG PDF Component)
 document.addEventListener('DOMContentLoaded', () => {
 
   // Global State Stores
@@ -6,6 +6,10 @@ document.addEventListener('DOMContentLoaded', () => {
   window.rawFeaturesData = [];
   window.rawPricingData = [];
   window.rawTenantsData = [];
+
+  // Sorting State
+  let currentSortField = null;
+  let currentSortDir = 'asc';
 
   // DOM Elements
   const themeToggle = document.getElementById('theme-toggle');
@@ -41,7 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const formRegister = document.getElementById('form-register');
 
   const tenantSearchInput = document.getElementById('tenant-search-input');
-  const tenantSortSelect = document.getElementById('tenant-sort-select');
   const unverifiedCountBadge = document.getElementById('unverified-count-badge');
 
   let selectedLoginRole = 'TENANT_OWNER';
@@ -311,42 +314,77 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // SEARCH FILTER & UNVERIFIED PRIORITY SORT ENGINE FOR TENANT TABLE
+  // CLICKABLE TABLE COLUMN SORT HEADERS ATTACHMENT
+  document.querySelectorAll('.sortable-th').forEach(th => {
+    th.addEventListener('click', () => {
+      const field = th.getAttribute('data-sort-field');
+      if (currentSortField === field) {
+        currentSortDir = currentSortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSortField = field;
+        currentSortDir = 'asc';
+      }
+      
+      // Update TH Visual Indicator Arrow
+      document.querySelectorAll('.sortable-th').forEach(otherTh => {
+        otherTh.classList.remove('active-sort');
+        const icon = otherTh.querySelector('.sort-th-icon');
+        if (icon) icon.setAttribute('data-lucide', 'chevrons-up-down');
+      });
+
+      th.classList.add('active-sort');
+      const thIcon = th.querySelector('.sort-th-icon');
+      if (thIcon) {
+        thIcon.setAttribute('data-lucide', currentSortDir === 'asc' ? 'chevron-up' : 'chevron-down');
+      }
+
+      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 30);
+      applyTenantFilterAndSort();
+    });
+  });
+
+  // SEARCH FILTER & COLUMN SORT ENGINE (ALWAYS PIN UNVERIFIED AT TOP)
   function applyTenantFilterAndSort() {
     let tenants = [...(window.rawTenantsData || [])];
     const query = tenantSearchInput ? tenantSearchInput.value.toLowerCase().trim() : '';
-    const sortVal = tenantSortSelect ? tenantSortSelect.value : 'unverified_first';
 
     if (query) {
       tenants = tenants.filter(t => {
         const bName = (t.business_name || t.name || '').toLowerCase();
         const oName = (t.owner_name || '').toLowerCase();
         const email = (t.owner_email || '').toLowerCase();
-        const wa = (t.whatsapp_number || '').toLowerCase();
+        const wa = (t.whatsapp_number || t.shop_whatsapp || '').toLowerCase();
         const code = (t.tenant_code || '').toLowerCase();
         return bName.includes(query) || oName.includes(query) || email.includes(query) || wa.includes(query) || code.includes(query);
       });
     }
 
-    if (sortVal === 'unverified_first') {
-      tenants.sort((a, b) => {
-        if (a.payment_status === 'UNVERIFIED' && b.payment_status !== 'UNVERIFIED') return -1;
-        if (a.payment_status !== 'UNVERIFIED' && b.payment_status === 'UNVERIFIED') return 1;
-        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
-      });
-    } else if (sortVal === 'name_asc') {
-      tenants.sort((a, b) => (a.business_name || a.name || '').localeCompare(b.business_name || b.name || ''));
-    } else if (sortVal === 'owner_asc') {
-      tenants.sort((a, b) => (a.owner_name || '').localeCompare(b.owner_name || ''));
-    } else if (sortVal === 'newest') {
-      tenants.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-    }
+    // ALWAYS PIN UNVERIFIED TENANTS AT THE TOP
+    tenants.sort((a, b) => {
+      const isAUnverified = a.payment_status === 'UNVERIFIED';
+      const isBUnverified = b.payment_status === 'UNVERIFIED';
+
+      if (isAUnverified && !isBUnverified) return -1;
+      if (!isAUnverified && isBUnverified) return 1;
+
+      // If both are same verification status, apply chosen column sorting
+      if (currentSortField) {
+        let valA = (a[currentSortField] || '').toString().toLowerCase();
+        let valB = (b[currentSortField] || '').toString().toLowerCase();
+
+        if (valA < valB) return currentSortDir === 'asc' ? -1 : 1;
+        if (valA > valB) return currentSortDir === 'asc' ? 1 : -1;
+        return 0;
+      }
+
+      // Default sorting: Newest created date
+      return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+    });
 
     renderAdminTenantsTable(tenants);
   }
 
   if (tenantSearchInput) tenantSearchInput.addEventListener('input', applyTenantFilterAndSort);
-  if (tenantSortSelect) tenantSortSelect.addEventListener('change', applyTenantFilterAndSort);
 
   function renderPortfolioGrid(items) {
     const grid = document.querySelector('.portfolio-grid');
@@ -490,7 +528,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- PARA KAWANAI TENANT TABLE (STANDARDIZED SEQUENTIAL #KWN CODES & UNVERIFIED BADGING) ---
+  // --- PARA KAWANAI TENANT TABLE (STANDARDIZED SEQUENTIAL #KWN CODES) ---
   function renderAdminTenantsTable(tenants) {
     const tbody = document.getElementById('admin-tenants-table-body');
     if (!tbody) return;
@@ -566,7 +604,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // --- DEDICATED TENANT DETAIL PAGE ROUTER (SEPARATED OWNER vs SHOP INFO & AI METRICS) ---
+  // --- DEDICATED TENANT DETAIL PAGE ROUTER (REFINED RAG PDF & SEPARATED CARDS) ---
   window.openTenantDetailPage = function(tenantId) {
     const t = (window.rawTenantsData && window.rawTenantsData.find(x => x.id === tenantId)) || {
       id: tenantId,
@@ -694,9 +732,24 @@ document.addEventListener('DOMContentLoaded', () => {
               <div><span class="card-subtitle">Nama Karyawan AI Specialist</span><br><strong>${t.ai_assistant_name || 'Siti - CS KawanAI'}</strong></div>
               <div><span class="card-subtitle">Tone Persona</span><br><strong>${t.ai_persona_tone || 'Ramah & Casual'}</strong></div>
             </div>
-            <div>
-              <span class="card-subtitle">File Katalog & SOP Knowledge Base (RAG PDF):</span><br>
-              <strong style="color:var(--text-main);"><i data-lucide="file-text"></i> ${t.catalog_pdf_filename || 'Katalog_Produk_Utama_2026.pdf'}</strong>
+            
+            <!-- REFINED KATALOG & SOP KNOWLEDGE BASE RAG PDF BOX -->
+            <div style="border-top:1px solid var(--border-card); padding-top:14px; margin-top:4px;">
+              <span class="card-subtitle" style="display:block; margin-bottom:8px; font-weight:700;">File Katalog & SOP Knowledge Base (RAG PDF):</span>
+              <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(37,99,235,0.04); padding:12px 16px; border-radius:12px; border:1px solid rgba(37,99,235,0.15);">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <div style="width:36px; height:36px; border-radius:8px; background:rgba(37,99,235,0.1); color:var(--primary-accent); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <i data-lucide="file-text" style="width:18px; height:18px;"></i>
+                  </div>
+                  <div>
+                    <strong style="font-size:13.5px; color:var(--text-main); display:block;">${t.catalog_pdf_filename || 'Katalog_Produk_Utama_2026.pdf'}</strong>
+                    <span style="font-size:11.5px; color:var(--text-muted);">Format: PDF • Terhubung ke RAG Vector DB AI</span>
+                  </div>
+                </div>
+                <button class="btn btn-outline btn-sm" style="font-size:11.5px;">
+                  <i data-lucide="download"></i> Unduh PDF
+                </button>
+              </div>
             </div>
           </div>
         </div>

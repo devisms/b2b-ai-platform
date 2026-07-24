@@ -411,7 +411,7 @@
           </div>
         </section>
 
-        <!-- ADMIN TAB 2: PARA KAWANAI (WITH UNVERIFIED PRIORITY SORT) -->
+        <!-- ADMIN TAB 2: PARA KAWANAI (INTERACTIVE COLUMN CLICK SORT & UNVERIFIED PINNED) -->
         <section class="admin-tab-content" id="admin-tab-tenants" style="display:none;">
           <div class="card">
             <div class="card-header">
@@ -421,20 +421,11 @@
               <button class="btn btn-primary btn-add-cms"><i data-lucide="plus"></i> Tambah Tenant Baru</button>
             </div>
 
-            <!-- SEARCH FILTER & SORTING TOOLBAR -->
+            <!-- SEARCH FILTER TOOLBAR (CLEAN & UNCLUTTERED) -->
             <div class="table-controls-bar">
               <div class="search-input-wrapper">
                 <i data-lucide="search" class="search-icon"></i>
-                <input type="text" id="tenant-search-input" placeholder="Cari nama bisnis, owner, email, WA...">
-              </div>
-              <div class="sort-select-wrapper">
-                <i data-lucide="arrow-up-down" class="sort-icon"></i>
-                <select id="tenant-sort-select">
-                  <option value="unverified_first">Priortitas: UNVERIFIED Paling Atas</option>
-                  <option value="newest">Urutkan: Terbaru</option>
-                  <option value="name_asc">Urutkan: Nama Bisnis (A-Z)</option>
-                  <option value="owner_asc">Urutkan: Nama Owner (A-Z)</option>
-                </select>
+                <input type="text" id="tenant-search-input" placeholder="Cari nama bisnis, owner, email, WA, atau ID tenant...">
               </div>
             </div>
 
@@ -442,11 +433,11 @@
               <table class="admin-table">
                 <thead>
                   <tr>
-                    <th>ID Tenant</th>
-                    <th>Nama Bisnis & Pemilik</th>
-                    <th>Email & WhatsApp</th>
+                    <th class="sortable-th" data-sort-field="tenant_code">ID Tenant <i data-lucide="chevrons-up-down" class="sort-th-icon"></i></th>
+                    <th class="sortable-th" data-sort-field="business_name">Nama Bisnis & Pemilik <i data-lucide="chevrons-up-down" class="sort-th-icon"></i></th>
+                    <th class="sortable-th" data-sort-field="owner_email">Email & WhatsApp <i data-lucide="chevrons-up-down" class="sort-th-icon"></i></th>
                     <th>Paket Tier</th>
-                    <th>Status Pembayaran</th>
+                    <th class="sortable-th" data-sort-field="payment_status">Status Pembayaran <i data-lucide="chevrons-up-down" class="sort-th-icon"></i></th>
                     <th>Aksi Detail</th>
                   </tr>
                 </thead>
@@ -558,7 +549,7 @@
     </div>
   </div>
 
-  <!-- VIEW 5: DEDICATED FULL-PAGE VIEW TENANT DETAIL (SEPARATED OWNER vs SHOP INFO & AI METRICS) -->
+  <!-- VIEW 5: DEDICATED FULL-PAGE VIEW TENANT DETAIL -->
   <div id="view-tenant-detail" class="page-view" style="display:none;">
     <div class="app-container">
       <aside class="sidebar admin-sidebar">
