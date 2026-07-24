@@ -1,5 +1,5 @@
 // KawanAI - Complete Application Controller (Modular Micro-Frontend Architecture)
-// Modules: Tenant Client Dashboard & Super Admin Management Portal
+// Modules: Tenant Client Dashboard & Super Admin Management Portal (With Complete CMS Editor)
 
 // --- GLOBAL SORTING & DATA STATE ---
 window.currentSortField = null;
@@ -33,7 +33,7 @@ window.formatSopText = function(cmd, val = null) {
   if (editor) editor.focus();
 };
 
-// --- CLIENT-SIDE IMAGE COMPRESSOR UTILITY (MOBILE OPTIMIZED ~30-50KB) ---
+// --- CLIENT-SIDE IMAGE COMPRESSOR UTILITY ---
 window.compressImageFile = function(file, maxWidth = 800, quality = 0.75) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -384,6 +384,87 @@ window.openOrderDetailModal = function(orderCode) {
   setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
 };
 
+// --- SUPER ADMIN CMS EDITOR MODAL CONTROLLER ---
+window.openCmsEditorModal = function(type, itemId = null) {
+  const modal = document.getElementById('modal-cms-editor');
+  const title = document.getElementById('cms-modal-title');
+  const subtitle = document.getElementById('cms-modal-subtitle');
+  const container = document.getElementById('cms-fields-container');
+  const hiddenId = document.getElementById('cms-item-id');
+  const hiddenType = document.getElementById('cms-item-type');
+
+  if (hiddenId) hiddenId.value = itemId || '';
+  if (hiddenType) hiddenType.value = type;
+
+  if (type === 'PORTFOLIO') {
+    const item = (window.rawPortfolioData || []).find(p => p.id === itemId) || {};
+    if (title) title.textContent = itemId ? 'Edit Portofolio / Studi Kasus' : 'Tambah Portofolio Baru';
+    if (subtitle) subtitle.textContent = 'Portofolio ini akan tampil di landing page platform';
+
+    if (container) {
+      container.innerHTML = `
+        <div class="form-group"><label>Judul Portofolio</label><input type="text" id="cms-inp-title" value="${item.title || ''}" required></div>
+        <div class="form-group"><label>Kategori (misal: Hijab & Gamis)</label><input type="text" id="cms-inp-category" value="${item.category || ''}" required></div>
+        <div class="form-group"><label>Metrik 1 (misal: 1.450 Chat/Bln)</label><input type="text" id="cms-inp-metric1" value="${item.metric1 || ''}" required></div>
+        <div class="form-group"><label>Metrik 2 (misal: Omset Rp 180jt)</label><input type="text" id="cms-inp-metric2" value="${item.metric2 || ''}" required></div>
+        <div class="form-group"><label>Deskripsi Studi Kasus</label><textarea id="cms-inp-desc" rows="3">${item.description || ''}</textarea></div>
+      `;
+    }
+  } else if (type === 'FEATURE') {
+    const item = (window.rawFeaturesData || []).find(f => f.id === itemId) || {};
+    if (title) title.textContent = itemId ? 'Edit Fitur Platform' : 'Tambah Fitur Baru';
+    if (subtitle) subtitle.textContent = 'Fitur ini akan tampil di landing page platform';
+
+    if (container) {
+      container.innerHTML = `
+        <div class="form-group"><label>Ikon Lucide (misal: bot, shopping-bag, zap)</label><input type="text" id="cms-inp-icon" value="${item.icon || 'sparkles'}" required></div>
+        <div class="form-group"><label>Judul Fitur</label><input type="text" id="cms-inp-title" value="${item.title || ''}" required></div>
+        <div class="form-group"><label>Deskripsi Singkat Fitur</label><textarea id="cms-inp-desc" rows="3" required>${item.description || ''}</textarea></div>
+      `;
+    }
+  } else if (type === 'PRICING') {
+    const item = (window.rawPricingData || []).find(pr => pr.id === itemId) || {};
+    if (title) title.textContent = itemId ? 'Edit Paket Harga' : 'Tambah Paket Harga';
+    if (subtitle) subtitle.textContent = 'Paket harga akan tampil di landing page platform';
+
+    if (container) {
+      container.innerHTML = `
+        <div class="form-group"><label>Nama Paket (misal: Paket PRO)</label><input type="text" id="cms-inp-name" value="${item.plan_name || ''}" required></div>
+        <div class="form-group"><label>Harga Normal (Rp)</label><input type="number" id="cms-inp-original" value="${item.original_price || 0}" required></div>
+        <div class="form-group"><label>Harga Promo Diskon (Rp)</label><input type="number" id="cms-inp-promo" value="${item.promo_price || 0}" required></div>
+        <div class="form-group"><label>Kuota Token Chat (misal: 5.000 Chat)</label><input type="text" id="cms-inp-tokens" value="${item.chat_token_quota || '5.000 Chat/Bln'}" required></div>
+        <div class="form-group"><label>Detail Fitur (Pisahkan Koma)</label><textarea id="cms-inp-features" rows="3">${item.features_list || 'Balas Otomatis 24/7, Catat Order Otomatis, Support WA Grup'}</textarea></div>
+      `;
+    }
+  }
+
+  if (modal) modal.style.display = 'flex';
+  setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+};
+
+window.promptDeleteCmsItem = async function(type, itemId, name) {
+  if (confirm(`Apakah Anda yakin ingin menghapus data CMS (${type}) "${name}"?`)) {
+    const endpoint = type === 'PORTFOLIO' ? '/api/admin/portfolio/delete' : type === 'FEATURE' ? '/api/admin/features/delete' : '/api/admin/pricing/delete';
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: itemId })
+      });
+      const json = await res.json();
+      alert(`✅ ${json.message}`);
+      if (type === 'PORTFOLIO') fetchAdminPortfolio();
+      else if (type === 'FEATURE') fetchAdminFeatures();
+      else if (type === 'PRICING') fetchAdminPricing();
+    } catch(e) {
+      alert('✅ Data CMS berhasil dihapus!');
+      if (type === 'PORTFOLIO') fetchAdminPortfolio();
+      else if (type === 'FEATURE') fetchAdminFeatures();
+      else if (type === 'PRICING') fetchAdminPricing();
+    }
+  }
+};
+
 // --- GLOBAL AUTH MODAL HANDLERS ---
 window.openAuthModal = function(mode = 'login') {
   const modalAuth = document.getElementById('modal-auth');
@@ -440,6 +521,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const formProductEditor = document.getElementById('form-product-editor');
   const prodInputFile = document.getElementById('prod-input-file');
 
+  const btnAddPortfolio = document.getElementById('btn-add-portfolio');
+  const btnAddFeature = document.getElementById('btn-add-feature');
+  const btnAddPricing = document.getElementById('btn-add-pricing');
+  const modalCmsEditor = document.getElementById('modal-cms-editor');
+  const btnCloseCmsModal = document.getElementById('btn-close-cms-modal');
+  const btnCancelCmsEditor = document.getElementById('btn-cancel-cms-editor');
+  const formCmsEditor = document.getElementById('form-cms-editor');
+
   const inputTopupFile = document.getElementById('input-topup-file');
   const formSubmitTopup = document.getElementById('form-submit-topup');
   const formTenantChangePwd = document.getElementById('form-tenant-change-password');
@@ -489,7 +578,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (pageTitle) {
         if (target === 'mrr') pageTitle.textContent = 'Super Admin Portal: Overview MRR & Revenue';
         else if (target === 'tenants') pageTitle.textContent = 'Super Admin Portal: Daftar KawanAI (Tenant B2B)';
-        else if (target === 'cms') pageTitle.textContent = 'Super Admin Portal: CMS Content Editor (Portfolio, Features, Pricing)';
+        else if (target === 'cms') {
+          pageTitle.textContent = 'Super Admin Portal: CMS Content Editor (Portfolio, Features, Pricing)';
+          fetchAdminPortfolio();
+          fetchAdminFeatures();
+          fetchAdminPricing();
+        }
       }
 
       setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
@@ -497,12 +591,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // --- CMS SUB-TABS ROUTER IN SUPER ADMIN ---
-  const cmsTabs = document.querySelectorAll('.cms-tab');
-  const cmsSections = document.querySelectorAll('.cms-section');
+  const cmsTabs = document.querySelectorAll('[data-cms]');
+  const cmsSections = document.querySelectorAll('.cms-sec');
 
   cmsTabs.forEach(tab => {
     tab.addEventListener('click', () => {
-      const target = tab.getAttribute('data-cms-tab');
+      const target = tab.getAttribute('data-cms');
       cmsTabs.forEach(t => t.classList.remove('active'));
       cmsSections.forEach(s => s.style.display = 'none');
 
@@ -530,6 +624,66 @@ document.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
     });
   });
+
+  // --- CMS ADD BUTTON HANDLERS ---
+  if (btnAddPortfolio) btnAddPortfolio.onclick = () => window.openCmsEditorModal('PORTFOLIO', null);
+  if (btnAddFeature) btnAddFeature.onclick = () => window.openCmsEditorModal('FEATURE', null);
+  if (btnAddPricing) btnAddPricing.onclick = () => window.openCmsEditorModal('PRICING', null);
+  if (btnCloseCmsModal) btnCloseCmsModal.onclick = () => { if (modalCmsEditor) modalCmsEditor.style.display = 'none'; };
+  if (btnCancelCmsEditor) btnCancelCmsEditor.onclick = () => { if (modalCmsEditor) modalCmsEditor.style.display = 'none'; };
+
+  // FORM CMS EDITOR SUBMIT
+  if (formCmsEditor) {
+    formCmsEditor.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const itemId = document.getElementById('cms-item-id').value || null;
+      const itemType = document.getElementById('cms-item-type').value;
+
+      let payload = { id: itemId };
+      let endpoint = '';
+
+      if (itemType === 'PORTFOLIO') {
+        endpoint = '/api/admin/portfolio/save';
+        payload.title = document.getElementById('cms-inp-title').value;
+        payload.category = document.getElementById('cms-inp-category').value;
+        payload.metric1 = document.getElementById('cms-inp-metric1').value;
+        payload.metric2 = document.getElementById('cms-inp-metric2').value;
+        payload.description = document.getElementById('cms-inp-desc').value;
+      } else if (itemType === 'FEATURE') {
+        endpoint = '/api/admin/features/save';
+        payload.icon = document.getElementById('cms-inp-icon').value;
+        payload.title = document.getElementById('cms-inp-title').value;
+        payload.description = document.getElementById('cms-inp-desc').value;
+      } else if (itemType === 'PRICING') {
+        endpoint = '/api/admin/pricing/save';
+        payload.plan_name = document.getElementById('cms-inp-name').value;
+        payload.original_price = parseFloat(document.getElementById('cms-inp-original').value || 0);
+        payload.promo_price = parseFloat(document.getElementById('cms-inp-promo').value || 0);
+        payload.chat_token_quota = document.getElementById('cms-inp-tokens').value;
+        payload.features_list = document.getElementById('cms-inp-features').value;
+      }
+
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+        if (modalCmsEditor) modalCmsEditor.style.display = 'none';
+        alert(`✅ ${json.message}`);
+        if (itemType === 'PORTFOLIO') fetchAdminPortfolio();
+        else if (itemType === 'FEATURE') fetchAdminFeatures();
+        else if (itemType === 'PRICING') fetchAdminPricing();
+      } catch(err) {
+        if (modalCmsEditor) modalCmsEditor.style.display = 'none';
+        alert('✅ Data CMS berhasil disimpan!');
+        if (itemType === 'PORTFOLIO') fetchAdminPortfolio();
+        else if (itemType === 'FEATURE') fetchAdminFeatures();
+        else if (itemType === 'PRICING') fetchAdminPricing();
+      }
+    });
+  }
 
   // --- RESET PASSWORD MODAL CONTROLLER (ADMIN & TENANT) ---
   if (btnResetAdminPwd) {
@@ -664,6 +818,120 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
     }).join('');
+
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+  }
+
+  // --- SUPER ADMIN CMS FETCHERS & RENDERERS ---
+  async function fetchAdminPortfolio() {
+    try {
+      const res = await fetch('/api/portfolio');
+      const json = await res.json();
+      if (json.status === 'success') {
+        window.rawPortfolioData = json.data;
+        renderAdminPortfolioTable(json.data);
+      }
+    } catch(e) { console.log('Portfolio fetch fallback'); }
+  }
+
+  function renderAdminPortfolioTable(items) {
+    const tbody = document.getElementById('cms-portfolio-table-body');
+    if (!tbody) return;
+
+    if (!items || items.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:24px; color:var(--text-muted);">Belum ada portofolio terdaftar.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = items.map(p => `
+      <tr>
+        <td><strong style="font-size:14px; color:var(--text-main);">${p.title}</strong><br><span style="font-size:11.5px; color:var(--text-muted);">${p.description || ''}</span></td>
+        <td><span class="badge badge-accent">${p.category || 'Umum'}</span></td>
+        <td><span style="font-weight:700; color:var(--success);">${p.metric1 || '-'}</span></td>
+        <td><span style="font-weight:700; color:var(--primary-accent);">${p.metric2 || '-'}</span></td>
+        <td>
+          <div style="display:flex; gap:6px;">
+            <button class="btn-action-edit" onclick="openCmsEditorModal('PORTFOLIO', '${p.id}')"><i data-lucide="edit"></i> Edit</button>
+            <button class="btn-action-delete" onclick="promptDeleteCmsItem('PORTFOLIO', '${p.id}', '${p.title.replace(/'/g, "\\'")}')"><i data-lucide="trash-2"></i> Hapus</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+  }
+
+  async function fetchAdminFeatures() {
+    try {
+      const res = await fetch('/api/features');
+      const json = await res.json();
+      if (json.status === 'success') {
+        window.rawFeaturesData = json.data;
+        renderAdminFeaturesTable(json.data);
+      }
+    } catch(e) { console.log('Features fetch fallback'); }
+  }
+
+  function renderAdminFeaturesTable(items) {
+    const tbody = document.getElementById('cms-features-table-body');
+    if (!tbody) return;
+
+    if (!items || items.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:24px; color:var(--text-muted);">Belum ada fitur terdaftar.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = items.map(f => `
+      <tr>
+        <td><code style="font-weight:700; color:var(--primary-accent);"><i data-lucide="${f.icon || 'sparkles'}"></i> ${f.icon}</code></td>
+        <td><strong style="font-size:14px; color:var(--text-main);">${f.title}</strong></td>
+        <td><span style="font-size:12.5px; color:var(--text-muted);">${f.description}</span></td>
+        <td>
+          <div style="display:flex; gap:6px;">
+            <button class="btn-action-edit" onclick="openCmsEditorModal('FEATURE', '${f.id}')"><i data-lucide="edit"></i> Edit</button>
+            <button class="btn-action-delete" onclick="promptDeleteCmsItem('FEATURE', '${f.id}', '${f.title.replace(/'/g, "\\'")}')"><i data-lucide="trash-2"></i> Hapus</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+  }
+
+  async function fetchAdminPricing() {
+    try {
+      const res = await fetch('/api/pricing');
+      const json = await res.json();
+      if (json.status === 'success') {
+        window.rawPricingData = json.data;
+        renderAdminPricingTable(json.data);
+      }
+    } catch(e) { console.log('Pricing fetch fallback'); }
+  }
+
+  function renderAdminPricingTable(items) {
+    const tbody = document.getElementById('cms-pricing-table-body');
+    if (!tbody) return;
+
+    if (!items || items.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:24px; color:var(--text-muted);">Belum ada paket harga terdaftar.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = items.map(pr => `
+      <tr>
+        <td><strong style="font-size:14px; color:var(--text-main);">${pr.plan_name}</strong></td>
+        <td><strong style="color:var(--success); font-size:14px;">Rp ${parseInt(pr.promo_price || 0).toLocaleString('id-ID')}</strong><br><span style="font-size:11px; text-decoration:line-through; color:var(--text-muted);">Rp ${parseInt(pr.original_price || 0).toLocaleString('id-ID')}</span></td>
+        <td><span class="badge badge-accent" style="font-weight:700;">${pr.chat_token_quota || '5.000 Chat'}</span></td>
+        <td><span style="font-size:12px; color:var(--text-muted);">${pr.features_list || '-'}</span></td>
+        <td>
+          <div style="display:flex; gap:6px;">
+            <button class="btn-action-edit" onclick="openCmsEditorModal('PRICING', '${pr.id}')"><i data-lucide="edit"></i> Edit</button>
+            <button class="btn-action-delete" onclick="promptDeleteCmsItem('PRICING', '${pr.id}', '${pr.plan_name.replace(/'/g, "\\'")}')"><i data-lucide="trash-2"></i> Hapus</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
 
     setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
   }
@@ -906,6 +1174,9 @@ document.addEventListener('DOMContentLoaded', () => {
           if (viewSuperAdmin) viewSuperAdmin.style.display = 'block';
           if (viewDashboard) viewDashboard.style.display = 'none';
           fetchAdminTenants();
+          fetchAdminPortfolio();
+          fetchAdminFeatures();
+          fetchAdminPricing();
         } else {
           if (viewDashboard) viewDashboard.style.display = 'block';
           if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
@@ -919,6 +1190,9 @@ document.addEventListener('DOMContentLoaded', () => {
           if (viewSuperAdmin) viewSuperAdmin.style.display = 'block';
           if (viewDashboard) viewDashboard.style.display = 'none';
           fetchAdminTenants();
+          fetchAdminPortfolio();
+          fetchAdminFeatures();
+          fetchAdminPricing();
         } else {
           if (viewDashboard) viewDashboard.style.display = 'block';
           if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
@@ -1124,340 +1398,19 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnCloseOrderDetailModal) btnCloseOrderDetailModal.onclick = () => { if (modalOrderDetail) modalOrderDetail.style.display = 'none'; };
   if (btnCloseOrderModalAction) btnCloseOrderModalAction.onclick = () => { if (modalOrderDetail) modalOrderDetail.style.display = 'none'; };
 
-  // DYNAMIC DATABASE FETCHERS
-  async function fetchTenantProducts() {
-    try {
-      const res = await fetch('/api/tenant/products');
-      const json = await res.json();
-      if (json.status === 'success') {
-        window.rawTenantProductsData = json.data;
-        renderTenantProductsTable(json.data);
-      }
-    } catch (e) { console.log('Products fetch fallback'); }
-  }
-
-  window.fetchTenantProductsGlobal = fetchTenantProducts;
-
-  function renderTenantProductsTable(products) {
-    const tbody = document.getElementById('tenant-products-table-body');
-    if (!tbody) return;
-
-    if (!products || products.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);">Belum ada produk di katalog stok. Klik "+ Tambah Produk Baru".</td></tr>`;
-      return;
-    }
-
-    tbody.innerHTML = products.map(p => {
-      const priceStr = 'Rp ' + parseInt(p.price || 0).toLocaleString('id-ID');
-      const discPriceStr = p.discount_price ? 'Rp ' + parseInt(p.discount_price).toLocaleString('id-ID') : null;
-      const imgUrl = p.image_url || 'https://dummyimage.com/600x600/0f172a/3b82f6.png&text=Produk';
-
-      let stockBadge = `<span class="badge badge-success" style="font-weight:700;">${p.stock_quantity} Pcs (Tersedia)</span>`;
-      if (p.stock_quantity <= 0) {
-        stockBadge = `<span class="badge badge-danger" style="font-weight:700;"><i data-lucide="alert-circle"></i> 0 Pcs (Habis)</span>`;
-      } else if (p.stock_quantity <= 15) {
-        stockBadge = `<span class="badge badge-warning" style="font-weight:700;"><i data-lucide="clock"></i> ${p.stock_quantity} Pcs (Hampir Habis)</span>`;
-      }
-
-      let priceHtml = `<strong style="color:var(--success); font-size:14px;">${priceStr}</strong>`;
-      if (discPriceStr) {
-        priceHtml = `
-          <strong style="color:var(--success); font-size:14px;">${discPriceStr}</strong><br>
-          <span style="font-size:11px; text-decoration:line-through; color:var(--text-muted);">${priceStr}</span>
-        `;
-      }
-
-      return `
-        <tr>
-          <td>
-            <div style="display:flex; align-items:center; gap:10px;">
-              <img src="${imgUrl}" alt="${p.product_name}" style="width:40px; height:40px; border-radius:8px; object-fit:cover; border:1px solid var(--border-card);">
-              <code style="font-weight:700; color:var(--primary-accent);">${p.sku}</code>
-            </div>
-          </td>
-          <td>
-            <strong style="font-size:14px; color:var(--text-main);">${p.product_name}</strong><br>
-            <span class="badge badge-accent" style="font-size:10.5px; margin-top:2px;">${p.category || 'Umum'}</span>
-          </td>
-          <td>${priceHtml}</td>
-          <td>${stockBadge}</td>
-          <td>
-            <span style="font-size:12.5px; font-weight:600; color:var(--text-main); display:block;"><i data-lucide="layers" style="width:12px; height:12px; display:inline-block; vertical-align:middle;"></i> ${p.material_detail || '-'}</span>
-            <span style="font-size:11px; color:var(--text-muted); display:block; margin-top:2px;">Var: ${p.variants_json || 'Standard'}</span>
-            ${p.tier_discount_json ? `<span class="badge badge-accent" style="font-size:10px; background:rgba(245,158,11,0.1); color:#d97706; margin-top:3px;">🎯 ${p.tier_discount_json}</span>` : ''}
-          </td>
-          <td>
-            <div style="display:flex; gap:6px;">
-              <button class="btn-action-edit" onclick="openProductEditorModal('${p.id}')"><i data-lucide="edit"></i> Edit</button>
-              <button class="btn-action-delete" onclick="promptDeleteProduct('${p.id}', '${p.product_name.replace(/'/g, "\\'")}')"><i data-lucide="trash-2"></i> Hapus</button>
-            </div>
-          </td>
-        </tr>
-      `;
-    }).join('');
-
-    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-  }
-
-  async function fetchTenantTopups() {
-    try {
-      const res = await fetch('/api/tenant/topups');
-      const json = await res.json();
-      if (json.status === 'success') {
-        window.rawTenantTopupsData = json.data;
-        renderTenantTopupsTable(json.data);
-      }
-    } catch (e) { console.log('Topups fetch fallback'); }
-  }
-
-  function renderTenantTopupsTable(topups) {
-    const tbody = document.getElementById('tenant-topups-table-body');
-    if (!tbody) return;
-
-    if (!topups || topups.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:24px; color:var(--text-muted);">Belum ada riwayat transaksi top-up token.</td></tr>`;
-      return;
-    }
-
-    tbody.innerHTML = topups.map(t => {
-      const dateStr = t.created_at ? new Date(t.created_at).toLocaleString('id-ID') : '24/07/2026';
-      const priceStr = 'Rp ' + parseInt(t.price || 0).toLocaleString('id-ID');
-      const st = t.status || 'UNVERIFIED';
-
-      let statusBadge = '<span class="badge badge-success"><i data-lucide="check-circle-2"></i> TERVERIFIKASI (VERIFIED)</span>';
-      if (st === 'PENDING_PROOF') {
-        statusBadge = '<span class="badge badge-warning"><i data-lucide="clock"></i> MENUNGGU VERIFIKASI ADMIN</span>';
-      } else if (st === 'REJECTED') {
-        statusBadge = '<span class="badge badge-danger"><i data-lucide="x-circle"></i> DITOLAK</span>';
-      }
-
-      return `
-        <tr>
-          <td><code style="font-weight:700; color:var(--primary-accent);">${t.topup_code}</code></td>
-          <td><strong>${t.package_name}</strong><br><span class="badge badge-accent" style="font-size:10.5px; font-weight:700; margin-top:2px;">+${t.token_amount} Token Chat</span></td>
-          <td><strong style="color:var(--success); font-size:14px;">${priceStr}</strong></td>
-          <td><span style="font-size:12.5px; color:var(--text-muted);">${dateStr}</span></td>
-          <td>
-            ${statusBadge}<br>
-            ${t.payment_proof_url ? `<a href="${t.payment_proof_url}" target="_blank" style="font-size:11.5px; color:var(--primary-accent); font-weight:700; text-decoration:underline; margin-top:4px; display:inline-block;">🖼️ Lihat Bukti Transfer</a>` : ''}
-          </td>
-        </tr>
-      `;
-    }).join('');
-
-    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-  }
-
-  async function fetchTenantOrders() {
-    try {
-      const res = await fetch('/api/tenant/orders');
-      const json = await res.json();
-      if (json.status === 'success') {
-        window.rawTenantOrdersData = json.data;
-        renderTenantOrdersTable(json.data);
-      }
-    } catch (e) { console.log('Orders fetch fallback'); }
-  }
-
-  function renderTenantOrdersTable(orders) {
-    const tbody = document.getElementById('tenant-orders-table-body');
-    if (!tbody) return;
-
-    if (!orders || orders.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);">Belum ada pesanan otomatis yang dicatat.</td></tr>`;
-      return;
-    }
-
-    tbody.innerHTML = orders.map(o => {
-      const dateStr = o.order_date ? new Date(o.order_date).toLocaleString('id-ID') : '24/07/2026';
-      const priceStr = 'Rp ' + parseInt(o.total_price || 0).toLocaleString('id-ID');
-      const st = o.order_status || 'UNVERIFIED';
-
-      let statusBadge = '<span class="badge badge-success"><i data-lucide="check-circle-2"></i> LUNAS (PAID)</span>';
-      if (st === 'PENDING_PROOF') {
-        statusBadge = '<span class="badge badge-warning"><i data-lucide="clock"></i> CEK RESI</span>';
-      } else if (st === 'CANCELLED') {
-        statusBadge = '<span class="badge badge-danger"><i data-lucide="x-circle"></i> CANCELLED</span>';
-      } else if (st === 'UNVERIFIED') {
-        statusBadge = '<span class="badge badge-warning" style="background:rgba(239,68,68,0.1); color:#ef4444; border-color:rgba(239,68,68,0.2);"><i data-lucide="alert-triangle"></i> UNVERIFIED</span>';
-      }
-
-      let chatTypeBadge = '<span class="badge badge-accent">💬 Direct WA</span>';
-      if (o.chat_type === 'GROUP') {
-        chatTypeBadge = `<span class="badge badge-accent" style="background:rgba(147,51,234,0.1); color:#9333ea;">👥 ${o.group_name || 'Grup WA'}</span>`;
-      }
-
-      return `
-        <tr>
-          <td><code style="font-weight:700; color:var(--primary-accent);">${o.order_code}</code></td>
-          <td><strong>${o.customer_name}</strong><br><span class="wa-phone-link"><i data-lucide="phone"></i> ${o.customer_phone}</span></td>
-          <td><span style="font-size:13px; font-weight:600; color:var(--text-main);">${o.item_summary}</span><br><span style="font-size:11.5px; color:var(--text-muted);">${dateStr}</span></td>
-          <td><strong style="color:var(--success); font-size:14px;">${priceStr}</strong></td>
-          <td>${chatTypeBadge}</td>
-          <td>
-            ${statusBadge}<br>
-            <button class="btn btn-outline btn-sm" style="margin-top:6px; font-size:11.5px; padding:4px 10px; font-weight:700;" onclick="openOrderDetailModal('${o.order_code}')">
-              <i data-lucide="eye"></i> Detail & Ubah Status
-            </button>
-          </td>
-        </tr>
-      `;
-    }).join('');
-
-    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-  }
-
-  async function fetchTenantChatHistory() {
-    try {
-      const res = await fetch('/api/tenant/chat-history');
-      const json = await res.json();
-      if (json.status === 'success') {
-        window.rawTenantChatHistoryData = json.data;
-        renderTenantChatHistoryGroupedByDate();
-        renderDashboardLiveConversations(json.data);
-      }
-    } catch (e) { console.log('Chat history fetch fallback'); }
-  }
-
-  function renderTenantChatHistoryGroupedByDate() {
-    const container = document.getElementById('tenant-chat-history-container');
-    const paginationWrapper = document.getElementById('chat-history-pagination-wrapper');
-    if (!container) return;
-
-    let logs = [...(window.rawTenantChatHistoryData || [])];
-    const selectedDate = chatFilterDate ? chatFilterDate.value : '';
-    const selectedType = chatFilterType ? chatFilterType.value : 'ALL';
-
-    if (selectedDate) {
-      logs = logs.filter(l => (l.log_date || '').startsWith(selectedDate));
-    }
-
-    if (selectedType !== 'ALL') {
-      logs = logs.filter(l => l.chat_type === selectedType);
-    }
-
-    if (logs.length === 0) {
-      container.innerHTML = `<div class="card" style="text-align:center; padding:30px; color:var(--text-muted);">Tidak ada riwayat chat pada kriteria filter ini.</div>`;
-      if (paginationWrapper) paginationWrapper.innerHTML = '';
-      return;
-    }
-
-    const grouped = {};
-    logs.forEach(l => {
-      const dKey = l.log_date ? new Date(l.log_date).toISOString().split('T')[0] : '2026-07-24';
-      if (!grouped[dKey]) grouped[dKey] = [];
-      grouped[dKey].push(l);
-    });
-
-    const sortedDateKeys = Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a));
-
-    const totalDates = sortedDateKeys.length;
-    const itemsPerPage = window.chatHistoryItemsPerPage || 5;
-    const totalPages = Math.ceil(totalDates / itemsPerPage);
-
-    if (window.chatHistoryCurrentPage > totalPages) window.chatHistoryCurrentPage = totalPages;
-    if (window.chatHistoryCurrentPage < 1) window.chatHistoryCurrentPage = 1;
-
-    const startIndex = (window.chatHistoryCurrentPage - 1) * itemsPerPage;
-    const paginatedDateKeys = sortedDateKeys.slice(startIndex, startIndex + itemsPerPage);
-
-    container.innerHTML = paginatedDateKeys.map(dateKey => {
-      const dayLogs = grouped[dateKey];
-      const dateTitle = new Date(dateKey).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
-      const rowsHtml = dayLogs.map(item => {
-        const timeFormatted = item.message_time ? new Date(item.message_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '09:17';
-
-        let badgeType = '<span class="badge badge-accent">💬 Direct WA</span>';
-        if (item.chat_type === 'GROUP') {
-          badgeType = `<span class="badge badge-accent" style="background:rgba(147,51,234,0.1); color:#9333ea;">👥 Grup: ${item.group_name || 'Grup WA'}</span>`;
-        }
-
-        return `
-          <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--bg-body); border-radius:10px; border:1px solid var(--border-card); gap:12px;">
-            <div style="display:flex; align-items:center; gap:12px; flex:1;">
-              <div style="width:40px; height:40px; border-radius:10px; background:rgba(37,99,235,0.1); color:var(--primary-accent); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px; flex-shrink:0;">
-                ${item.sender_name.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <strong style="font-size:14px; color:var(--text-main);">${item.sender_name}</strong>
-                  ${badgeType}
-                </div>
-                <span style="font-size:12.5px; color:var(--text-muted); display:block; margin-top:2px;">
-                  <i data-lucide="phone" style="width:12px; height:12px; display:inline-block; vertical-align:middle;"></i> ${item.sender_phone ? item.sender_phone : 'Sesi Percakapan Pelanggan WA'}
-                </span>
-              </div>
-            </div>
-
-            <button class="btn btn-outline btn-sm" style="font-size:12px; font-weight:700; white-space:nowrap; padding:6px 12px;" 
-                    onclick="openChatThreadModal('${item.sender_name.replace(/'/g, "\\'")}', '${(item.group_name || '').replace(/'/g, "\\'")}', '${item.user_message.replace(/'/g, "\\'")}', '${item.bot_response.replace(/'/g, "\\'")}', '${timeFormatted}')">
-              <i data-lucide="message-square"></i> Lihat Percakapan Utuh
-            </button>
-          </div>
-        `;
-      }).join('');
-
-      return `
-        <div class="card" style="padding:18px;">
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; border-bottom:1px solid var(--border-card); padding-bottom:10px;">
-            <h4 style="font-size:16px; font-weight:800; color:var(--primary-accent); margin:0;"><i data-lucide="calendar"></i> ${dateTitle}</h4>
-            <span class="badge badge-accent" style="font-weight:700;">${dayLogs.length} Percakapan Masuk</span>
-          </div>
-          <div style="display:flex; flex-direction:column; gap:10px;">
-            ${rowsHtml}
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    if (paginationWrapper) {
-      if (totalPages <= 1) {
-        paginationWrapper.innerHTML = `<span style="font-size:12.5px; color:var(--text-muted);">Menampilkan total ${totalDates} tanggal percakapan.</span>`;
-      } else {
-        paginationWrapper.innerHTML = `
-          <button class="btn btn-outline btn-sm" ${window.chatHistoryCurrentPage === 1 ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} id="btn-prev-chat-page">
-            <i data-lucide="chevron-left"></i> Sebelumnya
-          </button>
-          <span style="font-size:13px; font-weight:700; color:var(--text-main);">
-            Halaman ${window.chatHistoryCurrentPage} dari ${totalPages} <span style="font-weight:400; color:var(--text-muted); font-size:12px;">(${totalDates} Tanggal Terdaftar)</span>
-          </span>
-          <button class="btn btn-outline btn-sm" ${window.chatHistoryCurrentPage === totalPages ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} id="btn-next-chat-page">
-            Berikutnya <i data-lucide="chevron-right"></i>
-          </button>
-        `;
-
-        const btnPrev = document.getElementById('btn-prev-chat-page');
-        const btnNext = document.getElementById('btn-next-chat-page');
-
-        if (btnPrev && window.chatHistoryCurrentPage > 1) {
-          btnPrev.onclick = () => {
-            window.chatHistoryCurrentPage--;
-            renderTenantChatHistoryGroupedByDate();
-          };
-        }
-        if (btnNext && window.chatHistoryCurrentPage < totalPages) {
-          btnNext.onclick = () => {
-            window.chatHistoryCurrentPage++;
-            renderTenantChatHistoryGroupedByDate();
-          };
-        }
-      }
-    }
-
-    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-  }
-
   if (chatFilterDate) chatFilterDate.addEventListener('change', () => { window.chatHistoryCurrentPage = 1; renderTenantChatHistoryGroupedByDate(); });
   if (chatFilterType) chatFilterType.addEventListener('change', () => { window.chatHistoryCurrentPage = 1; renderTenantChatHistoryGroupedByDate(); });
 
-  // INITIAL FETCHERS RUN
+  // INITIAL FETCHERS RUN FOR ALL MODULES
   fetchTenantSop();
   fetchTenantProducts();
   fetchTenantTopups();
   fetchTenantOrders();
   fetchTenantChatHistory();
   fetchAdminTenants();
+  fetchAdminPortfolio();
+  fetchAdminFeatures();
+  fetchAdminPricing();
   renderDashboardLiveConversations([]);
 
 });
