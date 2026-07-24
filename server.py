@@ -34,7 +34,10 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.get_tenant_orders_api()
         elif self.path.startswith('/api/tenant/chat-history'):
             self.get_tenant_chat_history_api()
+        elif self.path.startswith('/api/tenant/products'):
+            self.get_tenant_products_api()
         else:
+
 
             # Disable Cache for development static files & enforce UTF-8
             clean_path = self.path.split('?')[0]
@@ -84,7 +87,12 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.reset_tenant_password_api()
         elif self.path == '/api/tenant/orders/update-status':
             self.update_tenant_order_status_api()
+        elif self.path == '/api/tenant/products/save':
+            self.save_tenant_product_api()
+        elif self.path == '/api/tenant/products/delete':
+            self.delete_tenant_product_api()
         else:
+
 
             self.send_json_response({"status": "error", "message": "Not Found"}, 404)
 
@@ -242,6 +250,89 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             self.send_json_response({"status": "success", "message": f"Status pesanan {order_code} berhasil diubah menjadi {new_status}"})
         except Exception as e:
             self.send_json_response({"status": "error", "message": str(e)}, 500)
+
+    def get_tenant_products_api(self):
+        try:
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor.execute("""
+                SELECT p.*, t.business_name 
+                FROM tenant_service.tenant_products p
+                JOIN tenant_service.tenants t ON p.tenant_id = t.id
+                WHERE p.is_active IS TRUE
+                ORDER BY p.created_at DESC;
+            """)
+            rows = cursor.fetchall()
+            conn.close()
+
+            processed = []
+            for r in rows:
+                r_dict = dict(r)
+                if r_dict.get('price'): r_dict['price'] = float(r_dict['price'])
+                if r_dict.get('discount_price'): r_dict['discount_price'] = float(r_dict['discount_price'])
+                processed.append(r_dict)
+
+            self.send_json_response({"status": "success", "data": processed})
+        except Exception as e:
+            self.send_json_response({"status": "error", "message": str(e)}, 500)
+
+    def save_tenant_product_api(self):
+        try:
+            payload = self.read_json_payload()
+            prod_id = payload.get('id')
+            sku = payload.get('sku', 'SKU-NEW-001')
+            product_name = payload.get('product_name', 'Produk Baru')
+            category = payload.get('category', 'Umum')
+            price = float(payload.get('price', 0))
+            discount_price = float(payload.get('discount_price', 0)) if payload.get('discount_price') else None
+            stock_quantity = int(payload.get('stock_quantity', 0))
+            material_detail = payload.get('material_detail', '')
+            variants_json = payload.get('variants_json', '[]')
+            image_url = payload.get('image_url', '')
+            description = payload.get('description', '')
+
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor()
+
+            if prod_id:
+                cursor.execute("""
+                    UPDATE tenant_service.tenant_products
+                    SET sku=%s, product_name=%s, category=%s, price=%s, discount_price=%s,
+                        stock_quantity=%s, material_detail=%s, variants_json=%s, image_url=%s, description=%s, updated_at=CURRENT_TIMESTAMP
+                    WHERE id=%s;
+                """, (sku, product_name, category, price, discount_price, stock_quantity, material_detail, variants_json, image_url, description, prod_id))
+            else:
+                cursor.execute("SELECT id FROM tenant_service.tenants LIMIT 1;")
+                t_id = cursor.fetchone()[0]
+                cursor.execute("""
+                    INSERT INTO tenant_service.tenant_products
+                    (tenant_id, sku, product_name, category, price, discount_price, stock_quantity, material_detail, variants_json, image_url, description)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+                """, (t_id, sku, product_name, category, price, discount_price, stock_quantity, material_detail, variants_json, image_url, description))
+
+            conn.commit()
+            conn.close()
+            self.send_json_response({"status": "success", "message": f"Produk '{product_name}' berhasil disimpan ke katalog stok DB!"})
+        except Exception as e:
+            self.send_json_response({"status": "error", "message": str(e)}, 500)
+
+    def delete_tenant_product_api(self):
+        try:
+            payload = self.read_json_payload()
+            prod_id = payload.get('id')
+            if not prod_id:
+                self.send_json_response({"status": "error", "message": "ID produk wajib ada"}, 400)
+                return
+
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor()
+            cursor.execute("UPDATE tenant_service.tenant_products SET is_active=FALSE WHERE id=%s;", (prod_id,))
+            conn.commit()
+            conn.close()
+            self.send_json_response({"status": "success", "message": "Produk berhasil dihapus dari katalog stok!"})
+        except Exception as e:
+            self.send_json_response({"status": "error", "message": str(e)}, 500)
+
 
 
 

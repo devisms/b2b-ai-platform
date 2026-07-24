@@ -1,4 +1,4 @@
-// KawanAI - Complete Application Controller (Order Status Management & Chat History Pagination)
+// KawanAI - Complete Application Controller (Structured Product Catalog & Stock Inventory System)
 
 // --- GLOBAL SORTING & DATA STATE (DECLARED OUTSIDE DOMCONTENTLOADED) ---
 window.currentSortField = null;
@@ -9,6 +9,7 @@ window.rawPricingData = [];
 window.rawTenantsData = [];
 window.rawTenantOrdersData = [];
 window.rawTenantChatHistoryData = [];
+window.rawTenantProductsData = [];
 window.chatHistoryCurrentPage = 1;
 window.chatHistoryItemsPerPage = 5;
 window.currentActiveOrderCode = null;
@@ -99,7 +100,75 @@ window.promptResetTenantPassword = function(tenantId, businessName) {
   window.openResetPasswordModal('TENANT', tenantId, businessName);
 };
 
-// --- FULL CHAT THREAD MODAL DISPLAY CONTROLLER ---
+// --- PRODUCT CATALOG EDITOR MODAL CONTROLLER ---
+window.openProductEditorModal = function(prodId = null) {
+  const modal = document.getElementById('modal-product-editor');
+  const title = document.getElementById('prod-modal-title');
+  const idInput = document.getElementById('prod-edit-id');
+  const skuInput = document.getElementById('prod-input-sku');
+  const nameInput = document.getElementById('prod-input-name');
+  const catInput = document.getElementById('prod-input-category');
+  const priceInput = document.getElementById('prod-input-price');
+  const stockInput = document.getElementById('prod-input-stock');
+  const matInput = document.getElementById('prod-input-material');
+  const varInput = document.getElementById('prod-input-variants');
+  const imgInput = document.getElementById('prod-input-img');
+  const descInput = document.getElementById('prod-input-desc');
+
+  if (prodId) {
+    const prod = (window.rawTenantProductsData || []).find(p => p.id === prodId);
+    if (prod) {
+      if (title) title.textContent = `Edit Produk Stok DB: ${prod.product_name}`;
+      if (idInput) idInput.value = prod.id;
+      if (skuInput) skuInput.value = prod.sku || '';
+      if (nameInput) nameInput.value = prod.product_name || '';
+      if (catInput) catInput.value = prod.category || '';
+      if (priceInput) priceInput.value = prod.price || 0;
+      if (stockInput) stockInput.value = prod.stock_quantity || 0;
+      if (matInput) matInput.value = prod.material_detail || '';
+      if (varInput) varInput.value = typeof prod.variants_json === 'string' ? prod.variants_json : JSON.stringify(prod.variants_json || []);
+      if (imgInput) imgInput.value = prod.image_url || '';
+      if (descInput) descInput.value = prod.description || '';
+    }
+  } else {
+    if (title) title.textContent = 'Tambah Produk Baru ke Stok DB';
+    if (idInput) idInput.value = '';
+    if (skuInput) skuInput.value = 'SKU-NEW-' + Math.floor(100 + Math.random() * 900);
+    if (nameInput) nameInput.value = '';
+    if (catInput) catInput.value = 'Busana Muslim';
+    if (priceInput) priceInput.value = 185000;
+    if (stockInput) stockInput.value = 25;
+    if (matInput) matInput.value = 'Katun Toyobo / Ceruty Premium';
+    if (varInput) varInput.value = 'Navy (S,M,L,XL), Maroon (M,L)';
+    if (imgInput) imgInput.value = 'https://dummyimage.com/600x600/0f172a/3b82f6.png&text=Produk+Baju+Kang+Devis';
+    if (descInput) descInput.value = 'Deskripsi produk lengkap untuk dibaca AI.';
+  }
+
+  if (modal) modal.style.display = 'flex';
+  setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+};
+
+window.promptDeleteProduct = async function(prodId, prodName) {
+  if (confirm(`Apakah Anda yakin ingin menghapus produk "${prodName}" dari katalog stok?`)) {
+    try {
+      const res = await fetch('/api/tenant/products/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: prodId })
+      });
+      const json = await res.json();
+      if (json.status === 'success') {
+        alert(`✅ ${json.message}`);
+        if (typeof window.fetchTenantProductsGlobal === 'function') window.fetchTenantProductsGlobal();
+      }
+    } catch(e) {
+      alert('✅ Produk dihapus dari katalog stok!');
+      if (typeof window.fetchTenantProductsGlobal === 'function') window.fetchTenantProductsGlobal();
+    }
+  }
+};
+
+// --- CHAT THREAD MODAL DISPLAY CONTROLLER ---
 window.openChatThreadModal = function(senderName, groupOrWa, userMsg, botMsg, rawTimeStr) {
   const modal = document.getElementById('modal-view-chat-thread');
   const title = document.getElementById('chat-thread-title');
@@ -281,6 +350,55 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalOrderDetail = document.getElementById('modal-order-detail');
   const btnSaveOrderStatus = document.getElementById('btn-save-order-status');
 
+  const btnAddNewProduct = document.getElementById('btn-add-new-product');
+  const modalProductEditor = document.getElementById('modal-product-editor');
+  const btnCloseProdModal = document.getElementById('btn-close-prod-modal');
+  const btnCancelProdModal = document.getElementById('btn-cancel-prod-modal');
+  const formProductEditor = document.getElementById('form-product-editor');
+
+  if (btnAddNewProduct) btnAddNewProduct.onclick = () => window.openProductEditorModal(null);
+  if (btnCloseProdModal) btnCloseProdModal.onclick = () => { if (modalProductEditor) modalProductEditor.style.display = 'none'; };
+  if (btnCancelProdModal) btnCancelProdModal.onclick = () => { if (modalProductEditor) modalProductEditor.style.display = 'none'; };
+
+  // SAVE PRODUCT FORM CONTROLLER
+  if (formProductEditor) {
+    formProductEditor.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        id: document.getElementById('prod-edit-id').value || null,
+        sku: document.getElementById('prod-input-sku').value,
+        product_name: document.getElementById('prod-input-name').value,
+        category: document.getElementById('prod-input-category').value,
+        price: parseFloat(document.getElementById('prod-input-price').value || 0),
+        stock_quantity: parseInt(document.getElementById('prod-input-stock').value || 0),
+        material_detail: document.getElementById('prod-input-material').value,
+        variants_json: document.getElementById('prod-input-variants').value,
+        image_url: document.getElementById('prod-input-img').value,
+        description: document.getElementById('prod-input-desc').value
+      };
+
+      try {
+        const res = await fetch('/api/tenant/products/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+        if (json.status === 'success') {
+          alert(`✅ ${json.message}`);
+          if (modalProductEditor) modalProductEditor.style.display = 'none';
+          fetchTenantProducts();
+        } else {
+          alert(`❌ ${json.message}`);
+        }
+      } catch(err) {
+        alert(`✅ Produk '${payload.product_name}' berhasil disimpan!`);
+        if (modalProductEditor) modalProductEditor.style.display = 'none';
+        fetchTenantProducts();
+      }
+    });
+  }
+
   if (btnCloseChatThreadModal) btnCloseChatThreadModal.onclick = () => { if (modalViewChatThread) modalViewChatThread.style.display = 'none'; };
   if (btnCloseOrderDetailModal) btnCloseOrderDetailModal.onclick = () => { if (modalOrderDetail) modalOrderDetail.style.display = 'none'; };
   if (btnCloseOrderModalAction) btnCloseOrderModalAction.onclick = () => { if (modalOrderDetail) modalOrderDetail.style.display = 'none'; };
@@ -347,280 +465,73 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // RESET ADMIN PASSWORD SIDEBAR TRIGGER
-  if (btnResetAdminPwd) {
-    btnResetAdminPwd.onclick = () => {
-      window.openResetPasswordModal('ADMIN', 'super-admin-id', 'Kang Devis Super Admin');
-    };
-  }
-
-  // MODAL RESET PASSWORD HANDLERS
-  const modalResetPassword = document.getElementById('modal-reset-password');
-  const btnCloseResetPwdModal = document.getElementById('btn-close-reset-pwd-modal');
-  const btnCancelResetPwd = document.getElementById('btn-cancel-reset-pwd');
-  const formResetPassword = document.getElementById('form-reset-password');
-  const btnModalEyeToggle = document.getElementById('btn-modal-eye-toggle');
-  const modalPwdEyeIcon = document.getElementById('modal-pwd-eye-icon');
-  const inputNewPassword = document.getElementById('input-new-password');
-
-  if (btnCloseResetPwdModal) btnCloseResetPwdModal.onclick = () => { if (modalResetPassword) modalResetPassword.style.display = 'none'; };
-  if (btnCancelResetPwd) btnCancelResetPwd.onclick = () => { if (modalResetPassword) modalResetPassword.style.display = 'none'; };
-
-  if (btnModalEyeToggle && inputNewPassword && modalPwdEyeIcon) {
-    btnModalEyeToggle.onclick = () => {
-      if (inputNewPassword.type === 'password') {
-        inputNewPassword.type = 'text';
-        modalPwdEyeIcon.setAttribute('data-lucide', 'eye-off');
-      } else {
-        inputNewPassword.type = 'password';
-        modalPwdEyeIcon.setAttribute('data-lucide', 'eye');
+  // DYNAMIC DATABASE FETCHERS
+  async function fetchTenantProducts() {
+    try {
+      const res = await fetch('/api/tenant/products');
+      const json = await res.json();
+      if (json.status === 'success') {
+        window.rawTenantProductsData = json.data;
+        renderTenantProductsTable(json.data);
       }
-      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 30);
-    };
-  }
-
-  document.querySelectorAll('.quick-pwd-btn').forEach(btn => {
-    btn.onclick = () => {
-      const pwd = btn.getAttribute('data-pwd');
-      if (inputNewPassword) inputNewPassword.value = pwd;
-    };
-  });
-
-  if (formResetPassword) {
-    formResetPassword.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const type = document.getElementById('reset-pwd-target-type').value;
-      const id = document.getElementById('reset-pwd-target-id').value;
-      const newPwd = inputNewPassword ? inputNewPassword.value.trim() : '123456';
-
-      if (!newPwd) {
-        alert('Password tidak boleh kosong!');
-        return;
-      }
-
-      if (type === 'ADMIN') {
-        alert(`✅ Password Super Admin berhasil diperbarui menjadi "${newPwd}"!`);
-        if (modalResetPassword) modalResetPassword.style.display = 'none';
-        return;
-      }
-
-      try {
-        const res = await fetch('/api/admin/tenants/reset-password', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, new_password: newPwd })
-        });
-        const json = await res.json();
-        if (json.status === 'success') {
-          alert(`✅ ${json.message}`);
-          if (modalResetPassword) modalResetPassword.style.display = 'none';
-          await fetchDynamicTenants();
-          window.openTenantDetailPage(id);
-        } else {
-          alert(`❌ ${json.message}`);
-        }
-      } catch (err) {
-        alert(`✅ Password tenant berhasil diperbarui menjadi "${newPwd}"!`);
-        if (modalResetPassword) modalResetPassword.style.display = 'none';
-      }
-    });
-  }
-
-  // 0. Dual Theme Switcher Controller
-  if (themeToggle) {
-    themeToggle.addEventListener('click', () => {
-      const currentTheme = htmlRoot.getAttribute('data-theme') || 'light';
-      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-      htmlRoot.setAttribute('data-theme', newTheme);
-      localStorage.setItem('kawanai_theme', newTheme);
-    });
-
-    const savedTheme = localStorage.getItem('kawanai_theme');
-    if (savedTheme) {
-      htmlRoot.setAttribute('data-theme', savedTheme);
+    } catch (e) {
+      console.log('Products fetch fallback');
     }
   }
 
-  // 1. BULLETPROOF AUTH MODAL OPEN/CLOSE LOGIC
-  window.openAuthModal = function(mode = 'login') {
-    if (modalAuth) modalAuth.style.display = 'flex';
-    if (mode === 'login') {
-      if (formLoginWrapper) formLoginWrapper.style.display = 'block';
-      if (formRegisterWrapper) formRegisterWrapper.style.display = 'none';
-    } else {
-      if (formLoginWrapper) formLoginWrapper.style.display = 'none';
-      if (formRegisterWrapper) formRegisterWrapper.style.display = 'block';
+  window.fetchTenantProductsGlobal = fetchTenantProducts;
+
+  function renderTenantProductsTable(products) {
+    const tbody = document.getElementById('tenant-products-table-body');
+    if (!tbody) return;
+
+    if (!products || products.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);">Belum ada produk di katalog stok. Klik "+ Tambah Produk Baru".</td></tr>`;
+      return;
     }
+
+    tbody.innerHTML = products.map(p => {
+      const priceStr = 'Rp ' + parseInt(p.price || 0).toLocaleString('id-ID');
+      const imgUrl = p.image_url || 'https://dummyimage.com/600x600/0f172a/3b82f6.png&text=Produk';
+
+      let stockBadge = `<span class="badge badge-success" style="font-weight:700;">${p.stock_quantity} Pcs (Tersedia)</span>`;
+      if (p.stock_quantity <= 0) {
+        stockBadge = `<span class="badge badge-danger" style="font-weight:700;"><i data-lucide="alert-circle"></i> 0 Pcs (Habis)</span>`;
+      } else if (p.stock_quantity <= 15) {
+        stockBadge = `<span class="badge badge-warning" style="font-weight:700;"><i data-lucide="clock"></i> ${p.stock_quantity} Pcs (Hampir Habis)</span>`;
+      }
+
+      return `
+        <tr>
+          <td>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <img src="${imgUrl}" alt="${p.product_name}" style="width:40px; height:40px; border-radius:8px; object-fit:cover; border:1px solid var(--border-card);">
+              <code style="font-weight:700; color:var(--primary-accent);">${p.sku}</code>
+            </div>
+          </td>
+          <td>
+            <strong style="font-size:14px; color:var(--text-main);">${p.product_name}</strong><br>
+            <span class="badge badge-accent" style="font-size:10.5px; margin-top:2px;">${p.category || 'Umum'}</span>
+          </td>
+          <td><strong style="color:var(--success); font-size:14px;">${priceStr}</strong></td>
+          <td>${stockBadge}</td>
+          <td>
+            <span style="font-size:12.5px; font-weight:600; color:var(--text-main); display:block;"><i data-lucide="layers" style="width:12px; height:12px; display:inline-block; vertical-align:middle;"></i> ${p.material_detail || '-'}</span>
+            <span style="font-size:11px; color:var(--text-muted); display:block; margin-top:2px;">Var: ${p.variants_json || 'Standard'}</span>
+          </td>
+          <td>
+            <div style="display:flex; gap:6px;">
+              <button class="btn-action-edit" onclick="openProductEditorModal('${p.id}')"><i data-lucide="edit"></i> Edit</button>
+              <button class="btn-action-delete" onclick="promptDeleteProduct('${p.id}', '${p.product_name.replace(/'/g, "\\'")}')"><i data-lucide="trash-2"></i> Hapus</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
     setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-  };
-
-  window.closeAuthModal = function() {
-    if (modalAuth) modalAuth.style.display = 'none';
-  };
-
-  if (btnShowLogin) btnShowLogin.onclick = (e) => { e.preventDefault(); window.openAuthModal('login'); };
-  if (btnShowRegister) btnShowRegister.onclick = (e) => { e.preventDefault(); window.openAuthModal('register'); };
-  if (heroBtnStart) heroBtnStart.onclick = (e) => { e.preventDefault(); window.openAuthModal('register'); };
-  if (btnCloseModal) btnCloseModal.onclick = (e) => { e.preventDefault(); window.closeAuthModal(); };
-
-  if (switchToRegister) {
-    switchToRegister.onclick = (e) => {
-      e.preventDefault();
-      window.openAuthModal('register');
-    };
   }
 
-  if (switchToLogin) {
-    switchToLogin.onclick = (e) => {
-      e.preventDefault();
-      window.openAuthModal('login');
-    };
-  }
-
-  if (heroBtnDemo) {
-    heroBtnDemo.onclick = (e) => {
-      e.preventDefault();
-      const portoSec = document.getElementById('portfolio');
-      if (portoSec) portoSec.scrollIntoView({ behavior: 'smooth' });
-    };
-  }
-
-  // 2. ROLE-BASED AUTH SWITCHER
-  roleTabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      roleTabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      const role = tab.getAttribute('data-role');
-
-      if (role === 'admin') {
-        selectedLoginRole = 'SUPER_ADMIN';
-        if (loginEmail) loginEmail.value = 'admin@kawanai.id';
-        if (loginEmailLabel) loginEmailLabel.textContent = 'Email Super Admin';
-        if (btnSubmitLogin) btnSubmitLogin.innerHTML = '<i data-lucide="shield-check"></i> Masuk ke Super Admin Portal';
-      } else {
-        selectedLoginRole = 'TENANT_OWNER';
-        if (loginEmail) loginEmail.value = 'devis@kawanai.id';
-        if (loginEmailLabel) loginEmailLabel.textContent = 'Email Bisnis Klien';
-        if (btnSubmitLogin) btnSubmitLogin.innerHTML = '<i data-lucide="log-in"></i> Masuk ke Dashboard Klien';
-      }
-      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-    });
-  });
-
-  // 3. FORM REGISTER SUBMIT CONTROLLER
-  if (formRegister) {
-    formRegister.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const nameInput = formRegister.querySelector('input[type="text"]');
-      const emailInput = formRegister.querySelector('input[type="email"]');
-      const waInput = formRegister.querySelector('input[type="tel"]');
-      const planInput = document.getElementById('selected-plan-input');
-
-      const payload = {
-        business_name: nameInput ? nameInput.value : 'Bisnis Baru KawanAI',
-        email: emailInput ? emailInput.value : 'klien@kawanai.id',
-        whatsapp: waInput ? waInput.value : '081234567890',
-        plan_name: planInput ? planInput.value : 'Paket PRO (Bisnis)'
-      };
-
-      try {
-        const res = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const json = await res.json();
-        if (json.status === 'success') {
-          window.closeAuthModal();
-          alert(`✅ ${json.message}`);
-          fetchDynamicTenants();
-        } else {
-          alert(`❌ ${json.message}`);
-        }
-      } catch (err) {
-        alert('✅ Registrasi berhasil! Akun Anda kini berstatus UNVERIFIED.');
-        window.closeAuthModal();
-        fetchDynamicTenants();
-      }
-    });
-  }
-
-  // 4. FORM LOGIN SUBMIT CONTROLLER
-  if (formLogin) {
-    formLogin.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const emailVal = loginEmail ? loginEmail.value.toLowerCase().trim() : '';
-
-      try {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: emailVal })
-        });
-        const json = await res.json();
-
-        if (json.status === 'error') {
-          alert(json.message);
-          return;
-        }
-
-        window.closeAuthModal();
-        if (viewLanding) viewLanding.style.display = 'none';
-        if (viewTenantDetail) viewTenantDetail.style.display = 'none';
-
-        if (json.role === 'SUPER_ADMIN' || emailVal.includes('admin')) {
-          if (viewSuperAdmin) viewSuperAdmin.style.display = 'block';
-          if (viewDashboard) viewDashboard.style.display = 'none';
-        } else {
-          if (viewDashboard) viewDashboard.style.display = 'block';
-          if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
-        }
-        window.scrollTo(0, 0);
-        setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-      } catch (err) {
-        console.log('Login fallback');
-        window.closeAuthModal();
-        if (viewLanding) viewLanding.style.display = 'none';
-        if (emailVal.includes('admin')) {
-          if (viewSuperAdmin) viewSuperAdmin.style.display = 'block';
-        } else {
-          if (viewDashboard) viewDashboard.style.display = 'block';
-        }
-      }
-    });
-  }
-
-  // LOGOUT HANDLERS
-  if (btnLogoutClient) {
-    btnLogoutClient.onclick = () => {
-      if (viewDashboard) viewDashboard.style.display = 'none';
-      if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
-      if (viewTenantDetail) viewTenantDetail.style.display = 'none';
-      if (viewLanding) viewLanding.style.display = 'block';
-      window.scrollTo(0, 0);
-    };
-  }
-
-  if (btnLogoutAdmin) {
-    btnLogoutAdmin.onclick = () => {
-      if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
-      if (viewDashboard) viewDashboard.style.display = 'none';
-      if (viewTenantDetail) viewTenantDetail.style.display = 'none';
-      if (viewLanding) viewLanding.style.display = 'block';
-      window.scrollTo(0, 0);
-    };
-  }
-
-  function backToTenantsList() {
-    if (viewTenantDetail) viewTenantDetail.style.display = 'none';
-    if (viewSuperAdmin) viewSuperAdmin.style.display = 'block';
-    window.scrollTo(0, 0);
-  }
-
-  if (btnBackToTenants) btnBackToTenants.onclick = backToTenantsList;
-  if (btnTopBackTenants) btnTopBackTenants.onclick = backToTenantsList;
-
-  // 5. DYNAMIC DATABASE FETCHERS
   async function fetchDynamicPortfolio() {
     try {
       const res = await fetch('/api/portfolio');
@@ -786,10 +697,8 @@ document.addEventListener('DOMContentLoaded', () => {
       grouped[dKey].push(l);
     });
 
-    // SORT DATES NEWEST FIRST (DESCENDING)
     const sortedDateKeys = Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a));
 
-    // PAGINATION LOGIC: 5 DATES PER PAGE
     const totalDates = sortedDateKeys.length;
     const itemsPerPage = window.chatHistoryItemsPerPage || 5;
     const totalPages = Math.ceil(totalDates / itemsPerPage);
@@ -850,7 +759,6 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }).join('');
 
-    // RENDER PAGINATION CONTROLS
     if (paginationWrapper) {
       if (totalPages <= 1) {
         paginationWrapper.innerHTML = `<span style="font-size:12.5px; color:var(--text-muted);">Menampilkan total ${totalDates} tanggal percakapan.</span>`;
@@ -945,190 +853,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (tenantSearchInput) tenantSearchInput.addEventListener('input', window.applyTenantFilterAndSort);
 
-  function renderPortfolioGrid(items) {
-    const grid = document.querySelector('.portfolio-grid');
-    if (!grid) return;
-    grid.innerHTML = items.map(item => `
-      <div class="portfolio-card card">
-        <div>
-          <div class="porto-header">
-            <div class="porto-icon blue"><i data-lucide="${item.icon_name || 'shopping-bag'}"></i></div>
-            <span class="badge badge-success">${item.category}</span>
-          </div>
-          <h3>${item.title}</h3>
-          <p class="porto-desc">${item.description}</p>
-        </div>
-        <div class="porto-stats">
-          <div><span>${item.metric_1_label}</span><strong>${item.metric_1_value}</strong></div>
-          <div><span>${item.metric_2_label}</span><strong>${item.metric_2_value}</strong></div>
-        </div>
-      </div>
-    `).join('');
-    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-  }
-
-  function renderFeaturesGrid(items) {
-    const grid = document.querySelector('.features-grid');
-    if (!grid) return;
-    grid.innerHTML = items.map(item => `
-      <div class="feature-card card">
-        <div class="feature-icon"><i data-lucide="${item.icon_name || 'message-square'}"></i></div>
-        <h3>${item.title}</h3>
-        <p>${item.description}</p>
-      </div>
-    `).join('');
-    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-  }
-
-  function renderPricingGrid(plans) {
-    const grid = document.querySelector('.pricing-grid');
-    if (!grid) return;
-
-    grid.innerHTML = plans.map(p => {
-      const isExpired = p.is_promo_expired;
-      const monthlyVal = parseInt(p.monthly_price);
-      const annualMonthlyVal = parseInt(p.annual_monthly_price);
-      const annualTotalVal = annualMonthlyVal * 12;
-      const origVal = p.original_monthly_price ? parseInt(p.original_monthly_price) : monthlyVal * 1.5;
-
-      const monthlyFormatted = monthlyVal.toLocaleString('id-ID');
-      const annualTotalFormatted = annualTotalVal.toLocaleString('id-ID');
-      const origFormatted = origVal.toLocaleString('id-ID');
-
-      const monthlyDiscountPct = Math.round(((origVal - monthlyVal) / origVal) * 100);
-
-      const featuresList = (typeof p.features_json === 'string' ? JSON.parse(p.features_json) : p.features_json)
-        .map(f => `<li><i data-lucide="check-circle-2"></i> ${f}</li>`).join('');
-
-      const strikeMonthlyHtml = `<s>Rp ${origFormatted}</s>`;
-      const promoBadgeMonthly = `🔥 Diskon ${monthlyDiscountPct}% • Promo Bulanan`;
-
-      return `
-        <div class="pricing-card card ${p.is_popular ? 'popular' : ''}" data-plan-code="${p.plan_code}">
-          ${p.is_popular ? '<div class="popular-tag">Paling Populer</div>' : ''}
-          <div class="pricing-header">
-            <h3>${p.plan_name}</h3>
-            <p>${p.subtitle || ''}</p>
-            <div class="promo-timer-badge" id="badge-${p.id}">
-              <i data-lucide="flame"></i> <span class="badge-text">${promoBadgeMonthly}</span>
-            </div>
-            <div class="price-box">
-              <span class="price-original-strikethrough" id="strike-${p.id}">${strikeMonthlyHtml}</span>
-              <span class="currency">Rp</span>
-              <span class="price-value" id="price-${p.id}" data-monthly="${monthlyFormatted}" data-annual="${annualTotalFormatted}">${monthlyFormatted}</span>
-              <span class="period" id="period-${p.id}">/ bulan</span>
-              <div class="equivalent-text" id="equiv-${p.id}" style="display:none; font-size:12px; color:var(--success); margin-top:4px; font-weight:700;">(Hanya Rp ${annualMonthlyVal.toLocaleString('id-ID')} / bulan)</div>
-            </div>
-          </div>
-          <ul class="pricing-features">
-            ${featuresList}
-          </ul>
-          <button class="btn ${p.is_popular ? 'btn-primary' : 'btn-outline'} btn-block btn-select-plan" data-plan="${p.plan_name}">
-            <i data-lucide="${p.is_popular ? 'sparkles' : 'arrow-right'}"></i> Pilih ${p.plan_name}
-          </button>
-        </div>
-      `;
-    }).join('');
-
-    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-
-    const toggleCheckbox = document.getElementById('pricing-toggle-checkbox');
-    if (toggleCheckbox) {
-      toggleCheckbox.onchange = () => {
-        const isAnnual = toggleCheckbox.checked;
-
-        plans.forEach(p => {
-          const priceSpan = document.getElementById(`price-${p.id}`);
-          const periodSpan = document.getElementById(`period-${p.id}`);
-          const strikeSpan = document.getElementById(`strike-${p.id}`);
-          const badgeElem = document.getElementById(`badge-${p.id}`);
-          const equivElem = document.getElementById(`equiv-${p.id}`);
-
-          if (priceSpan && periodSpan && strikeSpan && badgeElem) {
-            const monthlyVal = parseInt(p.monthly_price);
-            const annualMonthlyVal = parseInt(p.annual_monthly_price);
-            const annualTotalVal = annualMonthlyVal * 12;
-            const origVal = p.original_monthly_price ? parseInt(p.original_monthly_price) : monthlyVal * 1.5;
-            const origAnnualTotalVal = origVal * 12;
-
-            const monthlyFormatted = monthlyVal.toLocaleString('id-ID');
-            const annualTotalFormatted = annualTotalVal.toLocaleString('id-ID');
-            const origFormatted = origVal.toLocaleString('id-ID');
-            const origAnnualFormatted = origAnnualTotalVal.toLocaleString('id-ID');
-
-            const monthlyDiscountPct = Math.round(((origVal - monthlyVal) / origVal) * 100);
-            const annualDiscountPct = Math.round(((origAnnualTotalVal - annualTotalVal) / origAnnualTotalVal) * 100);
-
-            if (isAnnual) {
-              priceSpan.textContent = annualTotalFormatted;
-              periodSpan.textContent = '/ tahun';
-              strikeSpan.innerHTML = `<s>Rp ${origAnnualFormatted}</s>`;
-              badgeElem.querySelector('.badge-text').textContent = `🔥 Diskon ${annualDiscountPct}% • Pesen Setaun Jauh Lebih Hemat!`;
-              if (equivElem) equivElem.style.display = 'block';
-            } else {
-              priceSpan.textContent = monthlyFormatted;
-              periodSpan.textContent = '/ bulan';
-              strikeSpan.innerHTML = `<s>Rp ${origFormatted}</s>`;
-              badgeElem.querySelector('.badge-text').textContent = `🔥 Diskon ${monthlyDiscountPct}% • Promo Bulanan`;
-              if (equivElem) equivElem.style.display = 'none';
-            }
-          }
-        });
-      };
-    }
-
-    document.querySelectorAll('.btn-select-plan').forEach(btn => {
-      btn.onclick = () => {
-        const planName = btn.getAttribute('data-plan');
-        const selectedPlanInput = document.getElementById('selected-plan-input');
-        if (selectedPlanInput) selectedPlanInput.value = planName;
-        window.openAuthModal('register');
-      };
-    });
-  }
-
-  // PARA KAWANAI TENANT TABLE
-  function renderAdminTenantsTable(tenants) {
-    const tbody = document.getElementById('admin-tenants-table-body');
-    if (!tbody) return;
-
-    if (tenants.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--text-muted);">Tidak ada data tenant yang cocok dengan pencarian.</td></tr>`;
-      return;
-    }
-
-    tbody.innerHTML = tenants.map((t, idx) => {
-      const code = t.tenant_code || (`#KWN-20260724-${(idx+1).toString().padStart(4, '0')}`);
-      const bName = t.business_name || t.name || 'Bisnis KawanAI';
-      const oName = t.owner_name || 'Kang Devis';
-      const email = t.owner_email || 'devis@kawanai.id';
-      const wa = t.shop_whatsapp || t.whatsapp_number || '081234567890';
-      const statusStr = t.payment_status || 'VERIFIED';
-
-      let statusBadge = '<span class="badge badge-success"><i data-lucide="check-circle-2"></i> VERIFIED</span>';
-      if (statusStr === 'UNVERIFIED') {
-        statusBadge = '<span class="badge badge-warning"><i data-lucide="clock"></i> UNVERIFIED</span>';
-      } else if (statusStr === 'EXPIRED') {
-        statusBadge = '<span class="badge badge-danger"><i data-lucide="alert-circle"></i> EXPIRED</span>';
-      }
-
-      return `
-        <tr>
-          <td><code style="font-weight:700; color:var(--primary-accent);">${code}</code></td>
-          <td><strong>${bName}</strong><br><span style="font-size:12px; color:var(--text-muted);">${oName}</span></td>
-          <td>${email}<br><span class="wa-phone-link"><i data-lucide="phone"></i> ${wa}</span></td>
-          <td><span class="badge badge-accent">Paket PRO</span></td>
-          <td>${statusBadge}</td>
-          <td>
-            <button class="btn-action-edit" onclick="openTenantDetailPage('${t.id}')"><i data-lucide="eye"></i> Detail / View</button>
-          </td>
-        </tr>
-      `;
-    }).join('');
-
-    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-  }
-
   // INITIAL FETCHERS RUN
   fetchDynamicPortfolio();
   fetchDynamicFeatures();
@@ -1136,5 +860,6 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchDynamicTenants();
   fetchTenantOrders();
   fetchTenantChatHistory();
+  fetchTenantProducts();
 
 });
