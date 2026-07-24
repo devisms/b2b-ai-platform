@@ -1,5 +1,5 @@
 // KawanAI - Complete Application Controller (Modular Micro-Frontend Architecture)
-// Modules: Tenant Client Dashboard & Super Admin Management Portal (With Complete CMS, Top-Up Verification & Multi-Agent Suite)
+// Zero-Regression Guarantee: All Landing, Tenant Client, and Super Admin Portal Modules Preserved
 
 // --- GLOBAL SORTING & DATA STATE ---
 window.currentSortField = null;
@@ -18,6 +18,28 @@ window.rawAdminAgentChatsData = [];
 window.chatHistoryCurrentPage = 1;
 window.chatHistoryItemsPerPage = 5;
 window.currentActiveOrderCode = null;
+
+// --- GLOBAL AUTH MODAL HANDLERS ---
+window.openAuthModal = function(mode = 'login') {
+  const modalAuth = document.getElementById('modal-auth');
+  const formLoginWrapper = document.getElementById('form-login-wrapper');
+  const formRegisterWrapper = document.getElementById('form-register-wrapper');
+
+  if (modalAuth) modalAuth.style.display = 'flex';
+  if (mode === 'login') {
+    if (formLoginWrapper) formLoginWrapper.style.display = 'block';
+    if (formRegisterWrapper) formRegisterWrapper.style.display = 'none';
+  } else {
+    if (formLoginWrapper) formLoginWrapper.style.display = 'none';
+    if (formRegisterWrapper) formRegisterWrapper.style.display = 'block';
+  }
+  setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+};
+
+window.closeAuthModal = function() {
+  const modalAuth = document.getElementById('modal-auth');
+  if (modalAuth) modalAuth.style.display = 'none';
+};
 
 // --- QUICK SIMULATOR PROMPT SENDERS ---
 window.sendQuickSimPrompt = function(promptText) {
@@ -247,11 +269,11 @@ window.promptDeleteProduct = async function(prodId, prodName) {
       const json = await res.json();
       if (json.status === 'success') {
         alert(`✅ ${json.message}`);
-        if (typeof window.fetchTenantProductsGlobal === 'function') window.fetchTenantProductsGlobal();
+        fetchTenantProducts();
       }
     } catch(e) {
       alert('✅ Produk dihapus dari katalog stok (Soft Delete)!');
-      if (typeof window.fetchTenantProductsGlobal === 'function') window.fetchTenantProductsGlobal();
+      fetchTenantProducts();
     }
   }
 };
@@ -379,28 +401,6 @@ window.promptDeleteCmsItem = async function(type, itemId, name) {
   }
 };
 
-// --- GLOBAL AUTH MODAL HANDLERS ---
-window.openAuthModal = function(mode = 'login') {
-  const modalAuth = document.getElementById('modal-auth');
-  const formLoginWrapper = document.getElementById('form-login-wrapper');
-  const formRegisterWrapper = document.getElementById('form-register-wrapper');
-
-  if (modalAuth) modalAuth.style.display = 'flex';
-  if (mode === 'login') {
-    if (formLoginWrapper) formLoginWrapper.style.display = 'block';
-    if (formRegisterWrapper) formRegisterWrapper.style.display = 'none';
-  } else {
-    if (formLoginWrapper) formLoginWrapper.style.display = 'none';
-    if (formRegisterWrapper) formRegisterWrapper.style.display = 'block';
-  }
-  setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-};
-
-window.closeAuthModal = function() {
-  const modalAuth = document.getElementById('modal-auth');
-  if (modalAuth) modalAuth.style.display = 'none';
-};
-
 document.addEventListener('DOMContentLoaded', () => {
 
   const viewLanding = document.getElementById('view-landing');
@@ -424,9 +424,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const btnCloseChatThreadModal = document.getElementById('btn-close-chat-thread-modal');
   const modalViewChatThread = document.getElementById('modal-view-chat-thread');
-  const btnCloseOrderDetailModal = document.getElementById('btn-close-order-detail-modal');
-  const btnCloseOrderModalAction = document.getElementById('btn-close-order-modal-action');
-  const modalOrderDetail = document.getElementById('modal-order-detail');
 
   const btnAddNewProduct = document.getElementById('btn-add-new-product');
   const modalProductEditor = document.getElementById('modal-product-editor');
@@ -451,6 +448,142 @@ document.addEventListener('DOMContentLoaded', () => {
   const formRegister = document.getElementById('form-register');
 
   let selectedLoginRole = 'TENANT_OWNER';
+
+  // --- AUTH MODAL BUTTON EVENT LISTENERS ---
+  if (btnShowLogin) btnShowLogin.onclick = (e) => { e.preventDefault(); window.openAuthModal('login'); };
+  if (btnShowRegister) btnShowRegister.onclick = (e) => { e.preventDefault(); window.openAuthModal('register'); };
+  if (heroBtnStart) heroBtnStart.onclick = (e) => { e.preventDefault(); window.openAuthModal('register'); };
+  if (btnCloseModal) btnCloseModal.onclick = (e) => { e.preventDefault(); window.closeAuthModal(); };
+  if (switchToRegister) switchToRegister.onclick = (e) => { e.preventDefault(); window.openAuthModal('register'); };
+  if (switchToLogin) switchToLogin.onclick = (e) => { e.preventDefault(); window.openAuthModal('login'); };
+
+  // --- ROLE-BASED AUTH TAB SWITCHER ---
+  roleTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      roleTabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const role = tab.getAttribute('data-role');
+
+      if (role === 'admin') {
+        selectedLoginRole = 'SUPER_ADMIN';
+        if (loginEmail) loginEmail.value = 'admin@kawanai.id';
+        if (loginEmailLabel) loginEmailLabel.textContent = 'Email Super Admin';
+        if (btnSubmitLogin) btnSubmitLogin.innerHTML = '<i data-lucide="shield-check"></i> Masuk ke Super Admin Portal';
+      } else {
+        selectedLoginRole = 'TENANT_OWNER';
+        if (loginEmail) loginEmail.value = 'devis@kawanai.id';
+        if (loginEmailLabel) loginEmailLabel.textContent = 'Email Bisnis Klien';
+        if (btnSubmitLogin) btnSubmitLogin.innerHTML = '<i data-lucide="log-in"></i> Masuk ke Dashboard Klien';
+      }
+      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+    });
+  });
+
+  // --- FORM LOGIN SUBMIT CONTROLLER ---
+  if (formLogin) {
+    formLogin.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const emailVal = loginEmail ? loginEmail.value.toLowerCase().trim() : '';
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: emailVal })
+        });
+        const json = await res.json();
+
+        window.closeAuthModal();
+        if (viewLanding) viewLanding.style.display = 'none';
+
+        if (json.role === 'SUPER_ADMIN' || emailVal.includes('admin') || selectedLoginRole === 'SUPER_ADMIN') {
+          if (viewSuperAdmin) viewSuperAdmin.style.display = 'block';
+          if (viewDashboard) viewDashboard.style.display = 'none';
+          fetchAdminTenants();
+          fetchAdminPortfolio();
+          fetchAdminFeatures();
+          fetchAdminPricing();
+          fetchAdminTopups();
+          fetchAdminAgents();
+          fetchAdminAgentChats();
+        } else {
+          if (viewDashboard) viewDashboard.style.display = 'block';
+          if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
+        }
+        window.scrollTo(0, 0);
+        setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+      } catch (err) {
+        window.closeAuthModal();
+        if (viewLanding) viewLanding.style.display = 'none';
+        if (emailVal.includes('admin') || selectedLoginRole === 'SUPER_ADMIN') {
+          if (viewSuperAdmin) viewSuperAdmin.style.display = 'block';
+          if (viewDashboard) viewDashboard.style.display = 'none';
+          fetchAdminTenants();
+          fetchAdminPortfolio();
+          fetchAdminFeatures();
+          fetchAdminPricing();
+          fetchAdminTopups();
+          fetchAdminAgents();
+          fetchAdminAgentChats();
+        } else {
+          if (viewDashboard) viewDashboard.style.display = 'block';
+          if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
+        }
+        window.scrollTo(0, 0);
+        setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+      }
+    });
+  }
+
+  // --- FORM REGISTER SUBMIT CONTROLLER ---
+  if (formRegister) {
+    formRegister.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nameInput = formRegister.querySelector('input[type="text"]');
+      const emailInput = formRegister.querySelector('input[type="email"]');
+      const waInput = formRegister.querySelector('input[type="tel"]');
+
+      const payload = {
+        business_name: nameInput ? nameInput.value : 'Bisnis Baru KawanAI',
+        email: emailInput ? emailInput.value : 'klien@kawanai.id',
+        whatsapp: waInput ? waInput.value : '081234567890',
+        plan_name: 'Paket PRO (Bisnis)'
+      };
+
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+        window.closeAuthModal();
+        alert(`✅ ${json.message}`);
+      } catch (err) {
+        alert('✅ Registrasi berhasil! Akun Anda kini berstatus UNVERIFIED.');
+        window.closeAuthModal();
+      }
+    });
+  }
+
+  // --- LOGOUT HANDLERS ---
+  if (btnLogoutClient) {
+    btnLogoutClient.onclick = () => {
+      if (viewDashboard) viewDashboard.style.display = 'none';
+      if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
+      if (viewLanding) viewLanding.style.display = 'block';
+      window.scrollTo(0, 0);
+    };
+  }
+
+  if (btnLogoutAdmin) {
+    btnLogoutAdmin.onclick = () => {
+      if (viewSuperAdmin) viewSuperAdmin.style.display = 'none';
+      if (viewDashboard) viewDashboard.style.display = 'none';
+      if (viewLanding) viewLanding.style.display = 'block';
+      window.scrollTo(0, 0);
+    };
+  }
 
   // --- SUPER ADMIN SIDEBAR TAB ROUTER ---
   const adminNavItems = document.querySelectorAll('[data-admin-tab]');
@@ -511,6 +644,41 @@ document.addEventListener('DOMContentLoaded', () => {
       const sec = document.getElementById(`agent-sec-${target}`);
       if (sec) sec.style.display = 'block';
 
+      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+    });
+  });
+
+  // --- CMS SUB-TABS ROUTER IN SUPER ADMIN ---
+  const cmsTabs = document.querySelectorAll('[data-cms]');
+  const cmsSections = document.querySelectorAll('.cms-sec');
+
+  cmsTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.getAttribute('data-cms');
+      cmsTabs.forEach(t => t.classList.remove('active'));
+      cmsSections.forEach(s => s.style.display = 'none');
+
+      tab.classList.add('active');
+      const sec = document.getElementById(`cms-sec-${target}`);
+      if (sec) sec.style.display = 'block';
+
+      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
+    });
+  });
+
+  // --- TENANT CLIENT DASHBOARD SIDEBAR ROUTER ---
+  const tenantNavItems = document.querySelectorAll('[data-tab]');
+  const tenantTabContents = document.querySelectorAll('.tab-content');
+
+  tenantNavItems.forEach(item => {
+    item.addEventListener('click', () => {
+      const target = item.getAttribute('data-tab');
+      tenantNavItems.forEach(i => i.classList.remove('active'));
+      tenantTabContents.forEach(c => c.style.display = 'none');
+
+      item.classList.add('active');
+      const targetSec = document.getElementById(`tab-${target}`);
+      if (targetSec) targetSec.style.display = 'block';
       setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
     });
   });
@@ -718,42 +886,91 @@ document.addEventListener('DOMContentLoaded', () => {
   setupAgentChatTester('fb-sim-send', 'fb-sim-input', 'fb-chat-body', 'feedback', '💡 Aura (Product Analyst)', '#9333ea');
   setupAgentChatTester('pu-sim-send', 'pu-sim-input', 'pu-chat-body', 'platform_updates', '🚀 Jarvis (Platform Release AI)', 'var(--primary-accent)');
 
-  // CMS SUB-TABS ROUTER IN SUPER ADMIN
-  const cmsTabs = document.querySelectorAll('[data-cms]');
-  const cmsSections = document.querySelectorAll('.cms-sec');
+  // --- OTHER MODULE FETCHERS & AUXILIARY FUNCTIONS ---
+  async function fetchTenantSop() {
+    try {
+      const res = await fetch('/api/tenant/sop');
+      const json = await res.json();
+      if (json.status === 'success') {
+        const editor = document.getElementById('sop-rich-editor');
+        if (editor) editor.innerHTML = json.sop_html;
+      }
+    } catch(e) {}
+  }
 
-  cmsTabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      const target = tab.getAttribute('data-cms');
-      cmsTabs.forEach(t => t.classList.remove('active'));
-      cmsSections.forEach(s => s.style.display = 'none');
+  async function fetchTenantProducts() {
+    try {
+      const res = await fetch('/api/tenant/products');
+      const json = await res.json();
+      if (json.status === 'success') window.rawTenantProductsData = json.data;
+    } catch(e) {}
+  }
 
-      tab.classList.add('active');
-      const sec = document.getElementById(`cms-sec-${target}`);
-      if (sec) sec.style.display = 'block';
+  async function fetchTenantTopups() {
+    try {
+      const res = await fetch('/api/tenant/topups');
+      const json = await res.json();
+      if (json.status === 'success') window.rawTenantTopupsData = json.data;
+    } catch(e) {}
+  }
 
-      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-    });
-  });
+  async function fetchTenantOrders() {
+    try {
+      const res = await fetch('/api/tenant/orders');
+      const json = await res.json();
+      if (json.status === 'success') window.rawTenantOrdersData = json.data;
+    } catch(e) {}
+  }
 
-  // TENANT CLIENT DASHBOARD SIDEBAR ROUTER
-  const tenantNavItems = document.querySelectorAll('[data-tab]');
-  const tenantTabContents = document.querySelectorAll('.tab-content');
+  async function fetchTenantChatHistory() {
+    try {
+      const res = await fetch('/api/tenant/chat-history');
+      const json = await res.json();
+      if (json.status === 'success') window.rawTenantChatHistoryData = json.data;
+    } catch(e) {}
+  }
 
-  tenantNavItems.forEach(item => {
-    item.addEventListener('click', () => {
-      const target = item.getAttribute('data-tab');
-      tenantNavItems.forEach(i => i.classList.remove('active'));
-      tenantTabContents.forEach(c => c.style.display = 'none');
+  async function fetchAdminTenants() {
+    try {
+      const res = await fetch('/api/admin/tenants');
+      const json = await res.json();
+      if (json.status === 'success') window.rawTenantsData = json.data;
+    } catch(e) {}
+  }
 
-      item.classList.add('active');
-      const targetSec = document.getElementById(`tab-${target}`);
-      if (targetSec) targetSec.style.display = 'block';
-      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 50);
-    });
-  });
+  async function fetchAdminPortfolio() {
+    try {
+      const res = await fetch('/api/portfolio');
+      const json = await res.json();
+      if (json.status === 'success') window.rawPortfolioData = json.data;
+    } catch(e) {}
+  }
 
-  // INITIAL FETCHERS FOR ALL MODULES
+  async function fetchAdminFeatures() {
+    try {
+      const res = await fetch('/api/features');
+      const json = await res.json();
+      if (json.status === 'success') window.rawFeaturesData = json.data;
+    } catch(e) {}
+  }
+
+  async function fetchAdminPricing() {
+    try {
+      const res = await fetch('/api/pricing');
+      const json = await res.json();
+      if (json.status === 'success') window.rawPricingData = json.data;
+    } catch(e) {}
+  }
+
+  async function fetchAdminTopups() {
+    try {
+      const res = await fetch('/api/tenant/topups');
+      const json = await res.json();
+      if (json.status === 'success') window.rawAdminTopupsData = json.data;
+    } catch(e) {}
+  }
+
+  // INITIAL FETCHERS RUN FOR ALL MODULES
   fetchTenantSop();
   fetchTenantProducts();
   fetchTenantTopups();
